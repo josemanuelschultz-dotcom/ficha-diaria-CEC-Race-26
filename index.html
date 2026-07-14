@@ -129,17 +129,60 @@
 <script>
 /* ============ CONSTANTS ============ */
 const NAVY="#0B2545", RED="#E5383B", BLUE="#3E92CC", GRAY="#8D99AE", GOLD="#FFB703", GREEN="#2E8B57";
-const DISCIPLINAS = ["SL","GS","SG","KR"];
 const NIEVE = ["Hielo","Compacta","Polvo","Primavera"];
 const CLIMA = ["Soleado","Nublado","Viento","Nevando","Niebla","Lluvia"];
-const TRABAJO = [
-  {label:"Didáctico", color:BLUE},
-  {label:"Trazado de carrera", color:RED},
-  {label:"Ejercicios educativos", color:GOLD},
-  {label:"Esquí libre dirigido", color:GREEN},
-];
 const FUNDAMENTOS = ["Equilibrio","Control de canteo","Control de presión","Rotación","Gestión de línea"];
-const CATEGORIAS = ["Semillero","U8","U10","U12","U14","U16"];
+
+const PROGRAMS = ["Race","Freeski","Master","Snowboard"];
+const PROGRAM_CATEGORIES = {
+  "Race": ["Semillero","U8","U10","U12","U14","U16"],
+  "Freeski": ["Freeski Básico","Freeski Intermedio/Avanzado","Nivelación"],
+  "Master": ["Master Básico","Master Intermedio 1","Master Intermedio 2","Master Avanzado","Freeski"],
+  "Snowboard": ["Snowboard"],
+};
+const PROGRAM_CONFIG = {
+  "Race": {
+    disciplinas: ["SL","GS","SG","KR"],
+    trabajo: [
+      {label:"Didáctico", color:BLUE},
+      {label:"Trazado de carrera", color:RED},
+      {label:"Ejercicios educativos", color:GOLD},
+      {label:"Esquí libre dirigido", color:GREEN},
+    ],
+    hasCurvas: true,
+  },
+  "Freeski": {
+    disciplinas: ["Pista","Fuera de Pista","Saltos"],
+    trabajo: [
+      {label:"Didáctico", color:BLUE},
+      {label:"Ejercicios educativos", color:GOLD},
+      {label:"Esquí libre dirigido", color:GREEN},
+    ],
+    hasCurvas: false,
+  },
+  "Master": {
+    disciplinas: ["Pista","Fuera de Pista"],
+    trabajo: [
+      {label:"Didáctico", color:BLUE},
+      {label:"Ejercicios educativos", color:GOLD},
+      {label:"Esquí libre dirigido", color:GREEN},
+    ],
+    hasCurvas: false,
+  },
+  "Snowboard": {
+    disciplinas: ["Pista","Fuera de Pista","Saltos"],
+    trabajo: [
+      {label:"Didáctico", color:BLUE},
+      {label:"Ejercicios educativos", color:GOLD},
+    ],
+    hasCurvas: false,
+  },
+};
+function programOf(groupId){
+  const g = groups.find(x => x.id === groupId);
+  return g ? g.program : "Race";
+}
+function configFor(program){ return PROGRAM_CONFIG[program] || PROGRAM_CONFIG["Race"]; }
 
 const K_AUTH = "ski-auth-session"; // per-device only (not synced): who is logged in on this browser
 
@@ -207,7 +250,10 @@ function escapeHtml(str){ const d=document.createElement("div"); d.textContent =
 function blankFicha(){ return {phone:"", enfermedades:"", alergias:"", medicamentos:"", otros:""}; }
 function blankAccessConfig(){
   const categoryCodes = {};
-  CATEGORIAS.forEach(c => categoryCodes[c] = "");
+  PROGRAMS.forEach(p => {
+    categoryCodes[p] = {};
+    PROGRAM_CATEGORIES[p].forEach(c => { categoryCodes[p][c] = []; });
+  });
   return { masterCode:"", categoryCodes };
 }
 function blankSessionForm(){
@@ -221,6 +267,7 @@ let sessions = [];
 let attendance = [];
 let accessConfig = null; // null = still loading
 let authState = null; // null = locked
+let currentProgram = "Race"; // master can switch; category-level trainers are fixed to their program
 
 let tab = "setup";
 let selectedGroupId = null;
@@ -245,15 +292,16 @@ function persistAuth(){ if(authState) lsSet(K_AUTH, authState); else localStorag
 
 /* ============ DERIVED HELPERS ============ */
 function groupAthletes(){ return athletes.filter(a => a.groupId === selectedGroupId); }
-function ensureCategoryGroup(name){
-  let g = groups.find(gr => gr.name === name);
+function ensureCategoryGroup(program, name){
+  let g = groups.find(gr => gr.program === program && gr.name === name);
   if(!g){
-    g = { id: "tmp-" + uid(), name };
+    g = { id: "tmp-" + uid(), name, program };
     groups.push(g);
-    sbInsert("groups", {name}, {onConflict:"name", merge:true}).then(row => { g.id = row.id; }).catch(()=>{});
+    sbInsert("groups", {name, program}, {onConflict:"program,name", merge:true}).then(row => { g.id = row.id; }).catch(()=>{});
   }
   return g;
 }
+function groupsForProgram(program){ return groups.filter(g => g.program === program); }
 
 function athleteStats(athleteId, groupId){
   const attRecs = attendance.filter(a => a.athleteId === athleteId);
@@ -262,6 +310,7 @@ function athleteStats(athleteId, groupId){
   const attendancePct = totalDays ? Math.round(presentDays/totalDays*100) : 0;
   const presentDates = new Set(attRecs.filter(a=>a.present).map(a=>a.date));
   const credited = sessions.filter(s => s.groupId === groupId && presentDates.has(s.date));
+  const cfg = configFor(programOf(groupId));
 
   function pct(key, options){
     const total = credited.length;
@@ -277,10 +326,10 @@ function athleteStats(athleteId, groupId){
 
   return {
     attendancePct, presentDays, totalDays,
-    disciplina: pct("disciplina", DISCIPLINAS),
+    disciplina: pct("disciplina", cfg.disciplinas),
     nieve: pct("nieve", NIEVE),
     clima: pct("clima", CLIMA),
-    trabajo: pct("trabajo", TRABAJO.map(t=>t.label)),
+    trabajo: pct("trabajo", cfg.trabajo.map(t=>t.label)),
     fundamentos: fundamentosPct,
     educativasCount: educativas.length,
     totalCurvas: credited.reduce((sum,s)=>sum+(s.totalCurvas||0),0),
@@ -291,8 +340,6 @@ function athleteStats(athleteId, groupId){
 /* ============ AUTH ACTIONS ============ */
 async function handleFirstTimeSetup(){
   if(!setupDraft.masterCode.trim()){ authError = "Define un código para el jefe de entrenadores."; render(); return; }
-  const missing = CATEGORIAS.filter(c => !setupDraft.categoryCodes[c] || !setupDraft.categoryCodes[c].trim());
-  if(missing.length){ authError = "Falta definir el código de: " + missing.join(", ") + "."; render(); return; }
   authError = "";
   try{
     const row = await sbUpdate("access_config", {id:1}, {master_code: setupDraft.masterCode, category_codes: setupDraft.categoryCodes});
@@ -308,12 +355,18 @@ function handleLogin(){
   if(code === accessConfig.masterCode){
     authState = {level:"master"}; persistAuth(); pinInput=""; authError=""; render(); return;
   }
-  const cat = CATEGORIAS.find(c => accessConfig.categoryCodes[c] && accessConfig.categoryCodes[c] === code);
-  if(cat){
-    authState = {level:"category", category:cat}; persistAuth(); pinInput=""; authError="";
-    const g = ensureCategoryGroup(cat);
-    selectedGroupId = g.id;
-    render(); return;
+  for(const program of PROGRAMS){
+    const cats = accessConfig.categoryCodes[program] || {};
+    for(const category of Object.keys(cats)){
+      const codes = Array.isArray(cats[category]) ? cats[category] : [cats[category]];
+      if(codes.includes(code)){
+        authState = {level:"category", program, category}; persistAuth(); pinInput=""; authError="";
+        currentProgram = program;
+        const g = ensureCategoryGroup(program, category);
+        selectedGroupId = g.id;
+        render(); return;
+      }
+    }
   }
   authError = "Código incorrecto.";
   render();
@@ -321,7 +374,7 @@ function handleLogin(){
 function handleLogout(){
   authState = null; persistAuth(); pinInput=""; tab="setup"; render();
 }
-function openAdmin(){ adminDraft = { masterCode: accessConfig.masterCode, categoryCodes: {...accessConfig.categoryCodes} }; render(); }
+function openAdmin(){ adminDraft = JSON.parse(JSON.stringify({ masterCode: accessConfig.masterCode, categoryCodes: accessConfig.categoryCodes })); render(); }
 async function saveAdminCodes(){
   try{
     const row = await sbUpdate("access_config", {id:1}, {master_code: adminDraft.masterCode, category_codes: adminDraft.categoryCodes});
@@ -332,8 +385,8 @@ async function saveAdminCodes(){
 }
 
 /* ============ GROUP / ATHLETE ACTIONS ============ */
-function selectCategory(name){
-  const g = ensureCategoryGroup(name);
+function selectCategory(program, name){
+  const g = ensureCategoryGroup(program, name);
   selectedGroupId = g.id;
   render();
 }
@@ -470,10 +523,11 @@ async function saveDay(){
 /* ============ EXPORT ============ */
 function buildDaySummaryText(){
   const group = groups.find(g => g.id === selectedGroupId);
+  const cfg = configFor(programOf(selectedGroupId));
   const gAthletes = groupAthletes();
   const present = gAthletes.filter(a => attendanceState[a.id]);
   const absent = gAthletes.filter(a => !attendanceState[a.id]);
-  let text = `🎿 Entrenamiento ${group?.name||""} — ${selectedDate}\n\n`;
+  let text = `🎿 ${group?.program||""} — ${group?.name||""} — ${selectedDate}\n\n`;
   text += `Asistencia: ${present.length}/${gAthletes.length} presentes\n`;
   if(present.length) text += `Presentes: ${present.map(a=>a.name).join(", ")}\n`;
   if(absent.length) text += `Ausentes: ${absent.map(a=>a.name).join(", ")}\n`;
@@ -488,9 +542,13 @@ function buildDaySummaryText(){
     text += `Clima: ${s.clima}\n`;
     text += `Trabajo realizado: ${s.trabajo}\n`;
     if(s.fundamentos && s.fundamentos.length) text += `Fundamentos: ${s.fundamentos.join(", ")}\n`;
-    text += `Curvas por bajada: ${s.curvasPorBajada||0}\n`;
-    text += `Cantidad de bajadas: ${s.bajadas||0}\n`;
-    text += `Total de curvas: ${total}\n`;
+    if(cfg.hasCurvas){
+      text += `Curvas por bajada: ${s.curvasPorBajada||0}\n`;
+      text += `Cantidad de bajadas: ${s.bajadas||0}\n`;
+      text += `Total de curvas: ${total}\n`;
+    } else {
+      text += `Cantidad de bajadas: ${s.bajadas||0}\n`;
+    }
     if(s.notas && s.notas.trim()) text += `Observaciones: ${s.notas.trim()}\n`;
     text += `\n`;
   }
@@ -563,14 +621,7 @@ function renderFirstTimeSetup(){
 
       <label class="field-label">Código del jefe de entrenadores (acceso a todo)</label>
       <input type="text" id="setup-master" value="${escapeHtml(setupDraft.masterCode)}" placeholder="Ej. 1234" style="margin-bottom:14px;" />
-
-      <div style="font-family:'Oswald',sans-serif;text-transform:uppercase;font-size:12px;color:${NAVY};letter-spacing:.05em;margin-bottom:8px;">Código por categoría</div>
-      ${CATEGORIAS.map(c => `
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
-          <span style="font-size:13px;width:60px;flex-shrink:0;">${c}</span>
-          <input type="text" class="setup-cat-code" data-cat="${c}" value="${escapeHtml(setupDraft.categoryCodes[c]||"")}" placeholder="Código..." />
-        </div>
-      `).join("")}
+      <div style="font-size:12px;color:${GRAY};margin-bottom:14px;">Los códigos por categoría y programa se configuran después, desde la pestaña "Accesos".</div>
 
       ${authError ? `<div class="error-box">${escapeHtml(authError)}</div>` : ""}
 
@@ -631,6 +682,7 @@ function renderHeader(){
   const visibleTabs = authState.level === "master"
     ? [["setup","Grupos"],["daily","Registro diario"],["profile","Perfil"],["access","Accesos"]]
     : [["setup","Grupos"],["daily","Registro diario"],["profile","Perfil"]];
+  const roleLabel = authState.level==="master" ? "Jefe de entrenadores" : `${authState.program} · ${authState.category}`;
   return `
   <div class="hero">
     <div class="gates"><div style="background:${RED}"></div><div style="background:${BLUE}"></div><div style="background:${RED}"></div></div>
@@ -638,12 +690,16 @@ function renderHeader(){
     <div class="hero-top-row">
       <div class="hero-title">Entrenamiento &amp; asistencia</div>
       <div class="role-badges">
-        <span class="role-badge">🔒 ${authState.level==="master" ? "Jefe de entrenadores" : "Categoría "+authState.category}</span>
+        <span class="role-badge">🔒 ${roleLabel}</span>
         <button class="role-badge" id="refresh-btn" ${refreshing?"disabled":""}>${refreshing? "⏳ Actualizando..." : "🔄 Actualizar"}</button>
         <button class="role-badge" id="logout-btn">🚪 Salir</button>
       </div>
     </div>
     <div class="hero-sub">Se sincroniza con la base de datos${lastSync ? ` · última actualización ${lastSync.toLocaleTimeString("es-ES",{hour:"2-digit",minute:"2-digit",second:"2-digit"})}` : ""}</div>
+    ${authState.level==="master" ? `
+    <div class="tabs" style="margin-top:10px;">
+      ${PROGRAMS.map(p => `<button class="tab-btn" data-program="${p}" style="background:${currentProgram===p?GOLD:"#16305C"};color:${currentProgram===p?NAVY:"#B8C4D9"};font-weight:${currentProgram===p?700:500};">${p}</button>`).join("")}
+    </div>` : ""}
     <div class="tabs">
       ${visibleTabs.map(([id,label]) => `<button class="tab-btn" data-tab="${id}" style="background:${tab===id?"white":"#16305C"};color:${tab===id?NAVY:"#B8C4D9"};font-weight:${tab===id?600:500};">${label}</button>`).join("")}
     </div>
@@ -657,8 +713,8 @@ function renderSetupTab(){
 
   if(authState.level === "master"){
     html += `<div class="pills" style="margin-bottom:6px;">`;
-    CATEGORIAS.forEach(c => {
-      const g = groups.find(gr => gr.name === c);
+    PROGRAM_CATEGORIES[currentProgram].forEach(c => {
+      const g = groups.find(gr => gr.program === currentProgram && gr.name === c);
       const isSelected = g && g.id === selectedGroupId;
       const isCreated = !!g;
       html += `<button type="button" class="cat-btn${isCreated?" created":""}${isSelected?" selected":""}" data-cat="${c}">
@@ -667,7 +723,7 @@ function renderSetupTab(){
     });
     html += `</div><div style="font-size:12px;color:${GRAY};margin-bottom:16px;">Toca una categoría para activarla. La "✕" elimina la categoría junto con sus integrantes.</div>`;
   } else {
-    html += `<div class="cat-fixed" style="margin-bottom:16px;">👥 ${authState.category}</div>`;
+    html += `<div class="cat-fixed" style="margin-bottom:16px;">👥 ${authState.program} · ${authState.category}</div>`;
   }
 
   if(selectedGroupId){
@@ -719,13 +775,15 @@ function renderDailyTab(){
     return `<div class="card" style="text-align:center;color:${GRAY};font-size:13px;">Crea un grupo primero en la pestaña "Grupos".</div>`;
   }
   const gAthletes = groupAthletes();
+  const program = programOf(selectedGroupId);
+  const cfg = configFor(program);
   let html = `<div class="card">
     <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:14px;">`;
 
   if(authState.level === "master"){
-    html += `<select id="daily-group-select">${groups.map(g => `<option value="${g.id}" ${g.id===selectedGroupId?"selected":""}>${escapeHtml(g.name)}</option>`).join("")}</select>`;
+    html += `<select id="daily-group-select">${groupsForProgram(currentProgram).map(g => `<option value="${g.id}" ${g.id===selectedGroupId?"selected":""}>${escapeHtml(g.name)}</option>`).join("")}</select>`;
   } else {
-    html += `<div class="cat-fixed">${authState.category}</div>`;
+    html += `<div class="cat-fixed">${authState.program} · ${authState.category}</div>`;
   }
   html += `<input type="date" id="daily-date-input" value="${selectedDate}" /></div>`;
 
@@ -762,7 +820,7 @@ function renderDailyTab(){
         <div style="font-family:'Oswald',sans-serif;font-weight:600;font-size:14px;color:${NAVY};margin-bottom:10px;">Sesión ${i}</div>
 
         <div style="font-size:12px;color:${GRAY};margin-bottom:6px;">Disciplina</div>
-        <div class="pills" data-session="${i}" data-pillgroup="disciplina" style="margin-bottom:12px;">${pillsHTML(DISCIPLINAS, "disciplina", s.disciplina)}</div>
+        <div class="pills" data-session="${i}" data-pillgroup="disciplina" style="margin-bottom:12px;">${pillsHTML(cfg.disciplinas, "disciplina", s.disciplina)}</div>
 
         <div style="font-size:12px;color:${GRAY};margin-bottom:6px;">Tipo de nieve</div>
         <div class="pills" data-session="${i}" data-pillgroup="nieve" style="margin-bottom:12px;">${pillsHTML(NIEVE, "nieve", s.nieve)}</div>
@@ -771,7 +829,7 @@ function renderDailyTab(){
         <div class="pills" data-session="${i}" data-pillgroup="clima" style="margin-bottom:12px;">${pillsHTML(CLIMA, "clima", s.clima)}</div>
 
         <div style="font-size:12px;color:${GRAY};margin-bottom:6px;">Trabajo realizado</div>
-        <div class="pills" data-session="${i}" data-pillgroup="trabajo" style="margin-bottom:12px;">${pillsHTML(TRABAJO, "trabajo", s.trabajo)}</div>
+        <div class="pills" data-session="${i}" data-pillgroup="trabajo" style="margin-bottom:12px;">${pillsHTML(cfg.trabajo, "trabajo", s.trabajo)}</div>
 
         ${s.trabajo === "Ejercicios educativos" ? `
           <div class="fund-box">
@@ -780,6 +838,7 @@ function renderDailyTab(){
           </div>` : ""}
 
         <div class="steppers">
+          ${cfg.hasCurvas ? `
           <div class="stepper">
             <div class="lbl">Curvas por bajada</div>
             <div class="box">
@@ -787,7 +846,7 @@ function renderDailyTab(){
               <input type="text" inputmode="numeric" class="num-input" data-session="${i}" data-target="curvasPorBajada" value="${s.curvasPorBajada||0}" />
               <button data-session="${i}" data-target="curvasPorBajada" data-delta="1">+</button>
             </div>
-          </div>
+          </div>` : ""}
           <div class="stepper">
             <div class="lbl">Cantidad de bajadas</div>
             <div class="box">
@@ -797,7 +856,7 @@ function renderDailyTab(){
             </div>
           </div>
         </div>
-        <div class="total-box"><span class="lbl">Total de curvas</span><span class="val" id="total-${i}">${total}</span></div>
+        ${cfg.hasCurvas ? `<div class="total-box"><span class="lbl">Total de curvas</span><span class="val" id="total-${i}">${total}</span></div>` : ""}
 
         <textarea class="notas-input" data-session="${i}" rows="2" placeholder="Observaciones de la sesión...">${escapeHtml(s.notas)}</textarea>
       </div>`;
@@ -825,7 +884,7 @@ function renderProfileTab(){
   let html = `<div class="card">
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;">`;
   if(authState.level === "master"){
-    html += `<select id="profile-group-select">${groups.map(g => `<option value="${g.id}" ${g.id===selectedGroupId?"selected":""}>${escapeHtml(g.name)}</option>`).join("")}</select>`;
+    html += `<select id="profile-group-select">${groupsForProgram(currentProgram).map(g => `<option value="${g.id}" ${g.id===selectedGroupId?"selected":""}>${escapeHtml(g.name)}</option>`).join("")}</select>`;
   }
   const gAthletes = groupAthletes();
   html += `<select id="profile-athlete-select">${gAthletes.map(a => `<option value="${a.id}" ${a.id===profileAthleteId?"selected":""}>${escapeHtml(a.name)}</option>`).join("")}</select>`;
@@ -863,7 +922,7 @@ function renderProfileTab(){
   html += variableBlockHTML("Disciplina", st.disciplina, () => NAVY);
   html += variableBlockHTML("Tipo de nieve", st.nieve, () => BLUE);
   html += variableBlockHTML("Clima", st.clima, () => GOLD);
-  html += variableBlockHTML("Trabajo realizado", st.trabajo, (name) => (TRABAJO.find(t=>t.label===name)||{}).color || NAVY);
+  html += variableBlockHTML("Trabajo realizado", st.trabajo, (name) => (configFor(programOf(selectedGroupId)).trabajo.find(t=>t.label===name)||{}).color || NAVY);
 
   if(st.educativasCount > 0){
     html += variableBlockHTML("Fundamentos (en ejercicios educativos)", st.fundamentos, () => GOLD);
@@ -887,18 +946,25 @@ function renderAccessTab(){
       <div style="position:relative;margin-bottom:14px;">
         <input type="${showAdminCodes.master?"text":"password"}" id="admin-master-code" value="${escapeHtml(adminDraft.masterCode)}" style="font-family:'JetBrains Mono',monospace;" />
       </div>
-      <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:${GRAY};margin-bottom:12px;">
+      <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:${GRAY};margin-bottom:16px;">
         <input type="checkbox" id="admin-master-show" ${showAdminCodes.master?"checked":""}/> Mostrar código del jefe
-      </label>
-      <div style="font-family:'Oswald',sans-serif;text-transform:uppercase;font-size:11px;color:${NAVY};letter-spacing:.05em;margin-bottom:8px;">Código por categoría</div>`;
-    CATEGORIAS.forEach(c => {
-      html += `<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
-        <span style="font-size:13px;width:50px;flex-shrink:0;">${c}</span>
-        <input type="${showAdminCodes[c]?"text":"password"}" class="admin-cat-code" data-cat="${c}" value="${escapeHtml(adminDraft.categoryCodes[c]||"")}" style="font-family:'JetBrains Mono',monospace;flex:1;" />
-        <label style="font-size:11px;color:${GRAY};display:flex;align-items:center;gap:3px;"><input type="checkbox" class="admin-cat-show" data-cat="${c}" ${showAdminCodes[c]?"checked":""}/> ver</label>
-      </div>`;
+      </label>`;
+    PROGRAMS.forEach(p => {
+      html += `<div style="font-family:'Oswald',sans-serif;text-transform:uppercase;font-size:12px;color:${NAVY};letter-spacing:.05em;margin:16px 0 8px;border-top:1px solid #EEF1F5;padding-top:14px;">${p}</div>`;
+      PROGRAM_CATEGORIES[p].forEach(c => {
+        const key = p + "|" + c;
+        const codes = adminDraft.categoryCodes[p]?.[c] || [];
+        html += `<div style="margin-bottom:10px;">
+          <div style="font-size:12px;color:${GRAY};margin-bottom:3px;">${c}</div>
+          <div style="display:flex;align-items:center;gap:6px;">
+            <input type="${showAdminCodes[key]?"text":"password"}" class="admin-cat-code" data-key="${key}" value="${escapeHtml(codes.join(", "))}" placeholder="Código..." style="font-family:'JetBrains Mono',monospace;flex:1;" />
+            <label style="font-size:11px;color:${GRAY};display:flex;align-items:center;gap:3px;white-space:nowrap;"><input type="checkbox" class="admin-cat-show" data-key="${key}" ${showAdminCodes[key]?"checked":""}/> ver</label>
+          </div>
+        </div>`;
+      });
     });
-    html += `<div style="display:flex;gap:8px;margin-top:12px;">
+    html += `<div style="font-size:11px;color:${GRAY};margin-bottom:10px;">Para dar acceso a varios entrenadores en la misma categoría, separa los códigos con comas (ej. "BENJA, PATO, TUTO").</div>`;
+    html += `<div style="display:flex;gap:8px;margin-top:4px;">
       <button class="save-btn" id="save-admin-codes-btn" style="flex:1;">✓ Guardar códigos</button>
       <button class="btn-outline" id="cancel-admin-btn">Cancelar</button>
     </div>`;
@@ -929,7 +995,8 @@ function render(){
     return;
   }
   if(authState.level === "category" && !selectedGroupId){
-    const g = ensureCategoryGroup(authState.category);
+    currentProgram = authState.program;
+    const g = ensureCategoryGroup(authState.program, authState.category);
     selectedGroupId = g.id;
   }
   if(tab === "daily" || tab === "profile"){
@@ -969,6 +1036,17 @@ function attachAppHandlers(){
   const refreshBtn = document.getElementById("refresh-btn");
   if(refreshBtn) refreshBtn.addEventListener("click", manualRefresh);
 
+  document.querySelectorAll("[data-program]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      currentProgram = btn.dataset.program;
+      const list = groupsForProgram(currentProgram);
+      selectedGroupId = list.length ? list[0].id : null;
+      profileAthleteId = null;
+      if(tab === "daily") initDailyForm();
+      render();
+    });
+  });
+
   document.querySelectorAll("[data-tab]").forEach(btn => {
     btn.addEventListener("click", () => {
       tab = btn.dataset.tab;
@@ -990,7 +1068,7 @@ function attachAppHandlers(){
 function attachSetupTabHandlers(){
   document.querySelectorAll("[data-cat]").forEach(btn => {
     if(btn.dataset.cat && btn.classList.contains("cat-btn")){
-      btn.addEventListener("click", (e) => { if(e.target.closest("[data-remove-group]")) return; selectCategory(btn.dataset.cat); });
+      btn.addEventListener("click", (e) => { if(e.target.closest("[data-remove-group]")) return; selectCategory(currentProgram, btn.dataset.cat); });
     }
   });
   document.querySelectorAll("[data-remove-group]").forEach(el => {
@@ -1137,10 +1215,14 @@ function attachAccessTabHandlers(){
   const masterShow = document.getElementById("admin-master-show");
   if(masterShow) masterShow.addEventListener("change", (e) => { showAdminCodes.master = e.target.checked; render(); });
   document.querySelectorAll(".admin-cat-code").forEach(inp => {
-    inp.addEventListener("input", (e) => { adminDraft.categoryCodes[inp.dataset.cat] = e.target.value; });
+    inp.addEventListener("input", (e) => {
+      const [p, c] = inp.dataset.key.split("|");
+      if(!adminDraft.categoryCodes[p]) adminDraft.categoryCodes[p] = {};
+      adminDraft.categoryCodes[p][c] = e.target.value.split(",").map(s => s.trim()).filter(Boolean);
+    });
   });
   document.querySelectorAll(".admin-cat-show").forEach(chk => {
-    chk.addEventListener("change", (e) => { showAdminCodes[chk.dataset.cat] = e.target.checked; render(); });
+    chk.addEventListener("change", (e) => { showAdminCodes[chk.dataset.key] = e.target.checked; render(); });
   });
   const saveBtn = document.getElementById("save-admin-codes-btn");
   if(saveBtn) saveBtn.addEventListener("click", saveAdminCodes);
@@ -1166,7 +1248,7 @@ async function loadAllData(){
   const [gRows, aRows, sRows, atRows, acRows] = await Promise.all([
     sbSelect("groups"), sbSelect("athletes"), sbSelect("sessions"), sbSelect("attendance"), sbSelect("access_config")
   ]);
-  groups = gRows.map(r => ({id:r.id, name:r.name}));
+  groups = gRows.map(r => ({id:r.id, name:r.name, program:r.program}));
   athletes = aRows.map(mapAthlete);
   sessions = sRows.map(mapSession);
   attendance = atRows.map(mapAttendance);
@@ -1185,10 +1267,11 @@ async function init(){
   authState = lsGet(K_AUTH, null);
 
   if(authState && authState.level === "category"){
-    const g = ensureCategoryGroup(authState.category);
+    currentProgram = authState.program;
+    const g = ensureCategoryGroup(authState.program, authState.category);
     selectedGroupId = g.id;
-  } else if(groups[0]){
-    selectedGroupId = groups[0].id;
+  } else if(groupsForProgram(currentProgram)[0]){
+    selectedGroupId = groupsForProgram(currentProgram)[0].id;
   }
   if(authState){
     if(tab === "daily") initDailyForm();
