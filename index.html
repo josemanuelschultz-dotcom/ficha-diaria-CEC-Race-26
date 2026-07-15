@@ -632,6 +632,32 @@ async function saveDay(){
   render();
 }
 
+function dayHasSavedData(){
+  return attendance.some(a => a.groupId===selectedGroupId && a.date===selectedDate)
+    || sessions.some(s => s.groupId===selectedGroupId && s.date===selectedDate);
+}
+
+async function deleteDayRecord(){
+  const group = groups.find(g => g.id === selectedGroupId);
+  const confirmed = confirm(`¿Borrar todo el registro de ${group?.name||""} del ${selectedDate}?\n\nEsto elimina la asistencia y todas las sesiones de ese día. No se puede deshacer.`);
+  if(!confirmed) return;
+
+  saveDayError = "";
+  saving = true; render();
+  try{
+    await sbDelete("attendance", { group_id: selectedGroupId, date: selectedDate });
+    await sbDelete("sessions", { group_id: selectedGroupId, date: selectedDate });
+    attendance = attendance.filter(a => !(a.groupId===selectedGroupId && a.date===selectedDate));
+    sessions = sessions.filter(s => !(s.groupId===selectedGroupId && s.date===selectedDate));
+    justSaved = false;
+    initDailyForm();
+  }catch(e){
+    saveDayError = `No se pudo borrar el registro. Detalle: ${e.message}. Vuelve a intentarlo; si persiste, dime exactamente este texto.`;
+  }
+  saving = false;
+  render();
+}
+
 /* ============ EXPORT ============ */
 function buildDaySummaryText(){
   const group = groups.find(g => g.id === selectedGroupId);
@@ -982,6 +1008,9 @@ function renderDailyTab(){
     if(justSaved){
       html += `<button class="save-btn" id="share-whatsapp-btn" style="background:${GREEN};margin-top:10px;">📲 Compartir a WhatsApp</button>`;
     }
+    if(dayHasSavedData()){
+      html += `<button class="btn-outline" id="delete-day-btn" style="width:100%;justify-content:center;margin-top:10px;border-color:${RED};color:${RED};">🗑️ Borrar registro del día</button>`;
+    }
     html += `</div>`;
 
     html += `<div class="card">
@@ -1320,6 +1349,8 @@ function attachDailyTabHandlers(){
   if(saveDayBtn) saveDayBtn.addEventListener("click", saveDay);
   const shareBtn = document.getElementById("share-whatsapp-btn");
   if(shareBtn) shareBtn.addEventListener("click", shareToWhatsApp);
+  const deleteDayBtn = document.getElementById("delete-day-btn");
+  if(deleteDayBtn) deleteDayBtn.addEventListener("click", deleteDayRecord);
   const exportBtn = document.getElementById("export-excel-btn");
   if(exportBtn) exportBtn.addEventListener("click", exportExcel);
   const copyBtn = document.getElementById("copy-summary-btn");
