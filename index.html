@@ -1033,10 +1033,10 @@ function renderSetupTab(){
       const isSelected = g && g.id === selectedGroupId;
       const isCreated = !!g;
       html += `<button type="button" class="cat-btn${isCreated?" created":""}${isSelected?" selected":""}" data-cat="${c}">
-        👥 ${c} ${isCreated ? `<span class="x" data-remove-group="${g.id}">✕</span>` : ""}
+        👥 ${c}
       </button>`;
     });
-    html += `</div><div style="font-size:12px;color:${GRAY};margin-bottom:16px;">Toca una categoría para activarla. La "✕" elimina la categoría junto con sus integrantes.</div>`;
+    html += `</div><div style="font-size:12px;color:${GRAY};margin-bottom:16px;">Toca una categoría para activarla.</div>`;
   } else {
     html += `<div class="cat-fixed" style="margin-bottom:16px;">👥 ${authState.program} · ${authState.category}</div>`;
   }
@@ -1391,19 +1391,8 @@ function attachAppHandlers(){
 function attachSetupTabHandlers(){
   document.querySelectorAll("[data-cat]").forEach(btn => {
     if(btn.dataset.cat && btn.classList.contains("cat-btn")){
-      btn.addEventListener("click", (e) => { if(e.target.closest("[data-remove-group]")) return; selectCategory(currentProgram, btn.dataset.cat); });
+      btn.addEventListener("click", () => selectCategory(currentProgram, btn.dataset.cat));
     }
-  });
-  document.querySelectorAll("[data-remove-group]").forEach(el => {
-    el.addEventListener("click", (e) => {
-      e.stopPropagation();
-      const id = el.dataset.removeGroup;
-      const group = groups.find(g => g.id === id);
-      const name = group ? group.name : "esta categoría";
-      if(confirm(`¿Eliminar la categoría ${name}? Se borrarán también todos sus integrantes, sesiones y asistencia. Esta acción no se puede deshacer.`)){
-        removeGroup(id);
-      }
-    });
   });
   const addBtn = document.getElementById("add-athlete-btn");
   if(addBtn){
