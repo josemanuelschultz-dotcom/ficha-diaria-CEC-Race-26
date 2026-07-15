@@ -299,6 +299,16 @@ let attendance = [];
 let accessConfig = null; // null = still loading
 let authState = null; // null = locked
 let currentProgram = "Race"; // master can switch; category-level trainers are fixed to their program
+let trainers = [];
+let trainerAttendance = [];
+let trainerAttDate = todayISO();
+let trainerAttendanceState = {};
+let trainerCalOpen = false;
+let trainerCalViewMonth = null;
+let newTrainerName = "";
+let trainerSaving = false;
+let trainerSaveError = "";
+let trainerJustSaved = false;
 
 let tab = "setup";
 let selectedGroupId = null;
@@ -662,6 +672,191 @@ async function deleteDayRecord(){
   render();
 }
 
+/* ============ TRAINER ATTENDANCE (master only) ============ */
+function initTrainerAttendanceForm(){
+  trainerAttendanceState = {};
+  trainers.forEach(t => {
+    const rec = trainerAttendance.find(r => r.trainerId === t.id && r.date === trainerAttDate);
+    trainerAttendanceState[t.id] = rec ? rec.present : true;
+  });
+  trainerJustSaved = false;
+}
+async function addTrainer(){
+  const name = newTrainerName.trim();
+  if(!name) return;
+  try{
+    const row = await sbInsert("trainers", { name });
+    trainers.push({id:row.id, name:row.name});
+    newTrainerName = "";
+    initTrainerAttendanceForm();
+    render();
+  }catch(e){ alert("No se pudo agregar: " + e.message); }
+}
+async function removeTrainer(id){
+  const trainer = trainers.find(t => t.id === id);
+  const confirmed = confirm(`¿Eliminar a ${trainer?.name||"este entrenador"} de la lista? Se borra también su historial de asistencia.`);
+  if(!confirmed) return;
+  try{
+    await sbDelete("trainers", { id });
+    trainers = trainers.filter(t => t.id !== id);
+    trainerAttendance = trainerAttendance.filter(r => r.trainerId !== id);
+    render();
+  }catch(e){ alert("No se pudo eliminar: " + e.message); }
+}
+async function saveTrainerAttendance(){
+  trainerSaveError = "";
+  trainerSaving = true; render();
+  try{
+    const rows = trainers.map(t => ({ trainer_id: t.id, date: trainerAttDate, present: !!trainerAttendanceState[t.id] }));
+    if(rows.length){
+      const saved = await sbInsert("trainer_attendance", rows, {onConflict:"trainer_id,date", merge:true});
+      const savedArr = Array.isArray(saved) ? saved : [saved];
+      savedArr.forEach(row => {
+        const mapped = {id:row.id, trainerId:row.trainer_id, date:row.date, present:row.present};
+        const idx = trainerAttendance.findIndex(x => x.trainerId===mapped.trainerId && x.date===mapped.date);
+        if(idx>=0) trainerAttendance[idx]=mapped; else trainerAttendance.push(mapped);
+      });
+    }
+    trainerJustSaved = true;
+  }catch(e){
+    trainerSaveError = `No se pudo guardar. Detalle: ${e.message}.`;
+  }
+  trainerSaving = false;
+  render();
+}
+function trainerStats(trainerId){
+  const recs = trainerAttendance.filter(r => r.trainerId === trainerId);
+  const total = recs.length;
+  const present = recs.filter(r => r.present).length;
+  return { total, present, pct: total ? Math.round((present/total)*100) : 0 };
+}
+
+function toggleTrainerCalendar(){
+  trainerCalOpen = !trainerCalOpen;
+  if(trainerCalOpen){
+    const [y,m] = trainerAttDate.split("-").map(Number);
+    trainerCalViewMonth = new Date(y, m-1, 1);
+  }
+  render();
+}
+function changeTrainerCalendarMonth(delta){
+  trainerCalViewMonth = new Date(trainerCalViewMonth.getFullYear(), trainerCalViewMonth.getMonth()+delta, 1);
+  render();
+}
+function selectTrainerCalendarDay(dateStr){
+  trainerAttDate = dateStr;
+  trainerCalOpen = false;
+  initTrainerAttendanceForm();
+  render();
+}
+function goToTodayTrainer(){
+  const t = new Date();
+  trainerAttDate = dstr(t.getFullYear(), t.getMonth(), t.getDate());
+  trainerCalViewMonth = new Date(t.getFullYear(), t.getMonth(), 1);
+  initTrainerAttendanceForm();
+  render();
+}
+function trainerCalendarTriggerHTML(){
+  const d = new Date(trainerAttDate + "T00:00:00");
+  const label = d.toLocaleDateString("es-ES", { weekday:"short", day:"2-digit", month:"short" }).replace(".","");
+  return `<button type="button" class="cal-trigger" id="trainer-date-trigger-btn">📅 ${label}</button>`;
+}
+function trainerCalendarPopoverHTML(){
+  if(!trainerCalOpen) return "";
+  const year = trainerCalViewMonth.getFullYear();
+  const month = trainerCalViewMonth.getMonth();
+  const firstOfMonth = new Date(year, month, 1);
+  const startOffset = (firstOfMonth.getDay() + 6) % 7;
+  const daysInMonth = new Date(year, month+1, 0).getDate();
+  const daysInPrevMonth = new Date(year, month, 0).getDate();
+  const today = new Date();
+  const todayStr = dstr(today.getFullYear(), today.getMonth(), today.getDate());
+
+  let cells = "";
+  for(let i=0;i<startOffset;i++){
+    const d = daysInPrevMonth - startOffset + i + 1;
+    const py = month===0? year-1 : year, pm = month===0? 11 : month-1;
+    cells += `<button type="button" class="cal-day other-month" data-tdate="${dstr(py,pm,d)}">${d}</button>`;
+  }
+  for(let d=1; d<=daysInMonth; d++){
+    const ds = dstr(year, month, d);
+    const classes = ["cal-day"];
+    if(ds === todayStr) classes.push("today");
+    if(ds === trainerAttDate) classes.push("selected");
+    cells += `<button type="button" class="${classes.join(" ")}" data-tdate="${ds}">${d}</button>`;
+  }
+  const totalCells = startOffset + daysInMonth;
+  const trailing = (7 - (totalCells % 7)) % 7;
+  for(let d=1; d<=trailing; d++){
+    const ny = month===11? year+1 : year, nm = month===11? 0 : month+1;
+    cells += `<button type="button" class="cal-day other-month" data-tdate="${dstr(ny,nm,d)}">${d}</button>`;
+  }
+  return `
+  <div class="cal-popover" id="trainer-cal-popover">
+    <div class="cal-head">
+      <button type="button" class="cal-nav-btn" id="trainer-cal-prev-btn">‹</button>
+      <span class="label">${MESES[month]} ${year}</span>
+      <button type="button" class="cal-nav-btn" id="trainer-cal-next-btn">›</button>
+    </div>
+    <div class="cal-weekdays">${DIAS_SEMANA.map(d=>`<span>${d}</span>`).join("")}</div>
+    <div class="cal-grid">${cells}</div>
+    <button type="button" class="cal-today-btn" id="trainer-cal-today-btn">Hoy</button>
+  </div>`;
+}
+
+function renderTrainersTab(){
+  let html = `<div class="card">
+    <div class="section-label"><div class="gate-poles"><span></span><span></span></div><span class="title">Asistencia de entrenadores</span></div>
+    <div style="font-size:12px;color:${GRAY};margin-bottom:14px;">Solo visible para el jefe de entrenadores.</div>
+    <div style="display:flex;justify-content:flex-end;margin-bottom:14px;">
+      <div class="cal-wrap">${trainerCalendarTriggerHTML()}${trainerCalendarPopoverHTML()}</div>
+    </div>`;
+
+  if(!trainers.length){
+    html += `<div style="font-size:13px;color:${GRAY};text-align:center;padding:12px 0;">Aún no hay entrenadores registrados.</div>`;
+  } else {
+    trainers.forEach(t => {
+      const present = trainerAttendanceState[t.id];
+      html += `<div style="display:flex;align-items:center;gap:8px;padding:10px;border-radius:8px;background:#F7FAFC;margin-bottom:8px;">
+        <span style="flex:1;font-size:14px;font-weight:500;color:${NAVY};">${escapeHtml(t.name)}</span>
+        <button class="pill" data-tatt="${t.id}" data-present="true" style="${present?`background:${GREEN};color:white;border-color:${GREEN};`:""}padding:6px 10px;font-size:12px;">✓ Presente</button>
+        <button class="pill" data-tatt="${t.id}" data-present="false" style="${!present?`background:${RED};color:white;border-color:${RED};`:""}padding:6px 10px;font-size:12px;">✕ Ausente</button>
+        <span style="cursor:pointer;color:${GRAY};" data-remove-trainer="${t.id}">🗑️</span>
+      </div>`;
+    });
+  }
+
+  if(trainerSaveError) html += `<div class="error-box">${escapeHtml(trainerSaveError)}</div>`;
+  html += `<button class="save-btn" id="save-trainer-att-btn">${trainerSaving? "Guardando...":"✓ Guardar asistencia"}</button>`;
+  if(trainerJustSaved){
+    html += `<div class="info-box" style="margin-top:10px;">Asistencia guardada.</div>`;
+  }
+  html += `</div>`;
+
+  html += `<div class="card">
+    <div class="section-label"><div class="gate-poles"><span></span><span></span></div><span class="title">Agregar entrenador</span></div>
+    <div style="display:flex;gap:8px;">
+      <input type="text" id="new-trainer-name" placeholder="Nombre del entrenador" value="${escapeHtml(newTrainerName)}" style="flex:1;" />
+      <button class="btn-navy" id="add-trainer-btn" style="background:${RED};">➕</button>
+    </div>
+  </div>`;
+
+  if(trainers.length){
+    html += `<div class="card">
+      <div class="section-label"><div class="gate-poles"><span></span><span></span></div><span class="title">% Asistencia por entrenador</span></div>`;
+    trainers.forEach(t => {
+      const st = trainerStats(t.id);
+      html += `<div class="pctbar-row">
+        <div class="pctbar-top"><span>${escapeHtml(t.name)}</span><span style="font-family:'JetBrains Mono',monospace;font-weight:600;color:${NAVY};">${st.pct}% (${st.present}/${st.total})</span></div>
+        <div class="pctbar-track"><div class="pctbar-fill" style="width:${st.pct}%;background:${GREEN};"></div></div>
+      </div>`;
+    });
+    html += `</div>`;
+  }
+
+  return html;
+}
+
 /* ============ EXPORT ============ */
 function buildDaySummaryText(){
   const group = groups.find(g => g.id === selectedGroupId);
@@ -822,7 +1017,7 @@ function variableBlockHTML(title, data, colorFor){
 
 function renderHeader(){
   const visibleTabs = authState.level === "master"
-    ? [["setup","Grupos"],["daily","Registro diario"],["profile","Perfil"],["access","Accesos"]]
+    ? [["setup","Grupos"],["daily","Registro diario"],["profile","Perfil"],["trainers","Entrenadores"],["access","Accesos"]]
     : [["setup","Grupos"],["daily","Registro diario"],["profile","Perfil"]];
   const roleLabel = authState.level==="master" ? "Jefe de entrenadores" : `${authState.program} · ${authState.category}`;
   return `
@@ -1155,6 +1350,7 @@ function render(){
   else if(tab === "daily") body = renderDailyTab();
   else if(tab === "profile") body = renderProfileTab();
   else if(tab === "access" && authState.level === "master") body = renderAccessTab();
+  else if(tab === "trainers" && authState.level === "master") body = renderTrainersTab();
   else { tab = "setup"; body = renderSetupTab(); }
 
   app.innerHTML = renderHeader() + `<div class="wrap">${body}</div>
@@ -1203,6 +1399,7 @@ function attachAppHandlers(){
         const list = groupAthletes();
         if(list.length) profileAthleteId = list[0].id;
       }
+      if(tab === "trainers") initTrainerAttendanceForm();
       render();
     });
   });
@@ -1211,6 +1408,7 @@ function attachAppHandlers(){
   if(tab === "daily") attachDailyTabHandlers();
   if(tab === "profile") attachProfileTabHandlers();
   if(tab === "access") attachAccessTabHandlers();
+  if(tab === "trainers") attachTrainersTabHandlers();
 }
 
 function attachSetupTabHandlers(){
@@ -1374,6 +1572,43 @@ function attachProfileTabHandlers(){
   if(athleteSelect) athleteSelect.addEventListener("change", (e) => { profileAthleteId = e.target.value; render(); });
 }
 
+function attachTrainersTabHandlers(){
+  const trigBtn = document.getElementById("trainer-date-trigger-btn");
+  if(trigBtn) trigBtn.addEventListener("click", (e) => { e.stopPropagation(); toggleTrainerCalendar(); });
+  const prevBtn = document.getElementById("trainer-cal-prev-btn");
+  if(prevBtn) prevBtn.addEventListener("click", (e) => { e.stopPropagation(); changeTrainerCalendarMonth(-1); });
+  const nextBtn = document.getElementById("trainer-cal-next-btn");
+  if(nextBtn) nextBtn.addEventListener("click", (e) => { e.stopPropagation(); changeTrainerCalendarMonth(1); });
+  const todayBtn = document.getElementById("trainer-cal-today-btn");
+  if(todayBtn) todayBtn.addEventListener("click", (e) => { e.stopPropagation(); goToTodayTrainer(); });
+  document.querySelectorAll("#trainer-cal-popover .cal-day").forEach(btn => {
+    btn.addEventListener("click", (e) => { e.stopPropagation(); selectTrainerCalendarDay(btn.dataset.tdate); });
+  });
+  const popover = document.getElementById("trainer-cal-popover");
+  if(popover) popover.addEventListener("click", (e) => e.stopPropagation());
+  if(outsideClickHandler){ document.removeEventListener("click", outsideClickHandler); outsideClickHandler = null; }
+  if(trainerCalOpen){
+    outsideClickHandler = () => { trainerCalOpen = false; render(); };
+    document.addEventListener("click", outsideClickHandler, { once:true });
+  }
+
+  document.querySelectorAll("[data-tatt]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      trainerAttendanceState[btn.dataset.tatt] = btn.dataset.present === "true";
+      render();
+    });
+  });
+  document.querySelectorAll("[data-remove-trainer]").forEach(el => {
+    el.addEventListener("click", () => removeTrainer(el.dataset.removeTrainer));
+  });
+  const nameInput = document.getElementById("new-trainer-name");
+  if(nameInput) nameInput.addEventListener("input", (e) => { newTrainerName = e.target.value; });
+  const addBtn = document.getElementById("add-trainer-btn");
+  if(addBtn) addBtn.addEventListener("click", addTrainer);
+  const saveBtn = document.getElementById("save-trainer-att-btn");
+  if(saveBtn) saveBtn.addEventListener("click", saveTrainerAttendance);
+}
+
 function attachAccessTabHandlers(){
   const openBtn = document.getElementById("open-admin-btn");
   if(openBtn) openBtn.addEventListener("click", openAdmin);
@@ -1412,14 +1647,17 @@ function showFatalError(message){
 }
 
 async function loadAllData(){
-  const [gRows, aRows, sRows, atRows, acRows] = await Promise.all([
-    sbSelect("groups"), sbSelect("athletes"), sbSelect("sessions"), sbSelect("attendance"), sbSelect("access_config")
+  const [gRows, aRows, sRows, atRows, acRows, trRows, taRows] = await Promise.all([
+    sbSelect("groups"), sbSelect("athletes"), sbSelect("sessions"), sbSelect("attendance"), sbSelect("access_config"),
+    sbSelect("trainers"), sbSelect("trainer_attendance")
   ]);
   groups = gRows.map(r => ({id:r.id, name:r.name, program:r.program}));
   athletes = aRows.map(mapAthlete);
   sessions = sRows.map(mapSession);
   attendance = atRows.map(mapAttendance);
   if(acRows && acRows[0]) accessConfig = { masterCode: acRows[0].master_code, categoryCodes: acRows[0].category_codes };
+  trainers = trRows.map(r => ({id:r.id, name:r.name}));
+  trainerAttendance = taRows.map(r => ({id:r.id, trainerId:r.trainer_id, date:r.date, present:r.present}));
 }
 
 async function init(){
