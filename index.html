@@ -1011,7 +1011,6 @@ function renderHeader(){
         <button class="role-badge" id="logout-btn">🚪 Salir</button>
       </div>
     </div>
-    <div class="hero-sub">Se sincroniza con la base de datos${lastSync ? ` · última actualización ${lastSync.toLocaleTimeString("es-ES",{hour:"2-digit",minute:"2-digit",second:"2-digit"})}` : ""}</div>
     ${authState.level==="master" ? `
     <div class="tabs" style="margin-top:10px;">
       ${PROGRAMS.map(p => `<button class="tab-btn" data-program="${p}" style="background:${currentProgram===p?GOLD:"#2B2B2B"};color:${currentProgram===p?NAVY:"#D9D9D9"};font-weight:${currentProgram===p?700:500};">${p}</button>`).join("")}
