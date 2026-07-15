@@ -121,6 +121,28 @@
   .lock-circle{width:48px; height:48px; border-radius:999px; background:var(--navy); display:flex; align-items:center; justify-content:center; margin:0 auto 12px;}
 
   .footer-note{text-align:center; font-size:12px; color:var(--gray); padding:10px 20px 30px;}
+
+  .cal-wrap{position:relative;}
+  .cal-trigger{display:flex; align-items:center; gap:8px; background:white; border:1px solid var(--border); border-radius:10px; padding:9px 14px; font-family:'JetBrains Mono',monospace; font-size:13px; color:var(--navy); font-weight:600;}
+  .cal-popover{
+    position:absolute; top:calc(100% + 8px); right:0; z-index:20; background:white; border-radius:16px;
+    box-shadow:0 12px 32px rgba(0,0,0,.18); padding:16px; width:290px; max-width:88vw;
+  }
+  .cal-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;}
+  .cal-head .label{font-family:'Oswald',sans-serif; font-weight:600; font-size:15px; color:var(--navy); text-transform:capitalize;}
+  .cal-nav-btn{width:30px; height:30px; border-radius:8px; border:1px solid var(--border); background:white; color:var(--navy); font-size:15px; display:flex; align-items:center; justify-content:center;}
+  .cal-weekdays{display:grid; grid-template-columns:repeat(7,1fr); margin-bottom:4px;}
+  .cal-weekdays span{text-align:center; font-size:11px; color:var(--gray); font-weight:600; text-transform:uppercase;}
+  .cal-grid{display:grid; grid-template-columns:repeat(7,1fr); gap:4px;}
+  .cal-day{
+    aspect-ratio:1; display:flex; align-items:center; justify-content:center; border-radius:10px; border:none; background:none;
+    font-family:'JetBrains Mono',monospace; font-size:15px; font-weight:600; color:var(--navy); min-height:40px;
+  }
+  .cal-day:hover{background:#F0F0F0;}
+  .cal-day.other-month{color:#C9C9C9; font-weight:500;}
+  .cal-day.today{box-shadow:inset 0 0 0 2px var(--red);}
+  .cal-day.selected{background:var(--red); color:white;}
+  .cal-today-btn{width:100%; margin-top:12px; padding:9px; border-radius:10px; border:1px solid var(--border); background:white; color:var(--navy); font-size:13px; font-weight:600;}
   .backup-row{display:flex; gap:8px; flex-wrap:wrap;}
 </style>
 </head>
@@ -292,6 +314,9 @@ let showPin = false;
 let saveDayError = "";
 let saving = false;
 let justSaved = false;
+let calendarOpen = false;
+let calendarViewMonth = null; // Date (first day of the month being viewed)
+let outsideClickHandler = null;
 
 function persistAuth(){ if(authState) lsSet(K_AUTH, authState); else localStorage.removeItem(K_AUTH); }
 
@@ -463,6 +488,88 @@ function initDailyForm(){
     } : blankSessionForm();
   }
 }
+/* ============ CUSTOM CALENDAR ============ */
+const MESES = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
+const DIAS_SEMANA = ["Lun","Mar","Mié","Jue","Vie","Sáb","Dom"];
+
+function dstr(y,m,d){ return `${y}-${String(m+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`; }
+
+function toggleCalendar(){
+  calendarOpen = !calendarOpen;
+  if(calendarOpen){
+    const [y,m] = selectedDate.split("-").map(Number);
+    calendarViewMonth = new Date(y, m-1, 1);
+  }
+  render();
+}
+function changeCalendarMonth(delta){
+  calendarViewMonth = new Date(calendarViewMonth.getFullYear(), calendarViewMonth.getMonth()+delta, 1);
+  render();
+}
+function selectCalendarDay(dateStr){
+  selectedDate = dateStr;
+  calendarOpen = false;
+  initDailyForm();
+  render();
+}
+function goToToday(){
+  const t = new Date();
+  selectedDate = dstr(t.getFullYear(), t.getMonth(), t.getDate());
+  calendarViewMonth = new Date(t.getFullYear(), t.getMonth(), 1);
+  initDailyForm();
+  render();
+}
+
+function calendarTriggerHTML(){
+  const d = new Date(selectedDate + "T00:00:00");
+  const label = d.toLocaleDateString("es-ES", { weekday:"short", day:"2-digit", month:"short" }).replace(".","");
+  return `<button type="button" class="cal-trigger" id="date-trigger-btn">📅 ${label}</button>`;
+}
+function calendarPopoverHTML(){
+  if(!calendarOpen) return "";
+  const year = calendarViewMonth.getFullYear();
+  const month = calendarViewMonth.getMonth();
+  const firstOfMonth = new Date(year, month, 1);
+  const startOffset = (firstOfMonth.getDay() + 6) % 7; // Monday = 0
+  const daysInMonth = new Date(year, month+1, 0).getDate();
+  const daysInPrevMonth = new Date(year, month, 0).getDate();
+
+  const today = new Date();
+  const todayStr = dstr(today.getFullYear(), today.getMonth(), today.getDate());
+
+  let cells = "";
+  for(let i=0;i<startOffset;i++){
+    const d = daysInPrevMonth - startOffset + i + 1;
+    const py = month===0? year-1 : year, pm = month===0? 11 : month-1;
+    cells += `<button type="button" class="cal-day other-month" data-date="${dstr(py,pm,d)}">${d}</button>`;
+  }
+  for(let d=1; d<=daysInMonth; d++){
+    const ds = dstr(year, month, d);
+    const classes = ["cal-day"];
+    if(ds === todayStr) classes.push("today");
+    if(ds === selectedDate) classes.push("selected");
+    cells += `<button type="button" class="${classes.join(" ")}" data-date="${ds}">${d}</button>`;
+  }
+  const totalCells = startOffset + daysInMonth;
+  const trailing = (7 - (totalCells % 7)) % 7;
+  for(let d=1; d<=trailing; d++){
+    const ny = month===11? year+1 : year, nm = month===11? 0 : month+1;
+    cells += `<button type="button" class="cal-day other-month" data-date="${dstr(ny,nm,d)}">${d}</button>`;
+  }
+
+  return `
+  <div class="cal-popover" id="cal-popover">
+    <div class="cal-head">
+      <button type="button" class="cal-nav-btn" id="cal-prev-btn">‹</button>
+      <span class="label">${MESES[month]} ${year}</span>
+      <button type="button" class="cal-nav-btn" id="cal-next-btn">›</button>
+    </div>
+    <div class="cal-weekdays">${DIAS_SEMANA.map(d=>`<span>${d}</span>`).join("")}</div>
+    <div class="cal-grid">${cells}</div>
+    <button type="button" class="cal-today-btn" id="cal-today-btn">Hoy</button>
+  </div>`;
+}
+
 function changeSessionCount(delta){
   const savedNums = sessions.filter(s=>s.groupId===selectedGroupId && s.date===selectedDate).map(s=>s.sessionNumber);
   const minCount = savedNums.length ? Math.max(...savedNums) : 1;
@@ -793,7 +900,7 @@ function renderDailyTab(){
   } else {
     html += `<div class="cat-fixed">${authState.program} · ${authState.category}</div>`;
   }
-  html += `<input type="date" id="daily-date-input" value="${selectedDate}" /></div>`;
+  html += `<div class="cal-wrap">${calendarTriggerHTML()}${calendarPopoverHTML()}</div></div>`;
 
   html += `<div class="section-label"><div class="gate-poles"><span></span><span></span></div><span class="title">Asistencia del día</span></div>`;
   if(!gAthletes.length){
@@ -1129,8 +1236,25 @@ function attachSetupTabHandlers(){
 function attachDailyTabHandlers(){
   const groupSelect = document.getElementById("daily-group-select");
   if(groupSelect) groupSelect.addEventListener("change", (e) => { selectedGroupId = e.target.value; initDailyForm(); render(); });
-  const dateInput = document.getElementById("daily-date-input");
-  if(dateInput) dateInput.addEventListener("change", (e) => { selectedDate = e.target.value; initDailyForm(); render(); });
+
+  const trigBtn = document.getElementById("date-trigger-btn");
+  if(trigBtn) trigBtn.addEventListener("click", (e) => { e.stopPropagation(); toggleCalendar(); });
+  const prevBtn = document.getElementById("cal-prev-btn");
+  if(prevBtn) prevBtn.addEventListener("click", (e) => { e.stopPropagation(); changeCalendarMonth(-1); });
+  const nextBtn = document.getElementById("cal-next-btn");
+  if(nextBtn) nextBtn.addEventListener("click", (e) => { e.stopPropagation(); changeCalendarMonth(1); });
+  const todayBtn = document.getElementById("cal-today-btn");
+  if(todayBtn) todayBtn.addEventListener("click", (e) => { e.stopPropagation(); goToToday(); });
+  document.querySelectorAll(".cal-day").forEach(btn => {
+    btn.addEventListener("click", (e) => { e.stopPropagation(); selectCalendarDay(btn.dataset.date); });
+  });
+  const popover = document.getElementById("cal-popover");
+  if(popover) popover.addEventListener("click", (e) => e.stopPropagation());
+  if(outsideClickHandler){ document.removeEventListener("click", outsideClickHandler); outsideClickHandler = null; }
+  if(calendarOpen){
+    outsideClickHandler = () => { calendarOpen = false; render(); };
+    document.addEventListener("click", outsideClickHandler, { once:true });
+  }
 
   document.querySelectorAll("[data-att]").forEach(btn => {
     btn.addEventListener("click", () => {
