@@ -409,7 +409,7 @@ function handleLogin(){
     for(const category of Object.keys(cats)){
       const codes = Array.isArray(cats[category]) ? cats[category] : [cats[category]];
       if(codes.includes(code)){
-        authState = {level:"category", program, category, trainerCode: code}; persistAuth(); pinInput=""; authError="";
+        authState = {level:"category", program, category, trainerCode: code, isCoordinator: COORDINATOR_CODES.includes(code)}; persistAuth(); pinInput=""; authError="";
         currentProgram = program;
         const g = ensureCategoryGroup(program, category);
         selectedGroupId = g.id;
@@ -850,6 +850,17 @@ const CHECKIN_QUESTIONS = [
   "¿Cómo ha sido tu puntualidad, asistencia y presentación personal esta semana?",
 ];
 
+// Each trainer code reports to a coordinator code, or directly to "JEFE" (jefe de entrenadores).
+// Coordinators also report their OWN check-in directly to "JEFE".
+const COORDINATOR_MAP = {
+  "Vale": "Chiqui", "Laura": "Chiqui", "Chiqui": "JEFE",
+  "Riccardo": "Mamel", "Cata": "Mamel", "Keko": "Mamel", "Tom": "Mamel", "Mamel": "JEFE",
+  "Coni": "PATO", "BENJA": "PATO", "TUTO": "PATO", "PATO": "JEFE",
+  "Irene": "Enzo", "Rene": "Enzo", "Xavi": "Enzo", "Enzo": "JEFE",
+  "Felipe": "JEFE", "Ivana": "JEFE",
+};
+const COORDINATOR_CODES = ["Chiqui", "Mamel", "PATO", "Enzo"];
+
 function mondayOf(dateStr){
   const d = new Date(dateStr + "T00:00:00");
   const day = (d.getDay() + 6) % 7; // Monday = 0
@@ -892,7 +903,7 @@ async function saveCheckin(){
       updated_at: new Date().toISOString(),
     };
     const saved = await sbInsert("weekly_checkins", row, {onConflict:"group_id,trainer_code,week_start", merge:true});
-    const mapped = {id:saved.id, groupId:saved.group_id, trainerCode:saved.trainer_code, weekStart:saved.week_start, q1:saved.q1, q2:saved.q2, q3:saved.q3, q4:saved.q4, q5:saved.q5, q6:saved.q6};
+    const mapped = {id:saved.id, groupId:saved.group_id, trainerCode:saved.trainer_code, weekStart:saved.week_start, q1:saved.q1, q2:saved.q2, q3:saved.q3, q4:saved.q4, q5:saved.q5, q6:saved.q6, sentToJefe:!!saved.sent_to_jefe, sentAt:saved.sent_at};
     const idx = weeklyCheckins.findIndex(c => c.groupId===mapped.groupId && c.trainerCode===mapped.trainerCode && c.weekStart===mapped.weekStart);
     if(idx>=0) weeklyCheckins[idx]=mapped; else weeklyCheckins.push(mapped);
     checkinJustSaved = true;
@@ -903,13 +914,33 @@ async function saveCheckin(){
   render();
 }
 
+async function sendCheckinToJefe(checkinId){
+  try{
+    const row = await sbUpdate("weekly_checkins", {id: checkinId}, { sent_to_jefe: true, sent_at: new Date().toISOString() });
+    const idx = weeklyCheckins.findIndex(c => c.id === checkinId);
+    if(idx>=0){ weeklyCheckins[idx].sentToJefe = true; weeklyCheckins[idx].sentAt = row.sent_at; }
+    render();
+  }catch(e){
+    alert("No se pudo enviar al jefe: " + e.message);
+  }
+}
+
+function renderCheckinAnswersHTML(c){
+  return CHECKIN_QUESTIONS.map((q,i) => {
+    const key = "q"+(i+1);
+    const ans = c[key];
+    if(!ans || !ans.trim()) return "";
+    return `<div style="font-size:12px;margin-bottom:6px;"><b>${escapeHtml(q)}</b><br>${escapeHtml(ans)}</div>`;
+  }).join("");
+}
+
 function renderCheckinsTab(){
   if(authState.level === "master") return renderCheckinsAdminView();
 
   const group = groups.find(g => g.id === selectedGroupId);
   let html = `<div class="card">
-    <div class="section-label"><div class="gate-poles"><span></span><span></span></div><span class="title">Seguimiento semanal</span></div>
-    <div style="font-size:12px;color:${GRAY};margin-bottom:14px;">Personal — solo tú y el jefe de entrenadores pueden ver tus respuestas.</div>
+    <div class="section-label"><div class="gate-poles"><span></span><span></span></div><span class="title">Mi seguimiento semanal</span></div>
+    <div style="font-size:12px;color:${GRAY};margin-bottom:14px;">Personal — solo tú y tu coordinador (y luego el jefe, una vez enviado) pueden ver tus respuestas.</div>
     <div style="display:flex;align-items:center;justify-content:space-between;background:#F7FAFC;border-radius:10px;padding:10px 14px;margin-bottom:16px;">
       <button type="button" class="cal-nav-btn" id="checkin-prev-week-btn">‹</button>
       <span style="font-family:'JetBrains Mono',monospace;font-weight:600;font-size:13px;color:${NAVY};">Semana ${weekRangeLabel(checkinWeekStart)}</span>
@@ -926,44 +957,71 @@ function renderCheckinsTab(){
   html += `<button class="save-btn" id="save-checkin-btn" style="margin-top:14px;">${checkinSaving? "Guardando...":"✓ Guardar respuestas"}</button>`;
   if(checkinJustSaved) html += `<div class="info-box" style="margin-top:10px;">Respuestas guardadas.</div>`;
   html += `</div>`;
+
+  if(authState.isCoordinator){
+    const inbox = weeklyCheckins.filter(c => COORDINATOR_MAP[c.trainerCode] === authState.trainerCode);
+    inbox.sort((a,b) => (a.sentToJefe===b.sentToJefe) ? (b.weekStart<a.weekStart?-1:1) : (a.sentToJefe?1:-1));
+    html += `<div class="card">
+      <div class="section-label"><div class="gate-poles"><span></span><span></span></div><span class="title">Bandeja de coordinación</span></div>
+      <div style="font-size:12px;color:${GRAY};margin-bottom:14px;">Revisa y envía al jefe de entrenadores las respuestas de tu equipo (a más tardar el martes de cada semana).</div>`;
+    if(!inbox.length){
+      html += `<div style="font-size:13px;color:${GRAY};text-align:center;padding:16px 0;">Aún no hay respuestas de tu equipo.</div>`;
+    } else {
+      inbox.forEach(c => {
+        const deadline = addDaysToDateStr(c.weekStart, 8);
+        const overdue = !c.sentToJefe && todayISO() > deadline;
+        html += `<div style="background:#F7FAFC;border:1px solid ${overdue?RED:"#E7ECF2"};border-radius:12px;padding:14px;margin-bottom:12px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:6px;">
+            <span style="font-family:'Oswald',sans-serif;font-weight:600;color:${NAVY};">${escapeHtml(c.trainerCode)}</span>
+            <span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:${GRAY};">Semana ${weekRangeLabel(c.weekStart)}</span>
+          </div>
+          ${overdue ? `<div style="font-size:11px;color:${RED};font-weight:600;margin-bottom:8px;">⚠️ Atrasado (vencía el ${deadline})</div>` : ""}
+          ${renderCheckinAnswersHTML(c)}
+          ${c.sentToJefe
+            ? `<div class="info-box" style="margin-top:8px;">✅ Enviado al jefe</div>`
+            : `<button class="btn-navy" data-send-checkin="${c.id}" style="margin-top:8px;width:100%;justify-content:center;">✅ Enviar al jefe</button>`}
+        </div>`;
+      });
+    }
+    html += `</div>`;
+  }
+
   return html;
 }
 
 function renderCheckinsAdminView(){
   let html = `<div class="card">
-    <div class="section-label"><div class="gate-poles"><span></span><span></span></div><span class="title">Seguimiento semanal — todos los entrenadores</span></div>
-    <div style="font-size:12px;color:${GRAY};margin-bottom:14px;">Solo el jefe de entrenadores puede ver todas las respuestas.</div>
-    <div class="relative" style="margin-bottom:14px;">
-      <select id="admin-checkin-group-filter">
-        <option value="">Todos los grupos</option>
-        ${groups.map(g => `<option value="${g.id}" ${adminCheckinGroupFilter===g.id?"selected":""}>${escapeHtml(g.program)} · ${escapeHtml(g.name)}</option>`).join("")}
-      </select>
-    </div>`;
+    <div class="section-label"><div class="gate-poles"><span></span><span></span></div><span class="title">Seguimiento semanal — enviados por los coordinadores</span></div>
+    <div style="font-size:12px;color:${GRAY};margin-bottom:14px;">Solo se muestran las respuestas que cada coordinador ya evaluó y envió.</div>
+    <select id="admin-checkin-group-filter" style="margin-bottom:14px;">
+      <option value="">Todos los grupos</option>
+      ${groups.map(g => `<option value="${g.id}" ${adminCheckinGroupFilter===g.id?"selected":""}>${escapeHtml(g.program)} · ${escapeHtml(g.name)}</option>`).join("")}
+    </select>`;
 
-  let list = [...weeklyCheckins];
+  let list = weeklyCheckins.filter(c => c.sentToJefe);
   if(adminCheckinGroupFilter) list = list.filter(c => c.groupId === adminCheckinGroupFilter);
-  list.sort((a,b) => b.weekStart < a.weekStart ? -1 : b.weekStart > a.weekStart ? 1 : 0);
 
   if(!list.length){
-    html += `<div style="font-size:13px;color:${GRAY};text-align:center;padding:20px 0;">Aún no hay respuestas registradas.</div>`;
+    html += `<div style="font-size:13px;color:${GRAY};text-align:center;padding:20px 0;">Aún no hay respuestas enviadas por los coordinadores.</div>`;
   } else {
-    list.forEach(c => {
-      const group = groups.find(g => g.id === c.groupId);
-      html += `<div style="background:#F7FAFC;border:1px solid #E7ECF2;border-radius:12px;padding:14px;margin-bottom:12px;">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:6px;">
-          <div>
-            <span style="font-family:'Oswald',sans-serif;font-weight:600;color:${NAVY};">${escapeHtml(c.trainerCode)}</span>
-            <span style="font-size:12px;color:${GRAY};"> · ${escapeHtml(group?.program||"")} ${escapeHtml(group?.name||"")}</span>
+    const weeks = Array.from(new Set(list.map(c => c.weekStart))).sort((a,b) => b<a?-1:1);
+    weeks.forEach(week => {
+      const weekItems = list.filter(c => c.weekStart === week);
+      html += `<div style="margin-bottom:18px;">
+        <div style="font-family:'Oswald',sans-serif;text-transform:uppercase;font-size:12px;color:${NAVY};letter-spacing:.05em;background:#EEF3FA;border-radius:8px;padding:8px 12px;margin-bottom:10px;">📁 Semana ${weekRangeLabel(week)} — ${weekItems.length} respuesta${weekItems.length===1?"":"s"}</div>`;
+      weekItems.forEach(c => {
+        const group = groups.find(g => g.id === c.groupId);
+        html += `<div style="background:#F7FAFC;border:1px solid #E7ECF2;border-radius:12px;padding:14px;margin-bottom:10px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:6px;">
+            <div>
+              <span style="font-family:'Oswald',sans-serif;font-weight:600;color:${NAVY};">${escapeHtml(c.trainerCode)}</span>
+              <span style="font-size:12px;color:${GRAY};"> · ${escapeHtml(group?.program||"")} ${escapeHtml(group?.name||"")}</span>
+            </div>
           </div>
-          <span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:${GRAY};">Semana ${weekRangeLabel(c.weekStart)}</span>
-        </div>
-        ${CHECKIN_QUESTIONS.map((q,i) => {
-          const key = "q"+(i+1);
-          const ans = c[key];
-          if(!ans || !ans.trim()) return "";
-          return `<div style="font-size:12px;margin-bottom:6px;"><b>${escapeHtml(q)}</b><br>${escapeHtml(ans)}</div>`;
-        }).join("")}
-      </div>`;
+          ${renderCheckinAnswersHTML(c)}
+        </div>`;
+      });
+      html += `</div>`;
     });
   }
   html += `</div>`;
@@ -1712,6 +1770,9 @@ function attachCheckinsTabHandlers(){
   });
   const saveCheckinBtn = document.getElementById("save-checkin-btn");
   if(saveCheckinBtn) saveCheckinBtn.addEventListener("click", saveCheckin);
+  document.querySelectorAll("[data-send-checkin]").forEach(btn => {
+    btn.addEventListener("click", () => sendCheckinToJefe(btn.dataset.sendCheckin));
+  });
 }
 
 function attachAccessTabHandlers(){
@@ -1763,7 +1824,7 @@ async function loadAllData(){
   if(acRows && acRows[0]) accessConfig = { masterCode: acRows[0].master_code, categoryCodes: acRows[0].category_codes };
   trainers = trRows.map(r => ({id:r.id, name:r.name}));
   trainerAttendance = taRows.map(r => ({id:r.id, trainerId:r.trainer_id, date:r.date, present:r.present}));
-  weeklyCheckins = wcRows.map(r => ({id:r.id, groupId:r.group_id, trainerCode:r.trainer_code, weekStart:r.week_start, q1:r.q1||"", q2:r.q2||"", q3:r.q3||"", q4:r.q4||"", q5:r.q5||"", q6:r.q6||""}));
+  weeklyCheckins = wcRows.map(r => ({id:r.id, groupId:r.group_id, trainerCode:r.trainer_code, weekStart:r.week_start, q1:r.q1||"", q2:r.q2||"", q3:r.q3||"", q4:r.q4||"", q5:r.q5||"", q6:r.q6||"", sentToJefe:!!r.sent_to_jefe, sentAt:r.sent_at}));
 }
 
 async function init(){
