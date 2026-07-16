@@ -961,7 +961,7 @@ function renderCheckinsTab(){
   const group = groups.find(g => g.id === selectedGroupId);
   let html = `<div class="card">
     <div class="section-label"><div class="gate-poles"><span></span><span></span></div><span class="title">Mi seguimiento semanal</span></div>
-    <div style="font-size:12px;color:${GRAY};margin-bottom:14px;">Personal — solo tú y tu coordinador (y luego el jefe, una vez enviado) pueden ver tus respuestas.</div>
+    <div style="font-size:12px;color:${GRAY};margin-bottom:14px;">Personal — solo tú, tu coordinador y el jefe de entrenadores pueden ver tus respuestas.</div>
     <div style="display:flex;align-items:center;justify-content:space-between;background:#F7FAFC;border-radius:10px;padding:10px 14px;margin-bottom:16px;">
       <button type="button" class="cal-nav-btn" id="checkin-prev-week-btn">‹</button>
       <span style="font-family:'JetBrains Mono',monospace;font-weight:600;font-size:13px;color:${NAVY};">Semana ${weekRangeLabel(checkinWeekStart)}</span>
@@ -988,7 +988,7 @@ function renderCheckinsTab(){
     inbox.sort((a,b) => (a.sentToJefe===b.sentToJefe) ? (b.weekStart<a.weekStart?-1:1) : (a.sentToJefe?1:-1));
     html += `<div class="card">
       <div class="section-label"><div class="gate-poles"><span></span><span></span></div><span class="title">Bandeja de coordinación</span></div>
-      <div style="font-size:12px;color:${GRAY};margin-bottom:14px;">Revisa y envía al jefe de entrenadores las respuestas de tu equipo (a más tardar el martes de cada semana).</div>`;
+      <div style="font-size:12px;color:${GRAY};margin-bottom:14px;">El jefe de entrenadores ya ve todas las respuestas de tu equipo. Marca "Enviar al jefe" cuando termines de revisarlas (a más tardar el martes de cada semana), para que quede constancia de tu evaluación.</div>`;
     if(!inbox.length){
       html += `<div style="font-size:13px;color:${GRAY};text-align:center;padding:16px 0;">Aún no hay respuestas de tu equipo.</div>`;
     } else {
@@ -1016,18 +1016,18 @@ function renderCheckinsTab(){
 
 function renderCheckinsAdminView(){
   let html = `<div class="card">
-    <div class="section-label"><div class="gate-poles"><span></span><span></span></div><span class="title">Seguimiento semanal — enviados por los coordinadores</span></div>
-    <div style="font-size:12px;color:${GRAY};margin-bottom:14px;">Solo se muestran las respuestas que cada coordinador ya evaluó y envió.</div>
+    <div class="section-label"><div class="gate-poles"><span></span><span></span></div><span class="title">Seguimiento semanal — todos los entrenadores</span></div>
+    <div style="font-size:12px;color:${GRAY};margin-bottom:14px;">Se muestran todas las respuestas, hayan sido revisadas por el coordinador o no.</div>
     <select id="admin-checkin-group-filter" style="margin-bottom:14px;">
       <option value="">Todos los grupos</option>
       ${groups.map(g => `<option value="${g.id}" ${adminCheckinGroupFilter===g.id?"selected":""}>${escapeHtml(g.program)} · ${escapeHtml(g.name)}</option>`).join("")}
     </select>`;
 
-  let list = weeklyCheckins.filter(c => c.sentToJefe);
+  let list = [...weeklyCheckins];
   if(adminCheckinGroupFilter) list = list.filter(c => c.groupId === adminCheckinGroupFilter);
 
   if(!list.length){
-    html += `<div style="font-size:13px;color:${GRAY};text-align:center;padding:20px 0;">Aún no hay respuestas enviadas por los coordinadores.</div>`;
+    html += `<div style="font-size:13px;color:${GRAY};text-align:center;padding:20px 0;">Aún no hay respuestas registradas.</div>`;
   } else {
     const weeks = Array.from(new Set(list.map(c => c.weekStart))).sort((a,b) => b<a?-1:1);
     weeks.forEach(week => {
@@ -1042,6 +1042,7 @@ function renderCheckinsAdminView(){
               <span style="font-family:'Oswald',sans-serif;font-weight:600;color:${NAVY};">${escapeHtml(c.trainerCode)}</span>
               <span style="font-size:12px;color:${GRAY};"> · ${escapeHtml(group?.program||"")} ${escapeHtml(group?.name||"")}</span>
             </div>
+            <span style="font-size:11px;padding:3px 8px;border-radius:20px;background:${c.sentToJefe?"#EAF7EE":"#FFF6E0"};color:${c.sentToJefe?GREEN:"#B87700"};">${c.sentToJefe?"✅ Revisado por coordinador":"⏳ Pendiente de revisión"}</span>
           </div>
           ${renderCheckinAnswersHTML(c)}
         </div>`;
