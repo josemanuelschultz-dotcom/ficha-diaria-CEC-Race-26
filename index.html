@@ -141,6 +141,14 @@
   .cal-day.today{box-shadow:inset 0 0 0 2px var(--red);}
   .cal-day.selected{background:var(--red); color:white;}
   .cal-today-btn{width:100%; margin-top:14px; padding:10px; border-radius:10px; border:1px solid var(--border); background:white; color:var(--navy); font-size:14px; font-weight:600;}
+  .cal-card.collapsible{padding:8px 10px;}
+  .date-toggle{width:100%; display:flex; align-items:center; justify-content:space-between; gap:8px; background:none; border:none; padding:8px; text-align:left;}
+  .date-toggle .date-label{font-size:15px; font-weight:600; color:var(--navy);}
+  .date-toggle .chev{font-size:12px; color:var(--gray); font-weight:500; flex-shrink:0;}
+  .today-chip{display:inline-block; background:var(--green); color:white; font-size:11px; font-weight:600; border-radius:6px; padding:2px 7px; margin-left:4px; vertical-align:2px;}
+  .date-warn{display:flex; align-items:center; justify-content:space-between; gap:8px; background:#FFF6E0; border:1px solid #FCE7B0; color:#8A6100; font-size:12px; border-radius:8px; padding:6px 10px; margin:2px 8px 8px;}
+  .date-warn button{background:white; border:1px solid #E3C36B; border-radius:6px; padding:4px 10px; color:#8A6100; font-size:12px; font-weight:600; flex-shrink:0;}
+  .cal-body{padding:6px 8px 10px;}
   .backup-row{display:flex; gap:8px; flex-wrap:wrap;}
 </style>
 </head>
@@ -579,6 +587,13 @@ function initDailyForm(){
 /* ============ CUSTOM CALENDAR ============ */
 const MESES = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
 const DIAS_SEMANA = ["Lun","Mar","Mié","Jue","Vie","Sáb","Dom"];
+const DIAS_LARGO = ["Domingo","Lunes","Martes","Miércoles","Jueves","Viernes","Sábado"];
+
+function formatFechaLarga(ds){
+  const [y,m,d] = ds.split("-").map(Number);
+  const dt = new Date(y, m-1, d);
+  return `${DIAS_LARGO[dt.getDay()]} ${d} de ${MESES[m-1]}`;
+}
 
 function dstr(y,m,d){ return `${y}-${String(m+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`; }
 
@@ -588,6 +603,7 @@ function changeCalendarMonth(delta){
 }
 function selectCalendarDay(dateStr){
   selectedDate = dateStr;
+  calendarOpen = false;
   initDailyForm();
   render();
 }
@@ -595,11 +611,25 @@ function goToToday(){
   const t = new Date();
   selectedDate = dstr(t.getFullYear(), t.getMonth(), t.getDate());
   calendarViewMonth = new Date(t.getFullYear(), t.getMonth(), 1);
+  calendarOpen = false;
   initDailyForm();
   render();
 }
 
 function calendarCardHTML(){
+  const isToday = selectedDate === todayISO();
+  return `
+  <div class="cal-card collapsible">
+    <button type="button" class="date-toggle" id="cal-toggle-btn">
+      <span class="date-label">📅 ${formatFechaLarga(selectedDate)}${isToday?` <span class="today-chip">Hoy</span>`:""}</span>
+      <span class="chev">${calendarOpen?"Cerrar ▴":"Cambiar fecha ▾"}</span>
+    </button>
+    ${!isToday ? `<div class="date-warn"><span>⚠️ Estás viendo otro día, no hoy.</span><button type="button" id="cal-today-quick">Ir a hoy</button></div>` : ""}
+    ${calendarOpen ? calendarBodyHTML() : ""}
+  </div>`;
+}
+
+function calendarBodyHTML(){
   if(!calendarViewMonth){
     const [y,m] = selectedDate.split("-").map(Number);
     calendarViewMonth = new Date(y, m-1, 1);
@@ -635,7 +665,7 @@ function calendarCardHTML(){
   }
 
   return `
-  <div class="cal-card">
+  <div class="cal-body">
     <div class="cal-head">
       <button type="button" class="cal-nav-btn" id="cal-prev-btn">‹</button>
       <span class="label">${MESES[month]} ${year}</span>
@@ -800,6 +830,7 @@ function changeTrainerCalendarMonth(delta){
 }
 function selectTrainerCalendarDay(dateStr){
   trainerAttDate = dateStr;
+  trainerCalOpen = false;
   initTrainerAttendanceForm();
   render();
 }
@@ -807,10 +838,24 @@ function goToTodayTrainer(){
   const t = new Date();
   trainerAttDate = dstr(t.getFullYear(), t.getMonth(), t.getDate());
   trainerCalViewMonth = new Date(t.getFullYear(), t.getMonth(), 1);
+  trainerCalOpen = false;
   initTrainerAttendanceForm();
   render();
 }
 function trainerCalendarCardHTML(){
+  const isToday = trainerAttDate === todayISO();
+  return `
+  <div class="cal-card collapsible">
+    <button type="button" class="date-toggle" id="trainer-cal-toggle-btn">
+      <span class="date-label">📅 ${formatFechaLarga(trainerAttDate)}${isToday?` <span class="today-chip">Hoy</span>`:""}</span>
+      <span class="chev">${trainerCalOpen?"Cerrar ▴":"Cambiar fecha ▾"}</span>
+    </button>
+    ${!isToday ? `<div class="date-warn"><span>⚠️ Estás viendo otro día, no hoy.</span><button type="button" id="trainer-cal-today-quick">Ir a hoy</button></div>` : ""}
+    ${trainerCalOpen ? trainerCalendarBodyHTML() : ""}
+  </div>`;
+}
+
+function trainerCalendarBodyHTML(){
   if(!trainerCalViewMonth){
     const [y,m] = trainerAttDate.split("-").map(Number);
     trainerCalViewMonth = new Date(y, m-1, 1);
@@ -844,7 +889,7 @@ function trainerCalendarCardHTML(){
     cells += `<button type="button" class="cal-day other-month" data-tdate="${dstr(ny,nm,d)}">${d}</button>`;
   }
   return `
-  <div class="cal-card">
+  <div class="cal-body">
     <div class="cal-head">
       <button type="button" class="cal-nav-btn" id="trainer-cal-prev-btn">‹</button>
       <span class="label">${MESES[month]} ${year}</span>
@@ -1828,6 +1873,10 @@ function attachDailyTabHandlers(){
   const groupSelect = document.getElementById("daily-group-select");
   if(groupSelect) groupSelect.addEventListener("change", (e) => { selectedGroupId = e.target.value; initDailyForm(); render(); });
 
+  const calToggleBtn = document.getElementById("cal-toggle-btn");
+  if(calToggleBtn) calToggleBtn.addEventListener("click", () => { calendarOpen = !calendarOpen; render(); });
+  const todayQuickBtn = document.getElementById("cal-today-quick");
+  if(todayQuickBtn) todayQuickBtn.addEventListener("click", () => goToToday());
   const prevBtn = document.getElementById("cal-prev-btn");
   if(prevBtn) prevBtn.addEventListener("click", () => changeCalendarMonth(-1));
   const nextBtn = document.getElementById("cal-next-btn");
@@ -1924,6 +1973,10 @@ function attachProfileTabHandlers(){
 }
 
 function attachTrainersTabHandlers(){
+  const calToggleBtn = document.getElementById("trainer-cal-toggle-btn");
+  if(calToggleBtn) calToggleBtn.addEventListener("click", () => { trainerCalOpen = !trainerCalOpen; render(); });
+  const todayQuickBtn = document.getElementById("trainer-cal-today-quick");
+  if(todayQuickBtn) todayQuickBtn.addEventListener("click", () => goToTodayTrainer());
   const prevBtn = document.getElementById("trainer-cal-prev-btn");
   if(prevBtn) prevBtn.addEventListener("click", () => changeTrainerCalendarMonth(-1));
   const nextBtn = document.getElementById("trainer-cal-next-btn");
