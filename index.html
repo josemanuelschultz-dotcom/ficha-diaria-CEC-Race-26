@@ -926,6 +926,19 @@ async function deleteCheckin(){
   render();
 }
 
+async function deleteAuditEntry(entryId){
+  const entry = checkinAuditLog.find(x => x.id === entryId);
+  if(!entry) return;
+  if(!confirm(`¿Borrar esta entrada del historial de cambios (${entry.trainerCode}, semana ${weekRangeLabel(entry.weekStart)})? Esta acción no se puede deshacer.`)) return;
+  try{
+    await sbDelete("checkin_audit_log", { id: entryId });
+    checkinAuditLog = checkinAuditLog.filter(x => x.id !== entryId);
+    render();
+  }catch(e){
+    alert("No se pudo borrar: " + e.message);
+  }
+}
+
 async function deleteCheckinAsAdmin(checkinId){
   const c = weeklyCheckins.find(x => x.id === checkinId);
   if(!c) return;
@@ -1097,6 +1110,7 @@ function renderCheckinsAdminView(){
         </div>
         <div style="font-size:11px;color:${GRAY};margin-bottom:6px;">Contenido antes del cambio:</div>
         ${renderCheckinAnswersHTML(entry)}
+        <button class="btn-outline" data-delete-audit="${entry.id}" style="width:100%;justify-content:center;margin-top:8px;border-color:${RED};color:${RED};">🗑️ Borrar esta entrada del historial</button>
       </div>`;
     });
     html += `</div>`;
@@ -1838,6 +1852,9 @@ function attachCheckinsTabHandlers(){
     if(filterSel) filterSel.addEventListener("change", (e) => { adminCheckinGroupFilter = e.target.value; render(); });
     document.querySelectorAll("[data-delete-checkin-admin]").forEach(btn => {
       btn.addEventListener("click", () => deleteCheckinAsAdmin(btn.dataset.deleteCheckinAdmin));
+    });
+    document.querySelectorAll("[data-delete-audit]").forEach(btn => {
+      btn.addEventListener("click", () => deleteAuditEntry(btn.dataset.deleteAudit));
     });
     return;
   }
