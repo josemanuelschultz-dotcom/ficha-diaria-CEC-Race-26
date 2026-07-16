@@ -892,6 +892,27 @@ function changeCheckinWeek(delta){
   initCheckinForm();
   render();
 }
+async function deleteCheckin(){
+  const existing = weeklyCheckins.find(c => c.groupId===selectedGroupId && c.trainerCode===authState.trainerCode && c.weekStart===checkinWeekStart);
+  if(!existing) return;
+  let msg = `¿Borrar tus respuestas de la semana ${weekRangeLabel(checkinWeekStart)}? Esta acción no se puede deshacer.`;
+  if(existing.sentToJefe) msg += `\n\nOjo: esta respuesta ya fue enviada al jefe de entrenadores — también se borrará de su vista.`;
+  if(!confirm(msg)) return;
+
+  checkinSaveError = "";
+  checkinSaving = true; render();
+  try{
+    await sbDelete("weekly_checkins", { id: existing.id });
+    weeklyCheckins = weeklyCheckins.filter(c => c.id !== existing.id);
+    checkinAnswers = { q1:"", q2:"", q3:"", q4:"", q5:"", q6:"" };
+    checkinJustSaved = false;
+  }catch(e){
+    checkinSaveError = `No se pudo borrar. Detalle: ${e.message}.`;
+  }
+  checkinSaving = false;
+  render();
+}
+
 async function saveCheckin(){
   checkinSaveError = "";
   checkinSaving = true; render();
@@ -956,6 +977,10 @@ function renderCheckinsTab(){
   if(checkinSaveError) html += `<div class="error-box" style="margin-top:12px;">${escapeHtml(checkinSaveError)}</div>`;
   html += `<button class="save-btn" id="save-checkin-btn" style="margin-top:14px;">${checkinSaving? "Guardando...":"✓ Guardar respuestas"}</button>`;
   if(checkinJustSaved) html += `<div class="info-box" style="margin-top:10px;">Respuestas guardadas.</div>`;
+  const hasCheckinData = weeklyCheckins.some(c => c.groupId===selectedGroupId && c.trainerCode===authState.trainerCode && c.weekStart===checkinWeekStart);
+  if(hasCheckinData){
+    html += `<button class="btn-outline" id="delete-checkin-btn" style="width:100%;justify-content:center;margin-top:10px;border-color:${RED};color:${RED};">🗑️ Borrar respuestas de esta semana</button>`;
+  }
   html += `</div>`;
 
   if(authState.isCoordinator){
@@ -1770,6 +1795,8 @@ function attachCheckinsTabHandlers(){
   });
   const saveCheckinBtn = document.getElementById("save-checkin-btn");
   if(saveCheckinBtn) saveCheckinBtn.addEventListener("click", saveCheckin);
+  const deleteCheckinBtn = document.getElementById("delete-checkin-btn");
+  if(deleteCheckinBtn) deleteCheckinBtn.addEventListener("click", deleteCheckin);
   document.querySelectorAll("[data-send-checkin]").forEach(btn => {
     btn.addEventListener("click", () => sendCheckinToJefe(btn.dataset.sendCheckin));
   });
