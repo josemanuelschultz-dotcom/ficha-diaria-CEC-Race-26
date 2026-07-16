@@ -307,6 +307,13 @@ let newTrainerName = "";
 let trainerSaving = false;
 let trainerSaveError = "";
 let trainerJustSaved = false;
+let weeklyCheckins = [];
+let checkinWeekStart = null; // Monday date string, computed at init
+let checkinAnswers = { q1:"", q2:"", q3:"", q4:"", q5:"", q6:"" };
+let checkinSaving = false;
+let checkinSaveError = "";
+let checkinJustSaved = false;
+let adminCheckinGroupFilter = ""; // "" = todos
 
 let tab = "setup";
 let selectedGroupId = null;
@@ -402,7 +409,7 @@ function handleLogin(){
     for(const category of Object.keys(cats)){
       const codes = Array.isArray(cats[category]) ? cats[category] : [cats[category]];
       if(codes.includes(code)){
-        authState = {level:"category", program, category}; persistAuth(); pinInput=""; authError="";
+        authState = {level:"category", program, category, trainerCode: code}; persistAuth(); pinInput=""; authError="";
         currentProgram = program;
         const g = ensureCategoryGroup(program, category);
         selectedGroupId = g.id;
@@ -833,6 +840,136 @@ function renderTrainersTab(){
   return html;
 }
 
+/* ============ WEEKLY CHECK-IN (per-trainer, private) ============ */
+const CHECKIN_QUESTIONS = [
+  "¿Cuál fue el progreso técnico observable en tu equipo esta semana?",
+  "¿Qué obstáculo o conflicto enfrentaste con tu equipo o atletas esta semana?",
+  "¿Qué funcionó bien en tu metodología de entrenamiento esta semana? ¿Qué no funcionó?",
+  "¿Cómo estuvo la retención y motivación de tus atletas?",
+  "¿Necesitas apoyo, recursos o capacitación para mejorar el desempeño de tu equipo?",
+  "¿Cómo ha sido tu puntualidad, asistencia y presentación personal esta semana?",
+];
+
+function mondayOf(dateStr){
+  const d = new Date(dateStr + "T00:00:00");
+  const day = (d.getDay() + 6) % 7; // Monday = 0
+  d.setDate(d.getDate() - day);
+  return dstr(d.getFullYear(), d.getMonth(), d.getDate());
+}
+function addDaysToDateStr(dateStr, days){
+  const d = new Date(dateStr + "T00:00:00");
+  d.setDate(d.getDate() + days);
+  return dstr(d.getFullYear(), d.getMonth(), d.getDate());
+}
+function weekRangeLabel(weekStart){
+  const start = new Date(weekStart + "T00:00:00");
+  const end = new Date(addDaysToDateStr(weekStart, 6) + "T00:00:00");
+  const fmt = (d) => d.toLocaleDateString("es-ES", { day:"2-digit", month:"short" }).replace(".","");
+  return `${fmt(start)} – ${fmt(end)}`;
+}
+
+function initCheckinForm(){
+  if(!checkinWeekStart) checkinWeekStart = mondayOf(todayISO());
+  if(authState.level !== "category") return;
+  const existing = weeklyCheckins.find(c => c.groupId===selectedGroupId && c.trainerCode===authState.trainerCode && c.weekStart===checkinWeekStart);
+  checkinAnswers = existing ? { q1:existing.q1, q2:existing.q2, q3:existing.q3, q4:existing.q4, q5:existing.q5, q6:existing.q6 } : { q1:"", q2:"", q3:"", q4:"", q5:"", q6:"" };
+  checkinJustSaved = false;
+  checkinSaveError = "";
+}
+function changeCheckinWeek(delta){
+  checkinWeekStart = addDaysToDateStr(checkinWeekStart, delta*7);
+  initCheckinForm();
+  render();
+}
+async function saveCheckin(){
+  checkinSaveError = "";
+  checkinSaving = true; render();
+  try{
+    const row = {
+      group_id: selectedGroupId, trainer_code: authState.trainerCode, week_start: checkinWeekStart,
+      q1: checkinAnswers.q1||"", q2: checkinAnswers.q2||"", q3: checkinAnswers.q3||"",
+      q4: checkinAnswers.q4||"", q5: checkinAnswers.q5||"", q6: checkinAnswers.q6||"",
+      updated_at: new Date().toISOString(),
+    };
+    const saved = await sbInsert("weekly_checkins", row, {onConflict:"group_id,trainer_code,week_start", merge:true});
+    const mapped = {id:saved.id, groupId:saved.group_id, trainerCode:saved.trainer_code, weekStart:saved.week_start, q1:saved.q1, q2:saved.q2, q3:saved.q3, q4:saved.q4, q5:saved.q5, q6:saved.q6};
+    const idx = weeklyCheckins.findIndex(c => c.groupId===mapped.groupId && c.trainerCode===mapped.trainerCode && c.weekStart===mapped.weekStart);
+    if(idx>=0) weeklyCheckins[idx]=mapped; else weeklyCheckins.push(mapped);
+    checkinJustSaved = true;
+  }catch(e){
+    checkinSaveError = `No se pudo guardar. Detalle: ${e.message}.`;
+  }
+  checkinSaving = false;
+  render();
+}
+
+function renderCheckinsTab(){
+  if(authState.level === "master") return renderCheckinsAdminView();
+
+  const group = groups.find(g => g.id === selectedGroupId);
+  let html = `<div class="card">
+    <div class="section-label"><div class="gate-poles"><span></span><span></span></div><span class="title">Seguimiento semanal</span></div>
+    <div style="font-size:12px;color:${GRAY};margin-bottom:14px;">Personal — solo tú y el jefe de entrenadores pueden ver tus respuestas.</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;background:#F7FAFC;border-radius:10px;padding:10px 14px;margin-bottom:16px;">
+      <button type="button" class="cal-nav-btn" id="checkin-prev-week-btn">‹</button>
+      <span style="font-family:'JetBrains Mono',monospace;font-weight:600;font-size:13px;color:${NAVY};">Semana ${weekRangeLabel(checkinWeekStart)}</span>
+      <button type="button" class="cal-nav-btn" id="checkin-next-week-btn">›</button>
+    </div>`;
+
+  CHECKIN_QUESTIONS.forEach((q, i) => {
+    const key = "q" + (i+1);
+    html += `<label class="field-label" style="margin-top:${i===0?"0":"12px"};">${i+1}. ${escapeHtml(q)}</label>
+    <textarea class="checkin-answer" data-qkey="${key}" rows="3" placeholder="Escribe tu respuesta...">${escapeHtml(checkinAnswers[key]||"")}</textarea>`;
+  });
+
+  if(checkinSaveError) html += `<div class="error-box" style="margin-top:12px;">${escapeHtml(checkinSaveError)}</div>`;
+  html += `<button class="save-btn" id="save-checkin-btn" style="margin-top:14px;">${checkinSaving? "Guardando...":"✓ Guardar respuestas"}</button>`;
+  if(checkinJustSaved) html += `<div class="info-box" style="margin-top:10px;">Respuestas guardadas.</div>`;
+  html += `</div>`;
+  return html;
+}
+
+function renderCheckinsAdminView(){
+  let html = `<div class="card">
+    <div class="section-label"><div class="gate-poles"><span></span><span></span></div><span class="title">Seguimiento semanal — todos los entrenadores</span></div>
+    <div style="font-size:12px;color:${GRAY};margin-bottom:14px;">Solo el jefe de entrenadores puede ver todas las respuestas.</div>
+    <div class="relative" style="margin-bottom:14px;">
+      <select id="admin-checkin-group-filter">
+        <option value="">Todos los grupos</option>
+        ${groups.map(g => `<option value="${g.id}" ${adminCheckinGroupFilter===g.id?"selected":""}>${escapeHtml(g.program)} · ${escapeHtml(g.name)}</option>`).join("")}
+      </select>
+    </div>`;
+
+  let list = [...weeklyCheckins];
+  if(adminCheckinGroupFilter) list = list.filter(c => c.groupId === adminCheckinGroupFilter);
+  list.sort((a,b) => b.weekStart < a.weekStart ? -1 : b.weekStart > a.weekStart ? 1 : 0);
+
+  if(!list.length){
+    html += `<div style="font-size:13px;color:${GRAY};text-align:center;padding:20px 0;">Aún no hay respuestas registradas.</div>`;
+  } else {
+    list.forEach(c => {
+      const group = groups.find(g => g.id === c.groupId);
+      html += `<div style="background:#F7FAFC;border:1px solid #E7ECF2;border-radius:12px;padding:14px;margin-bottom:12px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:6px;">
+          <div>
+            <span style="font-family:'Oswald',sans-serif;font-weight:600;color:${NAVY};">${escapeHtml(c.trainerCode)}</span>
+            <span style="font-size:12px;color:${GRAY};"> · ${escapeHtml(group?.program||"")} ${escapeHtml(group?.name||"")}</span>
+          </div>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:${GRAY};">Semana ${weekRangeLabel(c.weekStart)}</span>
+        </div>
+        ${CHECKIN_QUESTIONS.map((q,i) => {
+          const key = "q"+(i+1);
+          const ans = c[key];
+          if(!ans || !ans.trim()) return "";
+          return `<div style="font-size:12px;margin-bottom:6px;"><b>${escapeHtml(q)}</b><br>${escapeHtml(ans)}</div>`;
+        }).join("")}
+      </div>`;
+    });
+  }
+  html += `</div>`;
+  return html;
+}
+
 /* ============ EXPORT ============ */
 function buildDaySummaryText(){
   const group = groups.find(g => g.id === selectedGroupId);
@@ -993,8 +1130,8 @@ function variableBlockHTML(title, data, colorFor){
 
 function renderHeader(){
   const visibleTabs = authState.level === "master"
-    ? [["setup","Grupos"],["daily","Registro diario"],["profile","Perfil"],["trainers","Entrenadores"],["access","Accesos"]]
-    : [["setup","Grupos"],["daily","Registro diario"],["profile","Perfil"]];
+    ? [["setup","Grupos"],["daily","Registro diario"],["profile","Perfil"],["trainers","Entrenadores"],["checkins","Seguimiento"],["access","Accesos"]]
+    : [["setup","Grupos"],["daily","Registro diario"],["profile","Perfil"],["checkins","Seguimiento"]];
   const roleLabel = authState.level==="master" ? "Jefe de entrenadores" : `${authState.program} · ${authState.category}`;
   return `
   <div class="hero">
@@ -1328,6 +1465,7 @@ function render(){
   else if(tab === "profile") body = renderProfileTab();
   else if(tab === "access" && authState.level === "master") body = renderAccessTab();
   else if(tab === "trainers" && authState.level === "master") body = renderTrainersTab();
+  else if(tab === "checkins") body = renderCheckinsTab();
   else { tab = "setup"; body = renderSetupTab(); }
 
   app.innerHTML = renderHeader() + `<div class="wrap">${body}</div>
@@ -1377,6 +1515,7 @@ function attachAppHandlers(){
         if(list.length) profileAthleteId = list[0].id;
       }
       if(tab === "trainers") initTrainerAttendanceForm();
+      if(tab === "checkins") initCheckinForm();
       render();
     });
   });
@@ -1386,6 +1525,7 @@ function attachAppHandlers(){
   if(tab === "profile") attachProfileTabHandlers();
   if(tab === "access") attachAccessTabHandlers();
   if(tab === "trainers") attachTrainersTabHandlers();
+  if(tab === "checkins") attachCheckinsTabHandlers();
 }
 
 function attachSetupTabHandlers(){
@@ -1557,6 +1697,23 @@ function attachTrainersTabHandlers(){
   if(saveBtn) saveBtn.addEventListener("click", saveTrainerAttendance);
 }
 
+function attachCheckinsTabHandlers(){
+  if(authState.level === "master"){
+    const filterSel = document.getElementById("admin-checkin-group-filter");
+    if(filterSel) filterSel.addEventListener("change", (e) => { adminCheckinGroupFilter = e.target.value; render(); });
+    return;
+  }
+  const prevBtn = document.getElementById("checkin-prev-week-btn");
+  if(prevBtn) prevBtn.addEventListener("click", () => changeCheckinWeek(-1));
+  const nextBtn = document.getElementById("checkin-next-week-btn");
+  if(nextBtn) nextBtn.addEventListener("click", () => changeCheckinWeek(1));
+  document.querySelectorAll(".checkin-answer").forEach(ta => {
+    ta.addEventListener("input", (e) => { checkinAnswers[ta.dataset.qkey] = e.target.value; });
+  });
+  const saveCheckinBtn = document.getElementById("save-checkin-btn");
+  if(saveCheckinBtn) saveCheckinBtn.addEventListener("click", saveCheckin);
+}
+
 function attachAccessTabHandlers(){
   const openBtn = document.getElementById("open-admin-btn");
   if(openBtn) openBtn.addEventListener("click", openAdmin);
@@ -1595,9 +1752,9 @@ function showFatalError(message){
 }
 
 async function loadAllData(){
-  const [gRows, aRows, sRows, atRows, acRows, trRows, taRows] = await Promise.all([
+  const [gRows, aRows, sRows, atRows, acRows, trRows, taRows, wcRows] = await Promise.all([
     sbSelect("groups"), sbSelect("athletes"), sbSelect("sessions"), sbSelect("attendance"), sbSelect("access_config"),
-    sbSelect("trainers"), sbSelect("trainer_attendance")
+    sbSelect("trainers"), sbSelect("trainer_attendance"), sbSelect("weekly_checkins")
   ]);
   groups = gRows.map(r => ({id:r.id, name:r.name, program:r.program}));
   athletes = aRows.map(mapAthlete);
@@ -1606,6 +1763,7 @@ async function loadAllData(){
   if(acRows && acRows[0]) accessConfig = { masterCode: acRows[0].master_code, categoryCodes: acRows[0].category_codes };
   trainers = trRows.map(r => ({id:r.id, name:r.name}));
   trainerAttendance = taRows.map(r => ({id:r.id, trainerId:r.trainer_id, date:r.date, present:r.present}));
+  weeklyCheckins = wcRows.map(r => ({id:r.id, groupId:r.group_id, trainerCode:r.trainer_code, weekStart:r.week_start, q1:r.q1||"", q2:r.q2||"", q3:r.q3||"", q4:r.q4||"", q5:r.q5||"", q6:r.q6||""}));
 }
 
 async function init(){
