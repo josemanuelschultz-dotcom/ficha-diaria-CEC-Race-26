@@ -433,15 +433,15 @@ function handleLogout(){
 
 async function changeMyCode(newCodeRaw){
   const newCode = (newCodeRaw||"").trim();
-  if(!newCode){ changeCodeError = "Ingresa un código nuevo."; render(); return; }
+  if(!newCode){ changeCodeError = "Ingresa una clave nueva."; render(); return; }
 
   const oldCode = authState.level === "master" ? accessConfig.masterCode : authState.trainerCode;
-  if(newCode === oldCode){ changeCodeError = "Ese ya es tu código actual."; render(); return; }
+  if(newCode === oldCode){ changeCodeError = "Esa ya es tu clave actual."; render(); return; }
 
   // uniqueness check across master + all category codes
   const allCodes = [accessConfig.masterCode];
   PROGRAMS.forEach(p => { Object.values(accessConfig.categoryCodes[p]||{}).forEach(arr => allCodes.push(...(Array.isArray(arr)?arr:[arr]))); });
-  if(allCodes.includes(newCode)){ changeCodeError = "Ese código ya lo está usando otra persona. Elige otro."; render(); return; }
+  if(allCodes.includes(newCode)){ changeCodeError = "Esa clave ya la está usando otra persona. Elige otra."; render(); return; }
 
   changeCodeSaving = true; changeCodeError = ""; render();
 
@@ -481,8 +481,9 @@ async function changeMyCode(newCodeRaw){
     persistAuth();
     changeCodeSuccess = true;
     changeCodeNew = ""; changeCodeConfirm = "";
+    showChangeCode = false;
   }catch(e){
-    changeCodeError = "No se pudo cambiar el código. Detalle: " + e.message;
+    changeCodeError = "No se pudo cambiar la clave. Detalle: " + e.message;
   }
   changeCodeSaving = false;
   render();
@@ -1344,15 +1345,15 @@ function variableBlockHTML(title, data, colorFor){
 function renderChangeCodePanel(){
   return `
   <div style="background:white;border-radius:14px;padding:16px;margin-top:12px;">
-    <div style="font-family:'Oswald',sans-serif;font-weight:600;font-size:14px;color:${NAVY};margin-bottom:10px;">🔑 Cambiar mi código de acceso</div>
-    ${changeCodeSuccess ? `<div class="info-box" style="margin-bottom:10px;">Código actualizado. Úsalo la próxima vez que entres.</div>` : ""}
-    <label class="field-label">Código nuevo</label>
-    <input type="text" id="change-code-new" value="${escapeHtml(changeCodeNew)}" placeholder="Tu nuevo código" style="margin-bottom:10px;" />
-    <label class="field-label">Confirma el código nuevo</label>
-    <input type="text" id="change-code-confirm" value="${escapeHtml(changeCodeConfirm)}" placeholder="Repite el código nuevo" style="margin-bottom:10px;" />
+    <div style="font-family:'Oswald',sans-serif;font-weight:600;font-size:14px;color:${NAVY};margin-bottom:10px;">🔑 Cambiar mi clave de acceso</div>
+    ${changeCodeSuccess ? `<div class="info-box" style="margin-bottom:10px;">Clave actualizada.</div>` : ""}
+    <label class="field-label">Clave nueva</label>
+    <input type="text" id="change-code-new" value="${escapeHtml(changeCodeNew)}" placeholder="Tu nueva clave" style="margin-bottom:10px;" />
+    <label class="field-label">Confirma la clave nueva</label>
+    <input type="text" id="change-code-confirm" value="${escapeHtml(changeCodeConfirm)}" placeholder="Repite la clave nueva" style="margin-bottom:10px;" />
     ${changeCodeError ? `<div class="error-box" style="margin-bottom:10px;">${escapeHtml(changeCodeError)}</div>` : ""}
     <div style="display:flex;gap:8px;">
-      <button class="save-btn" id="submit-change-code-btn" style="flex:1;">${changeCodeSaving?"Guardando...":"✓ Guardar código nuevo"}</button>
+      <button class="save-btn" id="submit-change-code-btn" style="flex:1;">${changeCodeSaving?"Guardando...":"✓ Guardar clave nueva"}</button>
       <button class="btn-outline" id="cancel-change-code-btn">Cancelar</button>
     </div>
   </div>`;
@@ -1375,7 +1376,7 @@ function renderHeader(){
       <div class="role-badges">
         <span class="role-badge">🔒 ${roleLabel}</span>
         <button class="role-badge" id="refresh-btn" ${refreshing?"disabled":""}>${refreshing? "⏳ Actualizando..." : "🔄 Actualizar"}</button>
-        <button class="role-badge" id="change-code-btn">🔑 Cambiar código</button>
+        <button class="role-badge" id="change-code-btn">🔑 Cambiar clave</button>
         <button class="role-badge" id="logout-btn">🚪 Salir</button>
       </div>
     </div>
