@@ -322,7 +322,7 @@ let changeCodeError = "";
 let changeCodeSaving = false;
 let changeCodeSuccess = false;
 
-let tab = "setup";
+let tab = "daily";
 let selectedGroupId = null;
 let selectedDate = todayISO();
 let attendanceState = {};
@@ -409,7 +409,9 @@ function handleLogin(){
   const code = pinInput.trim();
   if(!code){ authError = "Ingresa tu código de acceso."; render(); return; }
   if(code === accessConfig.masterCode){
-    authState = {level:"master"}; persistAuth(); pinInput=""; authError=""; render(); return;
+    authState = {level:"master"}; persistAuth(); pinInput=""; authError="";
+    if(tab === "daily") initDailyForm();
+    render(); return;
   }
   for(const program of PROGRAMS){
     const cats = accessConfig.categoryCodes[program] || {};
@@ -420,6 +422,7 @@ function handleLogin(){
         currentProgram = program;
         const g = ensureCategoryGroup(program, category);
         selectedGroupId = g.id;
+        if(tab === "daily") initDailyForm();
         render(); return;
       }
     }
@@ -428,7 +431,7 @@ function handleLogin(){
   render();
 }
 function handleLogout(){
-  authState = null; persistAuth(); pinInput=""; tab="setup"; render();
+  authState = null; persistAuth(); pinInput=""; tab="daily"; render();
 }
 
 async function changeMyCode(newCodeRaw){
@@ -1699,7 +1702,7 @@ function render(){
   else if(tab === "access" && authState.level === "master") body = renderAccessTab();
   else if(tab === "trainers" && authState.level === "master") body = renderTrainersTab();
   else if(tab === "checkins") body = renderCheckinsTab();
-  else { tab = "setup"; body = renderSetupTab(); }
+  else { tab = "daily"; body = renderDailyTab(); }
 
   app.innerHTML = renderHeader() + `<div class="wrap">${body}</div>
     <div class="footer-note">Los datos se sincronizan automáticamente entre todos los dispositivos.</div>`;
