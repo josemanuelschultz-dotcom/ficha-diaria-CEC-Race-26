@@ -926,6 +926,20 @@ async function deleteCheckin(){
   render();
 }
 
+async function deleteCheckinAsAdmin(checkinId){
+  const c = weeklyCheckins.find(x => x.id === checkinId);
+  if(!c) return;
+  const group = groups.find(g => g.id === c.groupId);
+  if(!confirm(`¿Borrar el registro de ${c.trainerCode} (${group?.program||""} ${group?.name||""}) de la semana ${weekRangeLabel(c.weekStart)}? Esta acción no se puede deshacer.`)) return;
+  try{
+    await sbDelete("weekly_checkins", { id: checkinId });
+    weeklyCheckins = weeklyCheckins.filter(x => x.id !== checkinId);
+    render();
+  }catch(e){
+    alert("No se pudo borrar: " + e.message);
+  }
+}
+
 async function saveCheckin(){
   checkinSaveError = "";
   checkinSaving = true; render();
@@ -1060,6 +1074,7 @@ function renderCheckinsAdminView(){
             <span style="font-size:11px;padding:3px 8px;border-radius:20px;background:${c.sentToJefe?"#EAF7EE":"#FFF6E0"};color:${c.sentToJefe?GREEN:"#B87700"};">${c.sentToJefe?"✅ Revisado por coordinador":"⏳ Pendiente de revisión"}</span>
           </div>
           ${renderCheckinAnswersHTML(c)}
+          <button class="btn-outline" data-delete-checkin-admin="${c.id}" style="width:100%;justify-content:center;margin-top:8px;border-color:${RED};color:${RED};">🗑️ Borrar este registro</button>
         </div>`;
       });
       html += `</div>`;
@@ -1071,7 +1086,7 @@ function renderCheckinsAdminView(){
     const sortedLog = [...checkinAuditLog].sort((a,b) => b.changedAt < a.changedAt ? -1 : 1);
     html += `<div class="card">
       <div class="section-label"><div class="gate-poles"><span></span><span></span></div><span class="title">Historial de cambios en respuestas ya enviadas</span></div>
-      <div style="font-size:12px;color:${GRAY};margin-bottom:14px;">Visible solo para el jefe de entrenadores. Muestra el contenido anterior cuando alguien edita o borra una respuesta que ya había sido enviada.</div>`;
+      <div style="font-size:12px;color:${GRAY};margin-bottom:14px;">Muestra el contenido anterior cuando alguien edita o borra una respuesta que ya había sido enviada.</div>`;
     sortedLog.forEach(entry => {
       const group = groups.find(g => g.id === entry.groupId);
       const when = new Date(entry.changedAt).toLocaleString("es-ES", { day:"2-digit", month:"short", hour:"2-digit", minute:"2-digit" });
@@ -1821,6 +1836,9 @@ function attachCheckinsTabHandlers(){
   if(authState.level === "master"){
     const filterSel = document.getElementById("admin-checkin-group-filter");
     if(filterSel) filterSel.addEventListener("change", (e) => { adminCheckinGroupFilter = e.target.value; render(); });
+    document.querySelectorAll("[data-delete-checkin-admin]").forEach(btn => {
+      btn.addEventListener("click", () => deleteCheckinAsAdmin(btn.dataset.deleteCheckinAdmin));
+    });
     return;
   }
   const prevBtn = document.getElementById("checkin-prev-week-btn");
