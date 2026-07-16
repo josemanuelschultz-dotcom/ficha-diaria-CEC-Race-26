@@ -30,6 +30,22 @@
   .tabs{display:flex; gap:8px; margin-top:14px; flex-wrap:wrap;}
   .tab-btn{font-size:13px; padding:7px 12px; border-radius:8px; border:none; font-weight:500;}
 
+  .menu-wrap{position:relative;}
+  .header-menu{position:absolute; right:0; top:calc(100% + 6px); background:#2B2B2B; border-radius:10px; padding:6px; display:flex; flex-direction:column; gap:2px; min-width:170px; box-shadow:0 8px 24px rgba(0,0,0,.35); z-index:60;}
+  .header-menu button{background:none; border:none; color:#D9D9D9; padding:9px 12px; text-align:left; font-size:13px; border-radius:7px; display:flex; align-items:center; gap:6px;}
+  .header-menu button:hover{background:#3A3A3A;}
+
+  .program-tabs{display:flex; gap:16px; margin-top:14px; flex-wrap:wrap; border-bottom:1px solid #2E2E2E;}
+  .program-btn{background:none; border:none; color:#9A9A9A; font-family:'Oswald',sans-serif; text-transform:uppercase; letter-spacing:.08em; font-size:13px; padding:6px 2px 9px; border-bottom:2px solid transparent; margin-bottom:-1px;}
+  .program-btn.active{color:var(--gold); border-bottom-color:var(--gold); font-weight:600;}
+
+  @media (max-width:480px){
+    .hero{padding:14px 16px 18px;}
+    .hero-title{font-size:1.2rem;}
+    .eyebrow{font-size:10px; margin-bottom:2px;}
+    .role-badge{font-size:11px; padding:5px 8px;}
+  }
+
   .wrap{max-width:720px; margin:-10px auto 0; padding:0 16px 40px;}
   .card{background:white; border-radius:16px; padding:20px; box-shadow:0 10px 30px rgba(11,37,69,.10); margin-bottom:16px;}
 
@@ -134,13 +150,23 @@
   .cal-grid{display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:4px;}
   .cal-day{
     aspect-ratio:1; width:100%; display:flex; align-items:center; justify-content:center; border-radius:11px; border:none; background:none;
-    font-family:'JetBrains Mono',monospace; font-size:15px; font-weight:600; color:var(--navy); min-width:0;
+    font-family:'JetBrains Mono',monospace; font-size:15px; font-weight:600; color:var(--navy); min-width:0; position:relative;
   }
+  .cal-day.has-data::after{content:""; position:absolute; bottom:5px; left:50%; transform:translateX(-50%); width:5px; height:5px; border-radius:999px; background:var(--red);}
+  .cal-day.selected.has-data::after{background:white;}
   .cal-day:hover{background:#F0F0F0;}
   .cal-day.other-month{color:#C9C9C9; font-weight:500;}
   .cal-day.today{box-shadow:inset 0 0 0 2px var(--red);}
   .cal-day.selected{background:var(--red); color:white;}
   .cal-today-btn{width:100%; margin-top:14px; padding:10px; border-radius:10px; border:1px solid var(--border); background:white; color:var(--navy); font-size:14px; font-weight:600;}
+  .cal-card.collapsible{padding:8px 10px;}
+  .date-toggle{width:100%; display:flex; align-items:center; justify-content:space-between; gap:8px; background:none; border:none; padding:8px; text-align:left;}
+  .date-toggle .date-label{font-size:15px; font-weight:600; color:var(--navy);}
+  .date-toggle .chev{font-size:12px; color:var(--gray); font-weight:500; flex-shrink:0;}
+  .today-chip{display:inline-block; background:var(--green); color:white; font-size:11px; font-weight:600; border-radius:6px; padding:2px 7px; margin-left:4px; vertical-align:2px;}
+  .date-warn{display:flex; align-items:center; justify-content:space-between; gap:8px; background:#FFF6E0; border:1px solid #FCE7B0; color:#8A6100; font-size:12px; border-radius:8px; padding:6px 10px; margin:2px 8px 8px;}
+  .date-warn button{background:white; border:1px solid #E3C36B; border-radius:6px; padding:4px 10px; color:#8A6100; font-size:12px; font-weight:600; flex-shrink:0;}
+  .cal-body{padding:6px 8px 10px;}
   .backup-row{display:flex; gap:8px; flex-wrap:wrap;}
 </style>
 </head>
@@ -273,7 +299,7 @@ function lsGet(key, fallback){
 }
 function lsSet(key, value){ try{ localStorage.setItem(key, JSON.stringify(value)); }catch(e){} }
 function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
-function todayISO(){ return new Date().toISOString().slice(0,10); }
+function todayISO(){ const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; }
 function escapeHtml(str){ const d=document.createElement("div"); d.textContent = str==null? "": String(str); return d.innerHTML; }
 
 function blankFicha(){ return {phone:"", enfermedades:"", alergias:"", medicamentos:"", otros:""}; }
@@ -322,7 +348,7 @@ let changeCodeError = "";
 let changeCodeSaving = false;
 let changeCodeSuccess = false;
 
-let tab = "setup";
+let tab = "daily";
 let selectedGroupId = null;
 let selectedDate = todayISO();
 let attendanceState = {};
@@ -341,6 +367,7 @@ let saveDayError = "";
 let saving = false;
 let justSaved = false;
 let calendarOpen = false;
+let headerMenuOpen = false;
 let calendarViewMonth = null; // Date (first day of the month being viewed)
 let outsideClickHandler = null;
 
@@ -409,7 +436,9 @@ function handleLogin(){
   const code = pinInput.trim();
   if(!code){ authError = "Ingresa tu código de acceso."; render(); return; }
   if(code === accessConfig.masterCode){
-    authState = {level:"master"}; persistAuth(); pinInput=""; authError=""; render(); return;
+    authState = {level:"master"}; persistAuth(); pinInput=""; authError="";
+    if(tab === "daily") initDailyForm();
+    render(); return;
   }
   for(const program of PROGRAMS){
     const cats = accessConfig.categoryCodes[program] || {};
@@ -420,6 +449,7 @@ function handleLogin(){
         currentProgram = program;
         const g = ensureCategoryGroup(program, category);
         selectedGroupId = g.id;
+        if(tab === "daily") initDailyForm();
         render(); return;
       }
     }
@@ -428,7 +458,7 @@ function handleLogin(){
   render();
 }
 function handleLogout(){
-  authState = null; persistAuth(); pinInput=""; tab="setup"; render();
+  authState = null; persistAuth(); pinInput=""; tab="daily"; headerMenuOpen=false; render();
 }
 
 async function changeMyCode(newCodeRaw){
@@ -576,6 +606,13 @@ function initDailyForm(){
 /* ============ CUSTOM CALENDAR ============ */
 const MESES = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
 const DIAS_SEMANA = ["Lun","Mar","Mié","Jue","Vie","Sáb","Dom"];
+const DIAS_LARGO = ["Domingo","Lunes","Martes","Miércoles","Jueves","Viernes","Sábado"];
+
+function formatFechaLarga(ds){
+  const [y,m,d] = ds.split("-").map(Number);
+  const dt = new Date(y, m-1, d);
+  return `${DIAS_LARGO[dt.getDay()]} ${d} de ${MESES[m-1]}`;
+}
 
 function dstr(y,m,d){ return `${y}-${String(m+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`; }
 
@@ -585,6 +622,7 @@ function changeCalendarMonth(delta){
 }
 function selectCalendarDay(dateStr){
   selectedDate = dateStr;
+  calendarOpen = false;
   initDailyForm();
   render();
 }
@@ -592,11 +630,25 @@ function goToToday(){
   const t = new Date();
   selectedDate = dstr(t.getFullYear(), t.getMonth(), t.getDate());
   calendarViewMonth = new Date(t.getFullYear(), t.getMonth(), 1);
+  calendarOpen = false;
   initDailyForm();
   render();
 }
 
 function calendarCardHTML(){
+  const isToday = selectedDate === todayISO();
+  return `
+  <div class="cal-card collapsible">
+    <button type="button" class="date-toggle" id="cal-toggle-btn">
+      <span class="date-label">📅 ${formatFechaLarga(selectedDate)}${isToday?` <span class="today-chip">Hoy</span>`:""}</span>
+      <span class="chev">${calendarOpen?"Cerrar ▴":"Cambiar fecha ▾"}</span>
+    </button>
+    ${!isToday ? `<div class="date-warn"><span>⚠️ Estás viendo otro día, no hoy.</span><button type="button" id="cal-today-quick">Ir a hoy</button></div>` : ""}
+    ${calendarOpen ? calendarBodyHTML() : ""}
+  </div>`;
+}
+
+function calendarBodyHTML(){
   if(!calendarViewMonth){
     const [y,m] = selectedDate.split("-").map(Number);
     calendarViewMonth = new Date(y, m-1, 1);
@@ -611,6 +663,10 @@ function calendarCardHTML(){
   const today = new Date();
   const todayStr = dstr(today.getFullYear(), today.getMonth(), today.getDate());
 
+  const datesWithData = new Set();
+  sessions.forEach(s => { if(s.groupId === selectedGroupId) datesWithData.add(s.date); });
+  attendance.forEach(a => { if(a.groupId === selectedGroupId) datesWithData.add(a.date); });
+
   let cells = "";
   for(let i=0;i<startOffset;i++){
     const d = daysInPrevMonth - startOffset + i + 1;
@@ -622,6 +678,7 @@ function calendarCardHTML(){
     const classes = ["cal-day"];
     if(ds === todayStr) classes.push("today");
     if(ds === selectedDate) classes.push("selected");
+    if(datesWithData.has(ds)) classes.push("has-data");
     cells += `<button type="button" class="${classes.join(" ")}" data-date="${ds}">${d}</button>`;
   }
   const totalCells = startOffset + daysInMonth;
@@ -632,7 +689,7 @@ function calendarCardHTML(){
   }
 
   return `
-  <div class="cal-card">
+  <div class="cal-body">
     <div class="cal-head">
       <button type="button" class="cal-nav-btn" id="cal-prev-btn">‹</button>
       <span class="label">${MESES[month]} ${year}</span>
@@ -797,6 +854,7 @@ function changeTrainerCalendarMonth(delta){
 }
 function selectTrainerCalendarDay(dateStr){
   trainerAttDate = dateStr;
+  trainerCalOpen = false;
   initTrainerAttendanceForm();
   render();
 }
@@ -804,10 +862,24 @@ function goToTodayTrainer(){
   const t = new Date();
   trainerAttDate = dstr(t.getFullYear(), t.getMonth(), t.getDate());
   trainerCalViewMonth = new Date(t.getFullYear(), t.getMonth(), 1);
+  trainerCalOpen = false;
   initTrainerAttendanceForm();
   render();
 }
 function trainerCalendarCardHTML(){
+  const isToday = trainerAttDate === todayISO();
+  return `
+  <div class="cal-card collapsible">
+    <button type="button" class="date-toggle" id="trainer-cal-toggle-btn">
+      <span class="date-label">📅 ${formatFechaLarga(trainerAttDate)}${isToday?` <span class="today-chip">Hoy</span>`:""}</span>
+      <span class="chev">${trainerCalOpen?"Cerrar ▴":"Cambiar fecha ▾"}</span>
+    </button>
+    ${!isToday ? `<div class="date-warn"><span>⚠️ Estás viendo otro día, no hoy.</span><button type="button" id="trainer-cal-today-quick">Ir a hoy</button></div>` : ""}
+    ${trainerCalOpen ? trainerCalendarBodyHTML() : ""}
+  </div>`;
+}
+
+function trainerCalendarBodyHTML(){
   if(!trainerCalViewMonth){
     const [y,m] = trainerAttDate.split("-").map(Number);
     trainerCalViewMonth = new Date(y, m-1, 1);
@@ -821,6 +893,8 @@ function trainerCalendarCardHTML(){
   const today = new Date();
   const todayStr = dstr(today.getFullYear(), today.getMonth(), today.getDate());
 
+  const datesWithData = new Set(trainerAttendance.map(r => r.date));
+
   let cells = "";
   for(let i=0;i<startOffset;i++){
     const d = daysInPrevMonth - startOffset + i + 1;
@@ -832,6 +906,7 @@ function trainerCalendarCardHTML(){
     const classes = ["cal-day"];
     if(ds === todayStr) classes.push("today");
     if(ds === trainerAttDate) classes.push("selected");
+    if(datesWithData.has(ds)) classes.push("has-data");
     cells += `<button type="button" class="${classes.join(" ")}" data-tdate="${ds}">${d}</button>`;
   }
   const totalCells = startOffset + daysInMonth;
@@ -841,7 +916,7 @@ function trainerCalendarCardHTML(){
     cells += `<button type="button" class="cal-day other-month" data-tdate="${dstr(ny,nm,d)}">${d}</button>`;
   }
   return `
-  <div class="cal-card">
+  <div class="cal-body">
     <div class="cal-head">
       <button type="button" class="cal-nav-btn" id="trainer-cal-prev-btn">‹</button>
       <span class="label">${MESES[month]} ${year}</span>
@@ -1067,7 +1142,7 @@ function renderCheckinsTab(){
 
   const group = groups.find(g => g.id === selectedGroupId);
   let html = `<div class="card">
-    <div class="section-label"><div class="gate-poles"><span></span><span></span></div><span class="title">Mi seguimiento semanal</span></div>
+    <div class="section-label"><div class="gate-poles"><span></span><span></span></div><span class="title">Mi check-in semanal</span></div>
     <div style="font-size:12px;color:${GRAY};margin-bottom:14px;">Personal — solo tú, tu coordinador y el jefe de entrenadores pueden ver tus respuestas.</div>
     <div style="display:flex;align-items:center;justify-content:space-between;background:#F7FAFC;border-radius:10px;padding:10px 14px;margin-bottom:16px;">
       <button type="button" class="cal-nav-btn" id="checkin-prev-week-btn">‹</button>
@@ -1123,7 +1198,7 @@ function renderCheckinsTab(){
 
 function renderCheckinsAdminView(){
   let html = `<div class="card">
-    <div class="section-label"><div class="gate-poles"><span></span><span></span></div><span class="title">Seguimiento semanal — todos los entrenadores</span></div>
+    <div class="section-label"><div class="gate-poles"><span></span><span></span></div><span class="title">Check-in semanal — todos los entrenadores</span></div>
     <div style="font-size:12px;color:${GRAY};margin-bottom:14px;">Se muestran todas las respuestas, hayan sido revisadas por el coordinador o no.</div>
     <select id="admin-checkin-group-filter" style="margin-bottom:14px;">
       <option value="">Todos los grupos</option>
@@ -1361,8 +1436,8 @@ function renderChangeCodePanel(){
 
 function renderHeader(){
   const visibleTabs = authState.level === "master"
-    ? [["setup","Grupos"],["daily","Registro diario"],["profile","Perfil"],["trainers","Entrenadores"],["checkins","Seguimiento"],["access","Accesos"]]
-    : [["setup","Grupos"],["daily","Registro diario"],["profile","Perfil"],["checkins","Seguimiento"]];
+    ? [["setup","Grupos"],["daily","Registro diario"],["profile","Estadísticas"],["trainers","Entrenadores"],["checkins","Check-in semanal"],["access","Accesos"]]
+    : [["setup","Grupos"],["daily","Registro diario"],["profile","Estadísticas"],["checkins","Check-in semanal"]];
   const roleLabel = authState.level==="master" ? "Jefe de entrenadores" : `${authState.program} · ${authState.category}`;
   return `
   <div class="hero">
@@ -1376,14 +1451,19 @@ function renderHeader(){
       <div class="role-badges">
         <span class="role-badge">🔒 ${roleLabel}</span>
         <button class="role-badge" id="refresh-btn" ${refreshing?"disabled":""}>${refreshing? "⏳ Actualizando..." : "🔄 Actualizar"}</button>
-        <button class="role-badge" id="change-code-btn">🔑 Cambiar clave</button>
-        <button class="role-badge" id="logout-btn">🚪 Salir</button>
+        <div class="menu-wrap">
+          <button class="role-badge" id="header-menu-btn" aria-label="Más opciones">⋯</button>
+          ${headerMenuOpen ? `<div class="header-menu">
+            <button id="change-code-btn">🔑 Cambiar clave</button>
+            <button id="logout-btn">🚪 Salir</button>
+          </div>` : ""}
+        </div>
       </div>
     </div>
     ${showChangeCode ? renderChangeCodePanel() : ""}
     ${authState.level==="master" ? `
-    <div class="tabs" style="margin-top:10px;">
-      ${PROGRAMS.map(p => `<button class="tab-btn" data-program="${p}" style="background:${currentProgram===p?GOLD:"#2B2B2B"};color:${currentProgram===p?NAVY:"#D9D9D9"};font-weight:${currentProgram===p?700:500};">${p}</button>`).join("")}
+    <div class="program-tabs">
+      ${PROGRAMS.map(p => `<button class="program-btn${currentProgram===p?" active":""}" data-program="${p}">${p}</button>`).join("")}
     </div>` : ""}
     <div class="tabs">
       ${visibleTabs.map(([id,label]) => `<button class="tab-btn" data-tab="${id}" style="background:${tab===id?"white":"#2B2B2B"};color:${tab===id?NAVY:"#D9D9D9"};font-weight:${tab===id?600:500};">${label}</button>`).join("")}
@@ -1699,10 +1779,10 @@ function render(){
   else if(tab === "access" && authState.level === "master") body = renderAccessTab();
   else if(tab === "trainers" && authState.level === "master") body = renderTrainersTab();
   else if(tab === "checkins") body = renderCheckinsTab();
-  else { tab = "setup"; body = renderSetupTab(); }
+  else { tab = "daily"; body = renderDailyTab(); }
 
   app.innerHTML = renderHeader() + `<div class="wrap">${body}</div>
-    <div class="footer-note">Los datos se guardan solo en este navegador y este dispositivo.</div>`;
+    <div class="footer-note">Los datos se sincronizan automáticamente entre todos los dispositivos.</div>`;
   attachAppHandlers();
 }
 
@@ -1728,9 +1808,13 @@ function attachAppHandlers(){
   const refreshBtn = document.getElementById("refresh-btn");
   if(refreshBtn) refreshBtn.addEventListener("click", manualRefresh);
 
+  const headerMenuBtn = document.getElementById("header-menu-btn");
+  if(headerMenuBtn) headerMenuBtn.addEventListener("click", () => { headerMenuOpen = !headerMenuOpen; render(); });
+
   const changeCodeBtn = document.getElementById("change-code-btn");
   if(changeCodeBtn) changeCodeBtn.addEventListener("click", () => {
     showChangeCode = !showChangeCode;
+    headerMenuOpen = false;
     changeCodeError = ""; changeCodeSuccess = false; changeCodeNew = ""; changeCodeConfirm = "";
     render();
   });
@@ -1825,6 +1909,10 @@ function attachDailyTabHandlers(){
   const groupSelect = document.getElementById("daily-group-select");
   if(groupSelect) groupSelect.addEventListener("change", (e) => { selectedGroupId = e.target.value; initDailyForm(); render(); });
 
+  const calToggleBtn = document.getElementById("cal-toggle-btn");
+  if(calToggleBtn) calToggleBtn.addEventListener("click", () => { calendarOpen = !calendarOpen; render(); });
+  const todayQuickBtn = document.getElementById("cal-today-quick");
+  if(todayQuickBtn) todayQuickBtn.addEventListener("click", () => goToToday());
   const prevBtn = document.getElementById("cal-prev-btn");
   if(prevBtn) prevBtn.addEventListener("click", () => changeCalendarMonth(-1));
   const nextBtn = document.getElementById("cal-next-btn");
@@ -1921,6 +2009,10 @@ function attachProfileTabHandlers(){
 }
 
 function attachTrainersTabHandlers(){
+  const calToggleBtn = document.getElementById("trainer-cal-toggle-btn");
+  if(calToggleBtn) calToggleBtn.addEventListener("click", () => { trainerCalOpen = !trainerCalOpen; render(); });
+  const todayQuickBtn = document.getElementById("trainer-cal-today-quick");
+  if(todayQuickBtn) todayQuickBtn.addEventListener("click", () => goToTodayTrainer());
   const prevBtn = document.getElementById("trainer-cal-prev-btn");
   if(prevBtn) prevBtn.addEventListener("click", () => changeTrainerCalendarMonth(-1));
   const nextBtn = document.getElementById("trainer-cal-next-btn");
