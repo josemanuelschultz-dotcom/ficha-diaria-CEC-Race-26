@@ -385,6 +385,15 @@ function ensureCategoryGroup(program, name){
   return g;
 }
 function groupsForProgram(program){ return groups.filter(g => g.program === program); }
+function groupsSortedByCategory(){
+  return [...groups].sort((a,b) => {
+    const pA = PROGRAMS.indexOf(a.program), pB = PROGRAMS.indexOf(b.program);
+    if(pA !== pB) return pA - pB;
+    const cA = (PROGRAM_CATEGORIES[a.program]||[]).indexOf(a.name);
+    const cB = (PROGRAM_CATEGORIES[b.program]||[]).indexOf(b.name);
+    return cA - cB;
+  });
+}
 
 function athleteStats(athleteId, groupId){
   const attRecs = attendance.filter(a => a.athleteId === athleteId);
@@ -1202,7 +1211,7 @@ function renderCheckinsAdminView(){
     <div style="font-size:12px;color:${GRAY};margin-bottom:14px;">Se muestran todas las respuestas, hayan sido revisadas por el coordinador o no.</div>
     <select id="admin-checkin-group-filter" style="margin-bottom:14px;">
       <option value="">Todos los grupos</option>
-      ${groups.map(g => `<option value="${g.id}" ${adminCheckinGroupFilter===g.id?"selected":""}>${escapeHtml(g.program)} · ${escapeHtml(g.name)}</option>`).join("")}
+      ${groupsSortedByCategory().map(g => `<option value="${g.id}" ${adminCheckinGroupFilter===g.id?"selected":""}>${escapeHtml(g.program)} · ${escapeHtml(g.name)}</option>`).join("")}
     </select>`;
 
   let list = [...weeklyCheckins];
