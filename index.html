@@ -314,6 +314,7 @@ let checkinSaving = false;
 let checkinSaveError = "";
 let checkinJustSaved = false;
 let adminCheckinGroupFilter = ""; // "" = todos
+let checkinAuditLog = [];
 
 let tab = "setup";
 let selectedGroupId = null;
@@ -892,16 +893,28 @@ function changeCheckinWeek(delta){
   initCheckinForm();
   render();
 }
+async function logCheckinAudit(existing, action){
+  try{
+    const row = {
+      group_id: existing.groupId, trainer_code: existing.trainerCode, week_start: existing.weekStart, action,
+      q1: existing.q1, q2: existing.q2, q3: existing.q3, q4: existing.q4, q5: existing.q5, q6: existing.q6,
+    };
+    const saved = await sbInsert("checkin_audit_log", row);
+    checkinAuditLog.push({id:saved.id, groupId:saved.group_id, trainerCode:saved.trainer_code, weekStart:saved.week_start, action:saved.action, q1:saved.q1, q2:saved.q2, q3:saved.q3, q4:saved.q4, q5:saved.q5, q6:saved.q6, changedAt:saved.changed_at});
+  }catch(e){ /* audit log failure shouldn't block the actual save/delete */ }
+}
+
 async function deleteCheckin(){
   const existing = weeklyCheckins.find(c => c.groupId===selectedGroupId && c.trainerCode===authState.trainerCode && c.weekStart===checkinWeekStart);
   if(!existing) return;
   let msg = `¿Borrar tus respuestas de la semana ${weekRangeLabel(checkinWeekStart)}? Esta acción no se puede deshacer.`;
-  if(existing.sentToJefe) msg += `\n\nOjo: esta respuesta ya fue enviada al jefe de entrenadores — también se borrará de su vista.`;
+  if(existing.sentToJefe) msg += `\n\nOjo: esta respuesta ya fue enviada al jefe de entrenadores — también se borrará de su vista. Quedará un registro del cambio visible solo para el jefe.`;
   if(!confirm(msg)) return;
 
   checkinSaveError = "";
   checkinSaving = true; render();
   try{
+    if(existing.sentToJefe) await logCheckinAudit(existing, "eliminado");
     await sbDelete("weekly_checkins", { id: existing.id });
     weeklyCheckins = weeklyCheckins.filter(c => c.id !== existing.id);
     checkinAnswers = { q1:"", q2:"", q3:"", q4:"", q5:"", q6:"" };
@@ -917,6 +930,8 @@ async function saveCheckin(){
   checkinSaveError = "";
   checkinSaving = true; render();
   try{
+    const existing = weeklyCheckins.find(c => c.groupId===selectedGroupId && c.trainerCode===authState.trainerCode && c.weekStart===checkinWeekStart);
+    if(existing && existing.sentToJefe) await logCheckinAudit(existing, "editado");
     const row = {
       group_id: selectedGroupId, trainer_code: authState.trainerCode, week_start: checkinWeekStart,
       q1: checkinAnswers.q1||"", q2: checkinAnswers.q2||"", q3: checkinAnswers.q3||"",
@@ -1051,6 +1066,27 @@ function renderCheckinsAdminView(){
     });
   }
   html += `</div>`;
+
+  if(checkinAuditLog.length){
+    const sortedLog = [...checkinAuditLog].sort((a,b) => b.changedAt < a.changedAt ? -1 : 1);
+    html += `<div class="card">
+      <div class="section-label"><div class="gate-poles"><span></span><span></span></div><span class="title">Historial de cambios en respuestas ya enviadas</span></div>
+      <div style="font-size:12px;color:${GRAY};margin-bottom:14px;">Visible solo para el jefe de entrenadores. Muestra el contenido anterior cuando alguien edita o borra una respuesta que ya había sido enviada.</div>`;
+    sortedLog.forEach(entry => {
+      const group = groups.find(g => g.id === entry.groupId);
+      const when = new Date(entry.changedAt).toLocaleString("es-ES", { day:"2-digit", month:"short", hour:"2-digit", minute:"2-digit" });
+      html += `<div style="background:#FFF6E0;border:1px solid #FCE7B0;border-radius:12px;padding:14px;margin-bottom:10px;">
+        <div style="font-size:12px;margin-bottom:8px;">
+          <b>${escapeHtml(entry.trainerCode)}</b> ${escapeHtml(group?.program||"")} ${escapeHtml(group?.name||"")} ·
+          <span style="color:${entry.action==="eliminado"?RED:"#B87700"};font-weight:600;">${entry.action==="eliminado"?"🗑️ Eliminó":"✏️ Editó"}</span> su respuesta de la semana ${weekRangeLabel(entry.weekStart)} el ${when}
+        </div>
+        <div style="font-size:11px;color:${GRAY};margin-bottom:6px;">Contenido antes del cambio:</div>
+        ${renderCheckinAnswersHTML(entry)}
+      </div>`;
+    });
+    html += `</div>`;
+  }
+
   return html;
 }
 
@@ -1841,9 +1877,9 @@ function showFatalError(message){
 }
 
 async function loadAllData(){
-  const [gRows, aRows, sRows, atRows, acRows, trRows, taRows, wcRows] = await Promise.all([
+  const [gRows, aRows, sRows, atRows, acRows, trRows, taRows, wcRows, calRows] = await Promise.all([
     sbSelect("groups"), sbSelect("athletes"), sbSelect("sessions"), sbSelect("attendance"), sbSelect("access_config"),
-    sbSelect("trainers"), sbSelect("trainer_attendance"), sbSelect("weekly_checkins")
+    sbSelect("trainers"), sbSelect("trainer_attendance"), sbSelect("weekly_checkins"), sbSelect("checkin_audit_log")
   ]);
   groups = gRows.map(r => ({id:r.id, name:r.name, program:r.program}));
   athletes = aRows.map(mapAthlete);
@@ -1853,6 +1889,7 @@ async function loadAllData(){
   trainers = trRows.map(r => ({id:r.id, name:r.name}));
   trainerAttendance = taRows.map(r => ({id:r.id, trainerId:r.trainer_id, date:r.date, present:r.present}));
   weeklyCheckins = wcRows.map(r => ({id:r.id, groupId:r.group_id, trainerCode:r.trainer_code, weekStart:r.week_start, q1:r.q1||"", q2:r.q2||"", q3:r.q3||"", q4:r.q4||"", q5:r.q5||"", q6:r.q6||"", sentToJefe:!!r.sent_to_jefe, sentAt:r.sent_at}));
+  checkinAuditLog = calRows.map(r => ({id:r.id, groupId:r.group_id, trainerCode:r.trainer_code, weekStart:r.week_start, action:r.action, q1:r.q1, q2:r.q2, q3:r.q3, q4:r.q4, q5:r.q5, q6:r.q6, changedAt:r.changed_at}));
 }
 
 async function init(){
