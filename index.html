@@ -908,7 +908,7 @@ async function deleteCheckin(){
   const existing = weeklyCheckins.find(c => c.groupId===selectedGroupId && c.trainerCode===authState.trainerCode && c.weekStart===checkinWeekStart);
   if(!existing) return;
   let msg = `¿Borrar tus respuestas de la semana ${weekRangeLabel(checkinWeekStart)}? Esta acción no se puede deshacer.`;
-  if(existing.sentToJefe) msg += `\n\nOjo: esta respuesta ya fue enviada al jefe de entrenadores — también se borrará de su vista. Quedará un registro del cambio visible solo para el jefe.`;
+  if(existing.sentToJefe) msg += `\n\nOjo: ya marcaste esta respuesta como enviada al coordinador. Quedará un registro del cambio visible solo para el jefe de entrenadores.`;
   if(!confirm(msg)) return;
 
   checkinSaveError = "";
@@ -1003,7 +1003,7 @@ function renderCheckinsTab(){
     inbox.sort((a,b) => (a.sentToJefe===b.sentToJefe) ? (b.weekStart<a.weekStart?-1:1) : (a.sentToJefe?1:-1));
     html += `<div class="card">
       <div class="section-label"><div class="gate-poles"><span></span><span></span></div><span class="title">Bandeja de coordinación</span></div>
-      <div style="font-size:12px;color:${GRAY};margin-bottom:14px;">El jefe de entrenadores ya ve todas las respuestas de tu equipo. Marca "Enviar al jefe" cuando termines de revisarlas (a más tardar el martes de cada semana), para que quede constancia de tu evaluación.</div>`;
+      <div style="font-size:12px;color:${GRAY};margin-bottom:14px;">El jefe de entrenadores ya ve todas las respuestas de tu equipo. Marca "Enviar al coordinador" cuando termines de revisarlas (a más tardar el martes de cada semana), para que quede constancia de tu evaluación.</div>`;
     if(!inbox.length){
       html += `<div style="font-size:13px;color:${GRAY};text-align:center;padding:16px 0;">Aún no hay respuestas de tu equipo.</div>`;
     } else {
@@ -1018,8 +1018,8 @@ function renderCheckinsTab(){
           ${overdue ? `<div style="font-size:11px;color:${RED};font-weight:600;margin-bottom:8px;">⚠️ Atrasado (vencía el ${deadline})</div>` : ""}
           ${renderCheckinAnswersHTML(c)}
           ${c.sentToJefe
-            ? `<div class="info-box" style="margin-top:8px;">✅ Enviado al jefe</div>`
-            : `<button class="btn-navy" data-send-checkin="${c.id}" style="margin-top:8px;width:100%;justify-content:center;">✅ Enviar al jefe</button>`}
+            ? `<div class="info-box" style="margin-top:8px;">✅ Enviado al coordinador</div>`
+            : `<button class="btn-navy" data-send-checkin="${c.id}" style="margin-top:8px;width:100%;justify-content:center;">✅ Enviar al coordinador</button>`}
         </div>`;
       });
     }
