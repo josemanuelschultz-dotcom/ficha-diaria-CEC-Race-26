@@ -124,17 +124,17 @@
 
   .cal-card{
     background:white; border-radius:16px; padding:18px;
-    box-shadow:0 6px 18px rgba(0,0,0,.08); max-width:360px; margin:0 auto 16px;
+    box-shadow:0 6px 18px rgba(0,0,0,.08); margin-bottom:16px; overflow:hidden;
   }
   .cal-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;}
   .cal-head .label{font-family:'Oswald',sans-serif; font-weight:600; font-size:17px; color:var(--navy); text-transform:capitalize;}
-  .cal-nav-btn{width:34px; height:34px; border-radius:9px; border:1px solid var(--border); background:white; color:var(--navy); font-size:17px; display:flex; align-items:center; justify-content:center;}
-  .cal-weekdays{display:grid; grid-template-columns:repeat(7,1fr); margin-bottom:6px;}
-  .cal-weekdays span{text-align:center; font-size:12px; color:var(--gray); font-weight:600; text-transform:uppercase;}
-  .cal-grid{display:grid; grid-template-columns:repeat(7,1fr); gap:6px;}
+  .cal-nav-btn{width:34px; height:34px; border-radius:9px; border:1px solid var(--border); background:white; color:var(--navy); font-size:17px; display:flex; align-items:center; justify-content:center; flex-shrink:0;}
+  .cal-weekdays{display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); margin-bottom:6px;}
+  .cal-weekdays span{text-align:center; font-size:11px; color:var(--gray); font-weight:600; text-transform:uppercase;}
+  .cal-grid{display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:4px;}
   .cal-day{
-    aspect-ratio:1; display:flex; align-items:center; justify-content:center; border-radius:11px; border:none; background:none;
-    font-family:'JetBrains Mono',monospace; font-size:17px; font-weight:600; color:var(--navy); min-height:48px;
+    aspect-ratio:1; width:100%; display:flex; align-items:center; justify-content:center; border-radius:11px; border:none; background:none;
+    font-family:'JetBrains Mono',monospace; font-size:15px; font-weight:600; color:var(--navy); min-width:0;
   }
   .cal-day:hover{background:#F0F0F0;}
   .cal-day.other-month{color:#C9C9C9; font-weight:500;}
