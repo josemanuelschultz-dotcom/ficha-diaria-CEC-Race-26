@@ -1,14 +1,24 @@
 {
-  "name": "Ficha Diaria CEC",
-  "short_name": "CEC Race",
-  "description": "Sistema de entrenamiento y asistencia — Club Esquí de Chillán",
+  "name": "CEC 26",
+  "short_name": "CEC 26",
+  "description": "Sistema de entrenamiento y asistencia \u2014 Club Esqu\u00ed de Chill\u00e1n",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "background_color": "#1A1A1A",
   "theme_color": "#BC1A25",
   "icons": [
-    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
-    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
   ]
 }
