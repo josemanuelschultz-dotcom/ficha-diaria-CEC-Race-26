@@ -30,6 +30,22 @@
   .tabs{display:flex; gap:8px; margin-top:14px; flex-wrap:wrap;}
   .tab-btn{font-size:13px; padding:7px 12px; border-radius:8px; border:none; font-weight:500;}
 
+  .menu-wrap{position:relative;}
+  .header-menu{position:absolute; right:0; top:calc(100% + 6px); background:#2B2B2B; border-radius:10px; padding:6px; display:flex; flex-direction:column; gap:2px; min-width:170px; box-shadow:0 8px 24px rgba(0,0,0,.35); z-index:60;}
+  .header-menu button{background:none; border:none; color:#D9D9D9; padding:9px 12px; text-align:left; font-size:13px; border-radius:7px; display:flex; align-items:center; gap:6px;}
+  .header-menu button:hover{background:#3A3A3A;}
+
+  .program-tabs{display:flex; gap:16px; margin-top:14px; flex-wrap:wrap; border-bottom:1px solid #2E2E2E;}
+  .program-btn{background:none; border:none; color:#9A9A9A; font-family:'Oswald',sans-serif; text-transform:uppercase; letter-spacing:.08em; font-size:13px; padding:6px 2px 9px; border-bottom:2px solid transparent; margin-bottom:-1px;}
+  .program-btn.active{color:var(--gold); border-bottom-color:var(--gold); font-weight:600;}
+
+  @media (max-width:480px){
+    .hero{padding:14px 16px 18px;}
+    .hero-title{font-size:1.2rem;}
+    .eyebrow{font-size:10px; margin-bottom:2px;}
+    .role-badge{font-size:11px; padding:5px 8px;}
+  }
+
   .wrap{max-width:720px; margin:-10px auto 0; padding:0 16px 40px;}
   .card{background:white; border-radius:16px; padding:20px; box-shadow:0 10px 30px rgba(11,37,69,.10); margin-bottom:16px;}
 
@@ -349,6 +365,7 @@ let saveDayError = "";
 let saving = false;
 let justSaved = false;
 let calendarOpen = false;
+let headerMenuOpen = false;
 let calendarViewMonth = null; // Date (first day of the month being viewed)
 let outsideClickHandler = null;
 
@@ -439,7 +456,7 @@ function handleLogin(){
   render();
 }
 function handleLogout(){
-  authState = null; persistAuth(); pinInput=""; tab="daily"; render();
+  authState = null; persistAuth(); pinInput=""; tab="daily"; headerMenuOpen=false; render();
 }
 
 async function changeMyCode(newCodeRaw){
@@ -1424,14 +1441,19 @@ function renderHeader(){
       <div class="role-badges">
         <span class="role-badge">🔒 ${roleLabel}</span>
         <button class="role-badge" id="refresh-btn" ${refreshing?"disabled":""}>${refreshing? "⏳ Actualizando..." : "🔄 Actualizar"}</button>
-        <button class="role-badge" id="change-code-btn">🔑 Cambiar clave</button>
-        <button class="role-badge" id="logout-btn">🚪 Salir</button>
+        <div class="menu-wrap">
+          <button class="role-badge" id="header-menu-btn" aria-label="Más opciones">⋯</button>
+          ${headerMenuOpen ? `<div class="header-menu">
+            <button id="change-code-btn">🔑 Cambiar clave</button>
+            <button id="logout-btn">🚪 Salir</button>
+          </div>` : ""}
+        </div>
       </div>
     </div>
     ${showChangeCode ? renderChangeCodePanel() : ""}
     ${authState.level==="master" ? `
-    <div class="tabs" style="margin-top:10px;">
-      ${PROGRAMS.map(p => `<button class="tab-btn" data-program="${p}" style="background:${currentProgram===p?GOLD:"#2B2B2B"};color:${currentProgram===p?NAVY:"#D9D9D9"};font-weight:${currentProgram===p?700:500};">${p}</button>`).join("")}
+    <div class="program-tabs">
+      ${PROGRAMS.map(p => `<button class="program-btn${currentProgram===p?" active":""}" data-program="${p}">${p}</button>`).join("")}
     </div>` : ""}
     <div class="tabs">
       ${visibleTabs.map(([id,label]) => `<button class="tab-btn" data-tab="${id}" style="background:${tab===id?"white":"#2B2B2B"};color:${tab===id?NAVY:"#D9D9D9"};font-weight:${tab===id?600:500};">${label}</button>`).join("")}
@@ -1776,9 +1798,13 @@ function attachAppHandlers(){
   const refreshBtn = document.getElementById("refresh-btn");
   if(refreshBtn) refreshBtn.addEventListener("click", manualRefresh);
 
+  const headerMenuBtn = document.getElementById("header-menu-btn");
+  if(headerMenuBtn) headerMenuBtn.addEventListener("click", () => { headerMenuOpen = !headerMenuOpen; render(); });
+
   const changeCodeBtn = document.getElementById("change-code-btn");
   if(changeCodeBtn) changeCodeBtn.addEventListener("click", () => {
     showChangeCode = !showChangeCode;
+    headerMenuOpen = false;
     changeCodeError = ""; changeCodeSuccess = false; changeCodeNew = ""; changeCodeConfirm = "";
     render();
   });
