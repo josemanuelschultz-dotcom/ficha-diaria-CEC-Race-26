@@ -150,8 +150,10 @@
   .cal-grid{display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:4px;}
   .cal-day{
     aspect-ratio:1; width:100%; display:flex; align-items:center; justify-content:center; border-radius:11px; border:none; background:none;
-    font-family:'JetBrains Mono',monospace; font-size:15px; font-weight:600; color:var(--navy); min-width:0;
+    font-family:'JetBrains Mono',monospace; font-size:15px; font-weight:600; color:var(--navy); min-width:0; position:relative;
   }
+  .cal-day.has-data::after{content:""; position:absolute; bottom:5px; left:50%; transform:translateX(-50%); width:5px; height:5px; border-radius:999px; background:var(--red);}
+  .cal-day.selected.has-data::after{background:white;}
   .cal-day:hover{background:#F0F0F0;}
   .cal-day.other-month{color:#C9C9C9; font-weight:500;}
   .cal-day.today{box-shadow:inset 0 0 0 2px var(--red);}
@@ -661,6 +663,10 @@ function calendarBodyHTML(){
   const today = new Date();
   const todayStr = dstr(today.getFullYear(), today.getMonth(), today.getDate());
 
+  const datesWithData = new Set();
+  sessions.forEach(s => { if(s.groupId === selectedGroupId) datesWithData.add(s.date); });
+  attendance.forEach(a => { if(a.groupId === selectedGroupId) datesWithData.add(a.date); });
+
   let cells = "";
   for(let i=0;i<startOffset;i++){
     const d = daysInPrevMonth - startOffset + i + 1;
@@ -672,6 +678,7 @@ function calendarBodyHTML(){
     const classes = ["cal-day"];
     if(ds === todayStr) classes.push("today");
     if(ds === selectedDate) classes.push("selected");
+    if(datesWithData.has(ds)) classes.push("has-data");
     cells += `<button type="button" class="${classes.join(" ")}" data-date="${ds}">${d}</button>`;
   }
   const totalCells = startOffset + daysInMonth;
@@ -886,6 +893,8 @@ function trainerCalendarBodyHTML(){
   const today = new Date();
   const todayStr = dstr(today.getFullYear(), today.getMonth(), today.getDate());
 
+  const datesWithData = new Set(trainerAttendance.map(r => r.date));
+
   let cells = "";
   for(let i=0;i<startOffset;i++){
     const d = daysInPrevMonth - startOffset + i + 1;
@@ -897,6 +906,7 @@ function trainerCalendarBodyHTML(){
     const classes = ["cal-day"];
     if(ds === todayStr) classes.push("today");
     if(ds === trainerAttDate) classes.push("selected");
+    if(datesWithData.has(ds)) classes.push("has-data");
     cells += `<button type="button" class="${classes.join(" ")}" data-tdate="${ds}">${d}</button>`;
   }
   const totalCells = startOffset + daysInMonth;
