@@ -401,6 +401,18 @@ let calendarOpen = false;
 let headerMenuOpen = false;
 let dayMenuOpen = false;
 let mondayBannerDismissed = false;
+let trainerTransport = [];
+let transportDate = todayISO();
+let transportCalOpen = false;
+let transportCalViewMonth = null;
+let transportUsed = false;
+let transportNumTrainers = 1;
+let transportSaving = false;
+let transportSaveError = "";
+let transportJustSaved = false;
+let adminTransportDate = todayISO();
+let adminTransportCalOpen = false;
+let adminTransportCalViewMonth = null;
 let calendarViewMonth = null; // Date (first day of the month being viewed)
 let outsideClickHandler = null;
 
@@ -1328,6 +1340,252 @@ function renderCheckinsAdminView(){
   return html;
 }
 
+/* ============ TRANSPORTE (per-trainer daily, summarized for jefe) ============ */
+function initTransportForm(){
+  const existing = trainerTransport.find(t => t.trainerCode === authState.trainerCode && t.date === transportDate);
+  transportUsed = !!existing;
+  transportNumTrainers = existing ? existing.numTrainers : 1;
+  transportJustSaved = false;
+  transportSaveError = "";
+}
+function toggleTransportCalendar(){
+  transportCalOpen = !transportCalOpen;
+  if(transportCalOpen){
+    const [y,m] = transportDate.split("-").map(Number);
+    transportCalViewMonth = new Date(y, m-1, 1);
+  }
+  render();
+}
+function changeTransportCalendarMonth(delta){
+  transportCalViewMonth = new Date(transportCalViewMonth.getFullYear(), transportCalViewMonth.getMonth()+delta, 1);
+  render();
+}
+function selectTransportCalendarDay(dateStr){
+  transportDate = dateStr;
+  transportCalOpen = false;
+  initTransportForm();
+  render();
+}
+function goToTodayTransport(){
+  transportDate = todayISO();
+  initTransportForm();
+  render();
+}
+async function saveTransport(){
+  transportSaveError = ""; transportSaving = true; render();
+  try{
+    if(transportUsed){
+      const row = { trainer_code: authState.trainerCode, date: transportDate, num_trainers: transportNumTrainers || 1 };
+      const saved = await sbInsert("trainer_transport", row, {onConflict:"trainer_code,date", merge:true});
+      const mapped = {id:saved.id, trainerCode:saved.trainer_code, date:saved.date, numTrainers:saved.num_trainers};
+      const idx = trainerTransport.findIndex(t => t.trainerCode===mapped.trainerCode && t.date===mapped.date);
+      if(idx>=0) trainerTransport[idx]=mapped; else trainerTransport.push(mapped);
+    } else {
+      const existing = trainerTransport.find(t => t.trainerCode === authState.trainerCode && t.date === transportDate);
+      if(existing){
+        await sbDelete("trainer_transport", { id: existing.id });
+        trainerTransport = trainerTransport.filter(t => t.id !== existing.id);
+      }
+    }
+    transportJustSaved = true;
+  }catch(e){
+    transportSaveError = "No se pudo guardar. Detalle: " + e.message;
+  }
+  transportSaving = false;
+  render();
+}
+
+function transportCalendarCardHTML(){
+  const isToday = transportDate === todayISO();
+  return `
+  <div class="cal-card collapsible">
+    <button type="button" class="date-toggle" id="transport-cal-toggle-btn">
+      <span class="date-label">📅 ${formatFechaLarga(transportDate)}${isToday?` <span class="today-chip">Hoy</span>`:""}</span>
+      <span class="chev">${transportCalOpen?"Cerrar ▴":"Cambiar fecha ▾"}</span>
+    </button>
+    ${transportCalOpen ? transportCalendarBodyHTML() : ""}
+  </div>`;
+}
+function transportCalendarBodyHTML(){
+  if(!transportCalViewMonth){
+    const [y,m] = transportDate.split("-").map(Number);
+    transportCalViewMonth = new Date(y, m-1, 1);
+  }
+  const year = transportCalViewMonth.getFullYear();
+  const month = transportCalViewMonth.getMonth();
+  const firstOfMonth = new Date(year, month, 1);
+  const startOffset = (firstOfMonth.getDay() + 6) % 7;
+  const daysInMonth = new Date(year, month+1, 0).getDate();
+  const daysInPrevMonth = new Date(year, month, 0).getDate();
+  const today = new Date();
+  const todayStr = dstr(today.getFullYear(), today.getMonth(), today.getDate());
+
+  let cells = "";
+  for(let i=0;i<startOffset;i++){
+    const d = daysInPrevMonth - startOffset + i + 1;
+    const py = month===0? year-1 : year, pm = month===0? 11 : month-1;
+    cells += `<button type="button" class="cal-day other-month" data-tdate="${dstr(py,pm,d)}">${d}</button>`;
+  }
+  for(let d=1; d<=daysInMonth; d++){
+    const ds = dstr(year, month, d);
+    const classes = ["cal-day"];
+    if(ds === todayStr) classes.push("today");
+    if(ds === transportDate) classes.push("selected");
+    cells += `<button type="button" class="${classes.join(" ")}" data-tdate="${ds}">${d}</button>`;
+  }
+  const totalCells = startOffset + daysInMonth;
+  const trailing = (7 - (totalCells % 7)) % 7;
+  for(let d=1; d<=trailing; d++){
+    const ny = month===11? year+1 : year, nm = month===11? 0 : month+1;
+    cells += `<button type="button" class="cal-day other-month" data-tdate="${dstr(ny,nm,d)}">${d}</button>`;
+  }
+  return `
+  <div class="cal-body">
+    <div class="cal-head">
+      <button type="button" class="cal-nav-btn" id="transport-cal-prev-btn">‹</button>
+      <span class="label">${MESES[month]} ${year}</span>
+      <button type="button" class="cal-nav-btn" id="transport-cal-next-btn">›</button>
+    </div>
+    <div class="cal-weekdays">${DIAS_SEMANA.map(d=>`<span>${d}</span>`).join("")}</div>
+    <div class="cal-grid">${cells}</div>
+    <button type="button" class="cal-today-btn" id="transport-cal-today-btn">Hoy</button>
+  </div>`;
+}
+
+function toggleAdminTransportCalendar(){
+  adminTransportCalOpen = !adminTransportCalOpen;
+  if(adminTransportCalOpen){
+    const [y,m] = adminTransportDate.split("-").map(Number);
+    adminTransportCalViewMonth = new Date(y, m-1, 1);
+  }
+  render();
+}
+function changeAdminTransportCalendarMonth(delta){
+  adminTransportCalViewMonth = new Date(adminTransportCalViewMonth.getFullYear(), adminTransportCalViewMonth.getMonth()+delta, 1);
+  render();
+}
+function selectAdminTransportCalendarDay(dateStr){
+  adminTransportDate = dateStr;
+  adminTransportCalOpen = false;
+  render();
+}
+function goToTodayAdminTransport(){
+  adminTransportDate = todayISO();
+  render();
+}
+function adminTransportCalendarCardHTML(){
+  const isToday = adminTransportDate === todayISO();
+  return `
+  <div class="cal-card collapsible">
+    <button type="button" class="date-toggle" id="admin-transport-cal-toggle-btn">
+      <span class="date-label">📅 ${formatFechaLarga(adminTransportDate)}${isToday?` <span class="today-chip">Hoy</span>`:""}</span>
+      <span class="chev">${adminTransportCalOpen?"Cerrar ▴":"Cambiar fecha ▾"}</span>
+    </button>
+    ${adminTransportCalOpen ? adminTransportCalendarBodyHTML() : ""}
+  </div>`;
+}
+function adminTransportCalendarBodyHTML(){
+  if(!adminTransportCalViewMonth){
+    const [y,m] = adminTransportDate.split("-").map(Number);
+    adminTransportCalViewMonth = new Date(y, m-1, 1);
+  }
+  const year = adminTransportCalViewMonth.getFullYear();
+  const month = adminTransportCalViewMonth.getMonth();
+  const firstOfMonth = new Date(year, month, 1);
+  const startOffset = (firstOfMonth.getDay() + 6) % 7;
+  const daysInMonth = new Date(year, month+1, 0).getDate();
+  const daysInPrevMonth = new Date(year, month, 0).getDate();
+  const today = new Date();
+  const todayStr = dstr(today.getFullYear(), today.getMonth(), today.getDate());
+  const datesWithData = new Set(trainerTransport.map(t => t.date));
+
+  let cells = "";
+  for(let i=0;i<startOffset;i++){
+    const d = daysInPrevMonth - startOffset + i + 1;
+    const py = month===0? year-1 : year, pm = month===0? 11 : month-1;
+    cells += `<button type="button" class="cal-day other-month" data-adate="${dstr(py,pm,d)}">${d}</button>`;
+  }
+  for(let d=1; d<=daysInMonth; d++){
+    const ds = dstr(year, month, d);
+    const classes = ["cal-day"];
+    if(ds === todayStr) classes.push("today");
+    if(ds === adminTransportDate) classes.push("selected");
+    if(datesWithData.has(ds)) classes.push("has-data");
+    cells += `<button type="button" class="${classes.join(" ")}" data-adate="${ds}">${d}</button>`;
+  }
+  const totalCells = startOffset + daysInMonth;
+  const trailing = (7 - (totalCells % 7)) % 7;
+  for(let d=1; d<=trailing; d++){
+    const ny = month===11? year+1 : year, nm = month===11? 0 : month+1;
+    cells += `<button type="button" class="cal-day other-month" data-adate="${dstr(ny,nm,d)}">${d}</button>`;
+  }
+  return `
+  <div class="cal-body">
+    <div class="cal-head">
+      <button type="button" class="cal-nav-btn" id="admin-transport-cal-prev-btn">‹</button>
+      <span class="label">${MESES[month]} ${year}</span>
+      <button type="button" class="cal-nav-btn" id="admin-transport-cal-next-btn">›</button>
+    </div>
+    <div class="cal-weekdays">${DIAS_SEMANA.map(d=>`<span>${d}</span>`).join("")}</div>
+    <div class="cal-grid">${cells}</div>
+    <button type="button" class="cal-today-btn" id="admin-transport-cal-today-btn">Hoy</button>
+  </div>`;
+}
+
+function renderTransportTab(){
+  if(authState.level === "master") return renderTransportAdminView();
+
+  let html = `<div class="card">
+    <div class="section-label"><div class="gate-poles"><span></span><span></span></div><span class="title">Transporte</span></div>
+    <div style="font-size:12px;color:${GRAY};margin-bottom:14px;">Si no marcas nada, se asume que no usaste el transporte ese día.</div>`;
+  html += transportCalendarCardHTML();
+
+  html += `<div style="display:flex;gap:8px;margin-bottom:14px;">
+    <button type="button" class="pill" data-transport-used="true" style="flex:1;justify-content:center;${transportUsed?`background:${GREEN};color:white;border-color:${GREEN};`:""}">✓ Sí, usé transporte</button>
+    <button type="button" class="pill" data-transport-used="false" style="flex:1;justify-content:center;${!transportUsed?`background:${RED};color:white;border-color:${RED};`:""}">✕ No usé</button>
+  </div>`;
+
+  if(transportUsed){
+    html += `<div class="stepper" style="margin-bottom:14px;">
+      <div class="lbl">Número de entrenadores (incluyéndote)</div>
+      <div class="box">
+        <button type="button" data-transport-delta="-1">−</button>
+        <input type="text" inputmode="numeric" id="transport-num-input" value="${transportNumTrainers}" />
+        <button type="button" data-transport-delta="1">+</button>
+      </div>
+    </div>`;
+  }
+
+  if(transportSaveError) html += `<div class="error-box">${escapeHtml(transportSaveError)}</div>`;
+  html += `<button class="save-btn" id="save-transport-btn">${transportSaving?"Guardando...":"✓ Guardar"}</button>`;
+  if(transportJustSaved) html += `<div class="info-box" style="margin-top:10px;">Guardado.</div>`;
+  html += `</div>`;
+  return html;
+}
+
+function renderTransportAdminView(){
+  let html = `<div class="card">
+    <div class="section-label"><div class="gate-poles"><span></span><span></span></div><span class="title">Transporte — resumen diario</span></div>
+    <div style="font-size:12px;color:${GRAY};margin-bottom:14px;">Solo aparecen los entrenadores que marcaron uso de transporte ese día.</div>`;
+  html += adminTransportCalendarCardHTML();
+
+  const dayEntries = trainerTransport.filter(t => t.date === adminTransportDate);
+  if(!dayEntries.length){
+    html += `<div style="font-size:13px;color:${GRAY};text-align:center;padding:20px 0;">Nadie registró uso de transporte este día.</div>`;
+  } else {
+    const totalTrainers = dayEntries.reduce((sum,t)=>sum+(t.numTrainers||0),0);
+    html += `<div class="total-box" style="margin-bottom:14px;"><span class="lbl">Total entrenadores transportados</span><span class="val">${totalTrainers}</span></div>`;
+    dayEntries.forEach(t => {
+      html += `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px;border-radius:8px;background:#F7FAFC;margin-bottom:8px;">
+        <span style="font-size:14px;font-weight:500;color:${NAVY};">${escapeHtml(t.trainerCode)}</span>
+        <span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:${NAVY};">${t.numTrainers} entrenador${t.numTrainers===1?"":"es"}</span>
+      </div>`;
+    });
+  }
+  html += `</div>`;
+  return html;
+}
+
 /* ============ EXPORT ============ */
 function buildDaySummaryText(){
   const group = groups.find(g => g.id === selectedGroupId);
@@ -1505,8 +1763,8 @@ function renderChangeCodePanel(){
 
 function renderHeader(){
   const visibleTabs = authState.level === "master"
-    ? [["setup","Grupos"],["daily","Registro diario"],["profile","Estadísticas"],["trainers","Entrenadores"],["checkins","Pulso semanal"],["access","Accesos"]]
-    : [["setup","Grupos"],["daily","Registro diario"],["profile","Estadísticas"],["checkins","Pulso semanal"]];
+    ? [["setup","Grupos"],["daily","Registro diario"],["profile","Estadísticas"],["trainers","Entrenadores"],["checkins","Pulso semanal"],["transport","Transporte"],["access","Accesos"]]
+    : [["setup","Grupos"],["daily","Registro diario"],["profile","Estadísticas"],["checkins","Pulso semanal"],["transport","Transporte"]];
   const roleLabel = authState.level==="master" ? "Jefe de entrenadores" : `${authState.program} · ${authState.category}`;
   return `
   <div class="hero">
@@ -1856,6 +2114,7 @@ function render(){
   else if(tab === "access" && authState.level === "master") body = renderAccessTab();
   else if(tab === "trainers" && authState.level === "master") body = renderTrainersTab();
   else if(tab === "checkins") body = renderCheckinsTab();
+  else if(tab === "transport") body = renderTransportTab();
   else { tab = "daily"; body = renderDailyTab(); }
 
   app.innerHTML = renderHeader() + (shouldShowMondayReminder() ? renderMondayBanner() : "") + `<div class="wrap">${body}</div>
@@ -1933,6 +2192,7 @@ function attachAppHandlers(){
       }
       if(tab === "trainers") initTrainerAttendanceForm();
       if(tab === "checkins") initCheckinForm();
+      if(tab === "transport" && authState.level !== "master") initTransportForm();
       render();
     });
   });
@@ -1943,6 +2203,7 @@ function attachAppHandlers(){
   if(tab === "access") attachAccessTabHandlers();
   if(tab === "trainers") attachTrainersTabHandlers();
   if(tab === "checkins") attachCheckinsTabHandlers();
+  if(tab === "transport") attachTransportTabHandlers();
 }
 
 function attachSetupTabHandlers(){
@@ -2152,6 +2413,54 @@ function attachCheckinsTabHandlers(){
   });
 }
 
+function attachTransportTabHandlers(){
+  if(authState.level === "master"){
+    const toggleBtn = document.getElementById("admin-transport-cal-toggle-btn");
+    if(toggleBtn) toggleBtn.addEventListener("click", toggleAdminTransportCalendar);
+    const prevBtn = document.getElementById("admin-transport-cal-prev-btn");
+    if(prevBtn) prevBtn.addEventListener("click", () => changeAdminTransportCalendarMonth(-1));
+    const nextBtn = document.getElementById("admin-transport-cal-next-btn");
+    if(nextBtn) nextBtn.addEventListener("click", () => changeAdminTransportCalendarMonth(1));
+    const todayBtn = document.getElementById("admin-transport-cal-today-btn");
+    if(todayBtn) todayBtn.addEventListener("click", goToTodayAdminTransport);
+    document.querySelectorAll("[data-adate]").forEach(btn => {
+      btn.addEventListener("click", () => selectAdminTransportCalendarDay(btn.dataset.adate));
+    });
+    return;
+  }
+  const toggleBtn = document.getElementById("transport-cal-toggle-btn");
+  if(toggleBtn) toggleBtn.addEventListener("click", toggleTransportCalendar);
+  const prevBtn = document.getElementById("transport-cal-prev-btn");
+  if(prevBtn) prevBtn.addEventListener("click", () => changeTransportCalendarMonth(-1));
+  const nextBtn = document.getElementById("transport-cal-next-btn");
+  if(nextBtn) nextBtn.addEventListener("click", () => changeTransportCalendarMonth(1));
+  const todayBtn = document.getElementById("transport-cal-today-btn");
+  if(todayBtn) todayBtn.addEventListener("click", goToTodayTransport);
+  document.querySelectorAll("[data-tdate]").forEach(btn => {
+    btn.addEventListener("click", () => selectTransportCalendarDay(btn.dataset.tdate));
+  });
+
+  document.querySelectorAll("[data-transport-used]").forEach(btn => {
+    btn.addEventListener("click", () => { transportUsed = btn.dataset.transportUsed === "true"; render(); });
+  });
+  const numInput = document.getElementById("transport-num-input");
+  if(numInput) numInput.addEventListener("input", (e) => {
+    let v = parseInt(e.target.value.replace(/[^0-9]/g,""));
+    if(isNaN(v) || v < 1) v = 1;
+    transportNumTrainers = v;
+  });
+  document.querySelectorAll("[data-transport-delta]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const delta = parseInt(btn.dataset.transportDelta);
+      transportNumTrainers = Math.max(1, (transportNumTrainers||1) + delta);
+      const input = document.getElementById("transport-num-input");
+      if(input) input.value = transportNumTrainers;
+    });
+  });
+  const saveBtn = document.getElementById("save-transport-btn");
+  if(saveBtn) saveBtn.addEventListener("click", saveTransport);
+}
+
 function attachAccessTabHandlers(){
   const openBtn = document.getElementById("open-admin-btn");
   if(openBtn) openBtn.addEventListener("click", openAdmin);
@@ -2190,9 +2499,9 @@ function showFatalError(message){
 }
 
 async function loadAllData(){
-  const [gRows, aRows, sRows, atRows, acRows, trRows, taRows, wcRows, calRows] = await Promise.all([
+  const [gRows, aRows, sRows, atRows, acRows, trRows, taRows, wcRows, calRows, ttRows] = await Promise.all([
     sbSelect("groups"), sbSelect("athletes"), sbSelect("sessions"), sbSelect("attendance"), sbSelect("access_config"),
-    sbSelect("trainers"), sbSelect("trainer_attendance"), sbSelect("weekly_checkins"), sbSelect("checkin_audit_log")
+    sbSelect("trainers"), sbSelect("trainer_attendance"), sbSelect("weekly_checkins"), sbSelect("checkin_audit_log"), sbSelect("trainer_transport")
   ]);
   groups = gRows.map(r => ({id:r.id, name:r.name, program:r.program}));
   athletes = aRows.map(mapAthlete);
@@ -2208,6 +2517,7 @@ async function loadAllData(){
   trainers = trRows.map(r => ({id:r.id, name:r.name}));
   trainerAttendance = taRows.map(r => ({id:r.id, trainerId:r.trainer_id, date:r.date, present:r.present}));
   weeklyCheckins = wcRows.map(r => ({id:r.id, groupId:r.group_id, trainerCode:r.trainer_code, weekStart:r.week_start, q1:r.q1||"", q2:r.q2||"", q3:r.q3||"", q4:r.q4||"", q5:r.q5||"", q6:r.q6||"", sentToJefe:!!r.sent_to_jefe, sentAt:r.sent_at}));
+  trainerTransport = ttRows.map(r => ({id:r.id, trainerCode:r.trainer_code, date:r.date, numTrainers:r.num_trainers}));
   checkinAuditLog = calRows.map(r => ({id:r.id, groupId:r.group_id, trainerCode:r.trainer_code, weekStart:r.week_start, action:r.action, q1:r.q1, q2:r.q2, q3:r.q3, q4:r.q4, q5:r.q5, q6:r.q6, changedAt:r.changed_at}));
 }
 
