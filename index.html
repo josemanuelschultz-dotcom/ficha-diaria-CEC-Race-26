@@ -251,7 +251,24 @@ function programOf(groupId){
   const g = groups.find(x => x.id === groupId);
   return g ? g.program : "Race";
 }
-function configFor(program){ return PROGRAM_CONFIG[program] || PROGRAM_CONFIG["Race"]; }
+function categoryOf(groupId){
+  const g = groups.find(x => x.id === groupId);
+  return g ? g.name : "";
+}
+const CATEGORY_OVERRIDES = {
+  "Race": {
+    "Semillero": { disciplinas: [], hasCurvas: false },
+    "U8": { disciplinas: [], hasCurvas: false },
+  },
+};
+function configFor(program, category){
+  const base = PROGRAM_CONFIG[program] || PROGRAM_CONFIG["Race"];
+  const override = category && CATEGORY_OVERRIDES[program] ? CATEGORY_OVERRIDES[program][category] : null;
+  return override ? { ...base, ...override } : base;
+}
+function configForGroup(groupId){
+  return configFor(programOf(groupId), categoryOf(groupId));
+}
 
 const K_AUTH = "ski-auth-session"; // per-device only (not synced): who is logged in on this browser
 
@@ -422,7 +439,7 @@ function athleteStats(athleteId, groupId){
   const attendancePct = totalDays ? Math.round(presentDays/totalDays*100) : 0;
   const presentDates = new Set(attRecs.filter(a=>a.present).map(a=>a.date));
   const credited = sessions.filter(s => s.groupId === groupId && presentDates.has(s.date));
-  const cfg = configFor(programOf(groupId));
+  const cfg = configForGroup(groupId);
 
   function pct(key, options){
     const total = credited.length;
@@ -743,10 +760,14 @@ function changeSessionCount(delta){
 async function saveDay(){
   saveDayError = "";
   justSaved = false;
+  const cfgForValidation = configForGroup(selectedGroupId);
   for(let i=1;i<=sessionCount;i++){
     const s = sessionState[i];
-    if(!s || !s.disciplina || !s.nieve || !s.clima || !s.trabajo){
-      saveDayError = `Completa disciplina, nieve, clima y trabajo realizado en la Sesión ${i} (o reduce el número de sesiones).`;
+    const needsDisciplina = cfgForValidation.disciplinas.length > 0;
+    if(!s || (needsDisciplina && !s.disciplina) || !s.nieve || !s.clima || !s.trabajo){
+      saveDayError = needsDisciplina
+        ? `Completa disciplina, nieve, clima y trabajo realizado en la Sesión ${i} (o reduce el número de sesiones).`
+        : `Completa tipo de nieve, clima y trabajo realizado en la Sesión ${i} (o reduce el número de sesiones).`;
       render(); return;
     }
   }
@@ -1310,7 +1331,7 @@ function renderCheckinsAdminView(){
 /* ============ EXPORT ============ */
 function buildDaySummaryText(){
   const group = groups.find(g => g.id === selectedGroupId);
-  const cfg = configFor(programOf(selectedGroupId));
+  const cfg = configForGroup(selectedGroupId);
   const gAthletes = groupAthletes();
   const present = gAthletes.filter(a => attendanceState[a.id]);
   const absent = gAthletes.filter(a => !attendanceState[a.id]);
@@ -1321,10 +1342,10 @@ function buildDaySummaryText(){
   text += `\n`;
   for(let i=1;i<=sessionCount;i++){
     const s = sessionState[i];
-    if(!s || !s.disciplina) continue;
+    if(!s || !s.nieve) continue;
     const total = (s.curvasPorBajada||0) * (s.bajadas||0);
     text += `— Sesión ${i} —\n`;
-    text += `Disciplina: ${s.disciplina}\n`;
+    if(s.disciplina) text += `Disciplina: ${s.disciplina}\n`;
     text += `Tipo de nieve: ${s.nieve}\n`;
     text += `Clima: ${s.clima}\n`;
     text += `Trabajo realizado: ${s.trabajo}\n`;
@@ -1589,7 +1610,7 @@ function renderDailyTab(){
   }
   const gAthletes = groupAthletes();
   const program = programOf(selectedGroupId);
-  const cfg = configFor(program);
+  const cfg = configForGroup(selectedGroupId);
   let html = `<div class="card">
     <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">`;
 
@@ -1634,8 +1655,9 @@ function renderDailyTab(){
       html += `<div class="session-card" data-session-card="${i}">
         <div style="font-family:'Oswald',sans-serif;font-weight:600;font-size:14px;color:${NAVY};margin-bottom:10px;">Sesión ${i}</div>
 
+        ${cfg.disciplinas.length ? `
         <div style="font-size:12px;color:${GRAY};margin-bottom:6px;">Disciplina</div>
-        <div class="pills" data-session="${i}" data-pillgroup="disciplina" style="margin-bottom:12px;">${pillsHTML(cfg.disciplinas, "disciplina", s.disciplina)}</div>
+        <div class="pills" data-session="${i}" data-pillgroup="disciplina" style="margin-bottom:12px;">${pillsHTML(cfg.disciplinas, "disciplina", s.disciplina)}</div>` : ""}
 
         <div style="font-size:12px;color:${GRAY};margin-bottom:6px;">Tipo de nieve</div>
         <div class="pills" data-session="${i}" data-pillgroup="nieve" style="margin-bottom:12px;">${pillsHTML(NIEVE, "nieve", s.nieve)}</div>
@@ -1737,16 +1759,17 @@ function renderProfileTab(){
     <div style="font-size:11px;color:${GRAY};margin-top:8px;">Para editar estos datos, ve a la pestaña "Grupos".</div>
   </div>`;
 
+  const cfg = configForGroup(selectedGroupId);
   html += `<div class="stat-row">
     <div class="stat-box" style="background:#EAF7EE;"><div class="stat-val" style="color:${GREEN};">${st.attendancePct}%</div><div class="stat-lbl">Asistencia (${st.presentDays}/${st.totalDays})</div></div>
     <div class="stat-box" style="background:#EEF3FA;"><div class="stat-val" style="color:${NAVY};">${st.totalSesiones}</div><div class="stat-lbl">Sesiones</div></div>
-    <div class="stat-box" style="background:#FFF6E0;"><div class="stat-val" style="color:#B87700;">${st.totalCurvas}</div><div class="stat-lbl">Curvas totales a la fecha</div></div>
+    ${cfg.hasCurvas ? `<div class="stat-box" style="background:#FFF6E0;"><div class="stat-val" style="color:#B87700;">${st.totalCurvas}</div><div class="stat-lbl">Curvas totales a la fecha</div></div>` : ""}
   </div>`;
 
-  html += variableBlockHTML("Disciplina", st.disciplina, () => NAVY);
+  if(cfg.disciplinas.length) html += variableBlockHTML("Disciplina", st.disciplina, () => NAVY);
   html += variableBlockHTML("Tipo de nieve", st.nieve, () => BLUE);
   html += variableBlockHTML("Clima", st.clima, () => GOLD);
-  html += variableBlockHTML("Trabajo realizado", st.trabajo, (name) => (configFor(programOf(selectedGroupId)).trabajo.find(t=>t.label===name)||{}).color || NAVY);
+  html += variableBlockHTML("Trabajo realizado", st.trabajo, (name) => (configForGroup(selectedGroupId).trabajo.find(t=>t.label===name)||{}).color || NAVY);
 
   if(st.educativasCount > 0){
     html += variableBlockHTML("Fundamentos (en ejercicios educativos)", st.fundamentos, () => GOLD);
