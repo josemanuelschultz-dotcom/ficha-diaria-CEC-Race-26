@@ -1583,6 +1583,31 @@ function renderTransportAdminView(){
     });
   }
   html += `</div>`;
+
+  // Resumen histórico: viajes compartidos (2+ personas) por entrenador
+  const sharedTrips = trainerTransport.filter(t => (t.numTrainers||0) >= 2);
+  html += `<div class="card">
+    <div class="section-label"><div class="gate-poles"><span></span><span></span></div><span class="title">Resumen histórico — viajes compartidos</span></div>
+    <div style="font-size:12px;color:${GRAY};margin-bottom:14px;">Cuántas veces ha subido cada entrenador, contando solo días con 2 o más personas por auto.</div>`;
+  if(!sharedTrips.length){
+    html += `<div style="font-size:13px;color:${GRAY};text-align:center;padding:16px 0;">Aún no hay viajes con 2 o más personas registrados.</div>`;
+  } else {
+    const byTrainer = {};
+    sharedTrips.forEach(t => {
+      if(!byTrainer[t.trainerCode]) byTrainer[t.trainerCode] = {};
+      byTrainer[t.trainerCode][t.numTrainers] = (byTrainer[t.trainerCode][t.numTrainers] || 0) + 1;
+    });
+    Object.keys(byTrainer).sort().forEach(code => {
+      const counts = byTrainer[code];
+      const parts = Object.keys(counts).map(Number).sort((a,b)=>b-a)
+        .map(n => `${n} persona${n===1?"":"s"} · ${counts[n]} ${counts[n]===1?"vez":"veces"}`);
+      html += `<div style="padding:10px;border-radius:8px;background:#F7FAFC;margin-bottom:8px;">
+        <div style="font-size:14px;font-weight:600;color:${NAVY};margin-bottom:4px;">${escapeHtml(code)}</div>
+        <div style="font-size:12px;color:#3A4658;">${parts.join(" &nbsp;·&nbsp; ")}</div>
+      </div>`;
+    });
+  }
+  html += `</div>`;
   return html;
 }
 
