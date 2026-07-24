@@ -498,19 +498,26 @@ function handleLogin(){
     if(tab === "daily") initDailyForm();
     render(); return;
   }
+  const matches = [];
   for(const program of PROGRAMS){
     const cats = accessConfig.categoryCodes[program] || {};
     for(const category of Object.keys(cats)){
       const codes = Array.isArray(cats[category]) ? cats[category] : [cats[category]];
-      if(codes.includes(code)){
-        authState = {level:"category", program, category, trainerCode: code, isCoordinator: COORDINATOR_CODES.includes(code)}; persistAuth(); pinInput=""; authError="";
-        currentProgram = program;
-        const g = ensureCategoryGroup(program, category);
-        selectedGroupId = g.id;
-        if(tab === "daily") initDailyForm();
-        render(); return;
-      }
+      if(codes.includes(code)) matches.push({program, category});
     }
+  }
+  if(matches.length){
+    const first = matches[0];
+    authState = {
+      level:"category", program: first.program, category: first.category, trainerCode: code,
+      isCoordinator: COORDINATOR_CODES.includes(code), accessibleGroups: matches,
+    };
+    persistAuth(); pinInput=""; authError="";
+    currentProgram = first.program;
+    const g = ensureCategoryGroup(first.program, first.category);
+    selectedGroupId = g.id;
+    if(tab === "daily") initDailyForm();
+    render(); return;
   }
   authError = "Código incorrecto.";
   render();
@@ -1104,7 +1111,7 @@ function renderMondayBanner(){
 function initCheckinForm(){
   if(!checkinWeekStart) checkinWeekStart = mondayOf(todayISO());
   if(authState.level !== "category") return;
-  const existing = weeklyCheckins.find(c => c.groupId===selectedGroupId && c.trainerCode===authState.trainerCode && c.weekStart===checkinWeekStart);
+  const existing = weeklyCheckins.find(c => c.trainerCode===authState.trainerCode && c.weekStart===checkinWeekStart);
   checkinAnswers = existing ? { q1:existing.q1, q2:existing.q2, q3:existing.q3, q4:existing.q4, q5:existing.q5, q6:existing.q6 } : { q1:"", q2:"", q3:"", q4:"", q5:"", q6:"" };
   checkinJustSaved = false;
   checkinSaveError = "";
@@ -1126,7 +1133,7 @@ async function logCheckinAudit(existing, action){
 }
 
 async function deleteCheckin(){
-  const existing = weeklyCheckins.find(c => c.groupId===selectedGroupId && c.trainerCode===authState.trainerCode && c.weekStart===checkinWeekStart);
+  const existing = weeklyCheckins.find(c => c.trainerCode===authState.trainerCode && c.weekStart===checkinWeekStart);
   if(!existing) return;
   let msg = `¿Borrar tus respuestas de la semana ${weekRangeLabel(checkinWeekStart)}? Esta acción no se puede deshacer.`;
   if(existing.sentToJefe) msg += `\n\nOjo: ya marcaste esta respuesta como enviada al coordinador. Quedará un registro del cambio visible solo para el jefe de entrenadores.`;
@@ -1178,7 +1185,7 @@ async function saveCheckin(){
   checkinSaveError = "";
   checkinSaving = true; render();
   try{
-    const existing = weeklyCheckins.find(c => c.groupId===selectedGroupId && c.trainerCode===authState.trainerCode && c.weekStart===checkinWeekStart);
+    const existing = weeklyCheckins.find(c => c.trainerCode===authState.trainerCode && c.weekStart===checkinWeekStart);
     if(existing && existing.sentToJefe) await logCheckinAudit(existing, "editado");
     const row = {
       group_id: selectedGroupId, trainer_code: authState.trainerCode, week_start: checkinWeekStart,
@@ -1186,9 +1193,9 @@ async function saveCheckin(){
       q4: checkinAnswers.q4||"", q5: checkinAnswers.q5||"", q6: checkinAnswers.q6||"",
       updated_at: new Date().toISOString(),
     };
-    const saved = await sbInsert("weekly_checkins", row, {onConflict:"group_id,trainer_code,week_start", merge:true});
+    const saved = await sbInsert("weekly_checkins", row, {onConflict:"trainer_code,week_start", merge:true});
     const mapped = {id:saved.id, groupId:saved.group_id, trainerCode:saved.trainer_code, weekStart:saved.week_start, q1:saved.q1, q2:saved.q2, q3:saved.q3, q4:saved.q4, q5:saved.q5, q6:saved.q6, sentToJefe:!!saved.sent_to_jefe, sentAt:saved.sent_at};
-    const idx = weeklyCheckins.findIndex(c => c.groupId===mapped.groupId && c.trainerCode===mapped.trainerCode && c.weekStart===mapped.weekStart);
+    const idx = weeklyCheckins.findIndex(c => c.trainerCode===mapped.trainerCode && c.weekStart===mapped.weekStart);
     if(idx>=0) weeklyCheckins[idx]=mapped; else weeklyCheckins.push(mapped);
     checkinJustSaved = true;
   }catch(e){
@@ -1240,7 +1247,7 @@ function renderCheckinsTab(){
   if(checkinSaveError) html += `<div class="error-box" style="margin-top:12px;">${escapeHtml(checkinSaveError)}</div>`;
   html += `<button class="save-btn" id="save-checkin-btn" style="margin-top:14px;">${checkinSaving? "Guardando...":"✓ Guardar respuestas"}</button>`;
   if(checkinJustSaved) html += `<div class="info-box" style="margin-top:10px;">Respuestas guardadas.</div>`;
-  const hasCheckinData = weeklyCheckins.some(c => c.groupId===selectedGroupId && c.trainerCode===authState.trainerCode && c.weekStart===checkinWeekStart);
+  const hasCheckinData = weeklyCheckins.some(c => c.trainerCode===authState.trainerCode && c.weekStart===checkinWeekStart);
   if(hasCheckinData){
     html += `<button class="btn-outline" id="delete-checkin-btn" style="width:100%;justify-content:center;margin-top:10px;border-color:${RED};color:${RED};">🗑️ Borrar respuestas de esta semana</button>`;
   }
@@ -1817,6 +1824,10 @@ function renderHeader(){
     <div class="program-tabs">
       ${PROGRAMS.map(p => `<button class="program-btn${currentProgram===p?" active":""}" data-program="${p}">${p}</button>`).join("")}
     </div>` : ""}
+    ${authState.level==="category" && authState.accessibleGroups && authState.accessibleGroups.length>1 ? `
+    <div class="program-tabs">
+      ${authState.accessibleGroups.map(g => `<button class="program-btn${(authState.program===g.program && authState.category===g.category)?" active":""}" data-group-switch="${g.program}|${g.category}">${g.category}</button>`).join("")}
+    </div>` : ""}
     <div class="tabs">
       ${visibleTabs.map(([id,label]) => `<button class="tab-btn" data-tab="${id}" style="background:${tab===id?"white":"#2B2B2B"};color:${tab===id?NAVY:"#D9D9D9"};font-weight:${tab===id?600:500};">${label}</button>`).join("")}
     </div>
@@ -2201,6 +2212,20 @@ function attachAppHandlers(){
       currentProgram = btn.dataset.program;
       const list = groupsForProgram(currentProgram);
       selectedGroupId = list.length ? list[0].id : null;
+      profileAthleteId = null;
+      if(tab === "daily") initDailyForm();
+      render();
+    });
+  });
+
+  document.querySelectorAll("[data-group-switch]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const [program, category] = btn.dataset.groupSwitch.split("|");
+      authState = { ...authState, program, category };
+      persistAuth();
+      currentProgram = program;
+      const g = ensureCategoryGroup(program, category);
+      selectedGroupId = g.id;
       profileAthleteId = null;
       if(tab === "daily") initDailyForm();
       render();
