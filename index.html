@@ -105,6 +105,8 @@
   .steppers{display:flex; flex-wrap:wrap; gap:12px; margin-bottom:12px;}
 
   .total-box{display:flex; align-items:center; justify-content:space-between; background:var(--navy); border-radius:12px; padding:10px 14px; margin-bottom:12px;}
+  .trazado-box{border:2px solid var(--navy); border-radius:10px; overflow:hidden; background:#F7F7F7;}
+  .trazado-canvas{display:block; width:100%; height:200px; touch-action:none; cursor:crosshair;}
   .total-box span.lbl{color:#D9D9D9; font-size:13px;}
   .total-box span.val{font-family:'JetBrains Mono',monospace; font-weight:700; font-size:1.4rem; color:var(--gold);}
 
@@ -318,7 +320,7 @@ function mapSession(row){
   return { id: row.id, groupId: row.group_id, date: row.date, sessionNumber: row.session_number,
     disciplina: row.disciplina, nieve: row.nieve, clima: row.clima, trabajo: row.trabajo,
     fundamentos: row.fundamentos || [], curvasPorBajada: row.curvas_por_bajada || 0, bajadas: row.bajadas || 0,
-    totalCurvas: row.total_curvas || 0, notas: row.notas || "" };
+    totalCurvas: row.total_curvas || 0, notas: row.notas || "", trazado: row.trazado || null };
 }
 function mapAttendance(row){
   return { id: row.id, athleteId: row.athlete_id, groupId: row.group_id, date: row.date, present: row.present };
@@ -343,8 +345,10 @@ function blankAccessConfig(){
   return { masterCode:"", categoryCodes };
 }
 function blankSessionForm(){
-  return { disciplina:null, nieve:null, clima:null, trabajo:null, fundamentos:[], curvasPorBajada:0, bajadas:0, notas:"" };
+  return { disciplina:null, nieve:null, clima:null, trabajo:null, fundamentos:[], curvasPorBajada:0, bajadas:0, notas:"", trazado:null };
 }
+const CATEGORIES_WITH_TRAZADO = ["U10","U12","U14","U16"];
+function hasTrazado(program, category){ return program === "Race" && CATEGORIES_WITH_TRAZADO.includes(category); }
 
 /* ============ STATE ============ */
 let groups = [];
@@ -664,7 +668,7 @@ function initDailyForm(){
     const existing = daySessions.find(s => s.sessionNumber === i);
     sessionState[i] = existing ? {
       disciplina:existing.disciplina, nieve:existing.nieve, clima:existing.clima, trabajo:existing.trabajo,
-      fundamentos: existing.fundamentos || [], curvasPorBajada:existing.curvasPorBajada, bajadas:existing.bajadas, notas:existing.notas
+      fundamentos: existing.fundamentos || [], curvasPorBajada:existing.curvasPorBajada, bajadas:existing.bajadas, notas:existing.notas, trazado:existing.trazado||null
     } : blankSessionForm();
   }
 }
@@ -813,7 +817,7 @@ async function saveDay(){
         disciplina: s.disciplina, nieve: s.nieve, clima: s.clima, trabajo: s.trabajo,
         fundamentos: s.trabajo==="Ejercicios educativos" ? (s.fundamentos||[]) : [],
         curvas_por_bajada: s.curvasPorBajada||0, bajadas: s.bajadas||0, total_curvas: totalCurvas,
-        notas: (s.notas||"").trim()
+        notas: (s.notas||"").trim(), trazado: s.trazado || null
       });
     }
     const savedSess = await sbInsert("sessions", sessRows, {onConflict:"group_id,date,session_number", merge:true});
@@ -1648,12 +1652,29 @@ function buildDaySummaryText(){
       text += `Cantidad de bajadas: ${s.bajadas||0}\n`;
     }
     if(s.notas && s.notas.trim()) text += `Observaciones: ${s.notas.trim()}\n`;
+    if(s.trazado) text += `🖼️ Trazado dibujado adjunto\n`;
     text += `\n`;
   }
   return text.trim();
 }
-function shareToWhatsApp(){
+async function shareToWhatsApp(){
   const text = buildDaySummaryText();
+  const files = [];
+  for(let i=1;i<=sessionCount;i++){
+    const s = sessionState[i];
+    if(s && s.trazado){
+      try{
+        const blob = await (await fetch(s.trazado)).blob();
+        files.push(new File([blob], `trazado_sesion_${i}.png`, {type:"image/png"}));
+      }catch(e){}
+    }
+  }
+  if(files.length && navigator.canShare && navigator.canShare({ files })){
+    try{
+      await navigator.share({ text, files });
+      return;
+    }catch(e){ /* el usuario canceló o el navegador falló: seguimos con el link de texto */ }
+  }
   window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
 }
 
@@ -1990,6 +2011,17 @@ function renderDailyTab(){
         ${cfg.hasCurvas ? `<div class="total-box"><span class="lbl">Total de curvas</span><span class="val" id="total-${i}">${total}</span></div>` : ""}
 
         <textarea class="notas-input" data-session="${i}" rows="2" placeholder="Observaciones de la sesión...">${escapeHtml(s.notas)}</textarea>
+
+        ${hasTrazado(program, categoryOf(selectedGroupId)) ? `
+        <div style="font-size:12px;color:${GRAY};margin:12px 0 6px;">Trazado (dibuja el esquema)</div>
+        <div class="trazado-box">
+          <canvas class="trazado-canvas" data-session="${i}" width="600" height="360"></canvas>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:8px;">
+          <button type="button" class="btn-outline trazado-clear" data-session="${i}" style="flex:1;justify-content:center;">Borrar</button>
+          <button type="button" class="trazado-color" data-session="${i}" data-color="#1A1A1A" style="width:36px;border-radius:8px;border:2px solid #1A1A1A;background:#1A1A1A;"></button>
+          <button type="button" class="trazado-color" data-session="${i}" data-color="#BC1A25" style="width:36px;border-radius:8px;border:2px solid #DDDDDD;background:#BC1A25;"></button>
+        </div>` : ""}
       </div>`;
     }
 
@@ -2298,6 +2330,44 @@ function attachSetupTabHandlers(){
   }
 }
 
+function initTrazadoCanvas(canvas, sessionNum){
+  const ctx = canvas.getContext("2d");
+  canvas._trazadoColor = "#1A1A1A";
+  const existing = sessionState[sessionNum] && sessionState[sessionNum].trazado;
+  if(existing){
+    const img = new Image();
+    img.onload = () => ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    img.src = existing;
+  }
+  let drawing = false;
+  function pos(e){
+    const r = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / r.width, scaleY = canvas.height / r.height;
+    const p = e.touches ? e.touches[0] : e;
+    return { x: (p.clientX - r.left) * scaleX, y: (p.clientY - r.top) * scaleY };
+  }
+  function start(e){ drawing = true; const p = pos(e); ctx.beginPath(); ctx.moveTo(p.x, p.y); e.preventDefault(); }
+  function move(e){
+    if(!drawing) return;
+    const p = pos(e);
+    ctx.lineTo(p.x, p.y); ctx.strokeStyle = canvas._trazadoColor; ctx.lineWidth = 4; ctx.lineCap = "round"; ctx.lineJoin = "round";
+    ctx.stroke();
+    e.preventDefault();
+  }
+  function end(){
+    if(!drawing) return;
+    drawing = false;
+    if(!sessionState[sessionNum]) return;
+    sessionState[sessionNum].trazado = canvas.toDataURL("image/png");
+  }
+  canvas.addEventListener("mousedown", start);
+  canvas.addEventListener("mousemove", move);
+  window.addEventListener("mouseup", end);
+  canvas.addEventListener("touchstart", start, {passive:false});
+  canvas.addEventListener("touchmove", move, {passive:false});
+  canvas.addEventListener("touchend", end);
+}
+
 function attachDailyTabHandlers(){
   const groupSelect = document.getElementById("daily-group-select");
   if(groupSelect) groupSelect.addEventListener("change", (e) => { selectedGroupId = e.target.value; initDailyForm(); render(); });
@@ -2374,6 +2444,33 @@ function attachDailyTabHandlers(){
   });
   document.querySelectorAll(".notas-input").forEach(t => {
     t.addEventListener("input", (e) => { sessionState[parseInt(t.dataset.session)].notas = e.target.value; });
+  });
+
+  document.querySelectorAll(".trazado-canvas").forEach(canvas => {
+    const i = parseInt(canvas.dataset.session);
+    initTrazadoCanvas(canvas, i);
+  });
+  document.querySelectorAll(".trazado-clear").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const i = parseInt(btn.dataset.session);
+      const canvas = document.querySelector(`.trazado-canvas[data-session="${i}"]`);
+      if(canvas){
+        const existing = sessionState[i].trazado;
+        if(existing && !confirm("¿Borrar el trazado dibujado de esta sesión?")) return;
+        canvas.getContext("2d").clearRect(0,0,canvas.width,canvas.height);
+        sessionState[i].trazado = null;
+      }
+    });
+  });
+  document.querySelectorAll(".trazado-color").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const i = parseInt(btn.dataset.session);
+      const canvas = document.querySelector(`.trazado-canvas[data-session="${i}"]`);
+      if(canvas) canvas._trazadoColor = btn.dataset.color;
+      document.querySelectorAll(`.trazado-color[data-session="${i}"]`).forEach(b => {
+        b.style.borderColor = b === btn ? "#1A1A1A" : "#DDDDDD";
+      });
+    });
   });
 
   const saveDayBtn = document.getElementById("save-day-btn");
