@@ -184,6 +184,39 @@
   .date-warn button{background:white; border:1px solid #E3C36B; border-radius:6px; padding:4px 10px; color:#8A6100; font-size:12px; font-weight:600; flex-shrink:0;}
   .cal-body{padding:6px 8px 10px;}
   .backup-row{display:flex; gap:8px; flex-wrap:wrap;}
+
+  .seg{display:flex; gap:4px; background:#F0F2F5; border-radius:10px; padding:4px; margin-bottom:16px;}
+  .seg button{flex:1; border:none; background:none; border-radius:8px; padding:9px 6px; font-size:13px; font-weight:600; color:var(--gray);}
+  .seg button.on{background:white; color:var(--navy); box-shadow:0 1px 4px rgba(11,37,69,.12);}
+
+  .kpis{display:flex; gap:8px; margin-bottom:16px;}
+  .kpi{flex:1; background:#F7FAFC; border-radius:10px; padding:10px 8px; text-align:center;}
+  .kpi .v{font-family:'JetBrains Mono',monospace; font-weight:700; font-size:1.15rem; color:var(--navy);}
+  .kpi .l{font-size:10px; color:var(--gray); margin-top:2px; line-height:1.25;}
+
+  .prow{margin-bottom:10px;}
+  .prow .top{display:flex; justify-content:space-between; align-items:baseline; gap:8px; margin-bottom:4px;}
+  .prow .nm{font-size:13px; font-weight:500; color:var(--navy); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .prow .meta{font-size:11px; color:var(--gray); flex-shrink:0;}
+  .prow .pc{font-family:'JetBrains Mono',monospace; font-size:13px; font-weight:700; flex-shrink:0;}
+  .prow .track{width:100%; height:7px; border-radius:5px; background:#EEF1F5; overflow:hidden;}
+  .prow .fill{height:100%; border-radius:5px;}
+
+  .tcompact{border:1px solid var(--border); border-radius:12px; padding:12px;}
+  .tsel{display:flex; gap:8px; margin-bottom:10px;}
+  .tsel button{flex:1; display:flex; align-items:center; justify-content:center; gap:5px; border-radius:9px; padding:10px 6px; font-size:13px; font-weight:600; border:1px solid var(--border); background:white; color:var(--gray);}
+  .tcount{background:#F7FAFC; border-radius:9px; padding:9px 12px; margin-bottom:10px;}
+  .tcount .l{font-size:11px; color:var(--gray); margin-bottom:6px; text-align:center;}
+  .tcount .r{display:flex; align-items:center; justify-content:center; gap:14px;}
+  .tcount button{width:32px; height:32px; border-radius:8px; border:1px solid var(--border); background:white; color:var(--navy); font-size:17px; font-family:'JetBrains Mono',monospace;}
+  .tcount input{width:44px; text-align:center; border:none; background:none; outline:none; font-family:'JetBrains Mono',monospace; font-weight:700; font-size:1.25rem; color:var(--navy);}
+
+  .dl-day{display:flex; justify-content:space-between; align-items:center; gap:8px; border-radius:9px; padding:8px 10px; margin-bottom:6px; background:#FDECEC; border:1px solid #F3C9C9;}
+  .dl-day .d{font-size:12px; font-weight:600; color:var(--red); text-transform:capitalize;}
+  .dl-day .n{font-size:11px; color:#3A4658; margin-top:1px;}
+  .dl-day .x{background:none; border:none; color:var(--gray); font-size:15px; padding:2px 4px; flex-shrink:0;}
+  .dl-scope{font-size:11px; border-radius:5px; padding:1px 6px; font-weight:600;}
+  .mini-lbl{font-size:11px; color:var(--gray); margin-bottom:4px;}
 </style>
 </head>
 <body>
@@ -382,7 +415,15 @@ let changeCodeConfirm = "";
 let changeCodeError = "";
 let changeCodeSaving = false;
 let changeCodeSuccess = false;
-let excludedDates = []; // Fechas excluidas de pretemporada (1-17 julio) - solo el jefe las gestiona
+let excludedDates = [];            // Días libres definidos por el jefe
+let asistenciaPeriodo = "temp";    // "pre" | "temp"
+let dlCalOpen = false;             // calendario desplegable de días libres
+let dlDate = todayISO();           // fecha seleccionada en ese calendario
+let dlCalViewMonth = null;
+let dlScope = "all";               // "all" o id de grupo
+let dlNote = "";
+let dlSaving = false;
+let dlError = "";
 
 let tab = "daily";
 let selectedGroupId = null;
@@ -450,18 +491,18 @@ function groupsSortedByCategory(){
 }
 
 function athleteStats(athleteId, groupId){
-  // Excluir días de pretemporada (1-17 julio) del cálculo del calendario regular.
-  // La temporada regular comienza el 19 de julio.
-  const preRange = getPretemporadaRange();
+  // La pretemporada (1-17 julio) no entra aquí: se ve en la pestaña Asistencia.
+  // Además se descuentan los días libres marcados por el jefe.
   const attRecs = attendance.filter(a =>
     a.athleteId === athleteId &&
-    !(a.date >= preRange.start && a.date <= preRange.end)
+    isInTemporada(a.date) &&
+    !isDateExcluded(a.date, groupId)
   );
   const totalDays = attRecs.length;
   const presentDays = attRecs.filter(a => a.present).length;
   const attendancePct = totalDays ? Math.round(presentDays/totalDays*100) : 0;
   const presentDates = new Set(attRecs.filter(a=>a.present).map(a=>a.date));
-  const credited = sessions.filter(s => s.groupId === groupId && presentDates.has(s.date) && !(s.date >= preRange.start && s.date <= preRange.end));
+  const credited = sessions.filter(s => s.groupId === groupId && presentDates.has(s.date));
   const cfg = configForGroup(groupId);
 
   function pct(key, options){
@@ -1550,243 +1591,324 @@ function adminTransportCalendarBodyHTML(){
   </div>`;
 }
 
-/* ============ PRETEMPORADA HELPERS ============ */
+/* ============ ASISTENCIA: PERÍODOS Y DÍAS LIBRES ============ */
 function getPretemporadaRange(){
   const year = new Date().getFullYear();
-  return {
-    start: `${year}-07-01`,
-    end: `${year}-07-17`
-  };
+  return { start: `${year}-07-01`, end: `${year}-07-17` };
 }
-
+function getTemporadaStart(){
+  const year = new Date().getFullYear();
+  return `${year}-07-19`;
+}
 function isInPretemporada(dateStr){
-  const range = getPretemporadaRange();
-  return dateStr >= range.start && dateStr <= range.end;
+  const r = getPretemporadaRange();
+  return dateStr >= r.start && dateStr <= r.end;
+}
+function isInTemporada(dateStr){
+  return dateStr >= getTemporadaStart();
 }
 
-function getDaysInPretemporada(){
-  const range = getPretemporadaRange();
-  const dates = [];
-  let current = new Date(range.start + "T00:00:00");
-  const endDate = new Date(range.end + "T00:00:00");
-  while(current <= endDate){
-    dates.push(dstr(current.getFullYear(), current.getMonth(), current.getDate()));
-    current.setDate(current.getDate() + 1);
-  }
-  return dates;
-}
-
+// Un día libre "all" afecta a todo el club. Uno con groupId afecta solo a ese grupo.
 function isDateExcluded(date, groupId){
-  // Solo el jefe marca días libres, siempre de forma global (groupId ignorado).
-  return excludedDates.some(ed => ed.date === date);
+  return excludedDates.some(ed => ed.date === date && (ed.groupId == null || ed.groupId === groupId));
+}
+// Los entrenadores no pertenecen a una categoría: solo les afectan los días de todo el club.
+function isDateExcludedClub(date){
+  return excludedDates.some(ed => ed.date === date && ed.groupId == null);
+}
+function excludedForPeriod(periodo){
+  const list = excludedDates.filter(ed => periodo === "pre" ? isInPretemporada(ed.date) : isInTemporada(ed.date));
+  return list.sort((a,b) => a.date.localeCompare(b.date));
+}
+function scopeLabel(groupId){
+  if(groupId == null) return "Todo el club";
+  const g = groups.find(gr => gr.id === groupId);
+  return g ? `${g.program} · ${g.name}` : "Categoría";
 }
 
-function getExcludedNote(date){
-  const ed = excludedDates.find(e => e.date === date);
-  return ed ? (ed.reason || "") : "";
-}
-
-function getCountableDaysInPretemporada(groupId){
-  const allDays = getDaysInPretemporada();
-  return allDays.filter(d => !isDateExcluded(d, groupId));
-}
-
-function getPretemporadaStats(){
-  const range = getPretemporadaRange();
-  const stats = {
-    byTrainer: {},
-    byGroup: {}
-  };
-  
-  // Estadísticas de entrenadores
-  trainers.forEach(trainer => {
-    const daysPresent = trainerAttendance.filter(ta =>
-      ta.trainerId === trainer.id &&
-      ta.date >= range.start &&
-      ta.date <= range.end &&
-      ta.present &&
-      !isDateExcluded(ta.date, null)
-    ).length;
-    
-    const countableDays = getDaysInPretemporada().filter(d => !isDateExcluded(d, null)).length;
-    stats.byTrainer[trainer.id] = {
-      name: trainer.name,
-      present: daysPresent,
-      total: countableDays,
-      percentage: countableDays > 0 ? Math.round((daysPresent / countableDays) * 100) : 0
-    };
+// Días con actividad registrada en el período (base del conteo)
+function activeDatesForGroup(groupId, periodo){
+  const set = new Set();
+  attendance.forEach(a => {
+    const ath = athletes.find(x => x.id === a.athleteId);
+    if(!ath || ath.groupId !== groupId) return;
+    if(periodo === "pre" ? isInPretemporada(a.date) : isInTemporada(a.date)) set.add(a.date);
   });
-  
-  // Estadísticas de atletas por grupo
-  groups.forEach(group => {
-    const groupMembers = athletes.filter(a => a.groupId === group.id);
-    const countableDays = getCountableDaysInPretemporada(group.id).length;
-    
-    stats.byGroup[group.id] = {
-      name: group.name,
-      athletes: [],
-      countableDays: countableDays
-    };
-    
-    groupMembers.forEach(athlete => {
-      const daysPresent = attendance.filter(a =>
-        a.athleteId === athlete.id &&
-        a.date >= range.start &&
-        a.date <= range.end &&
-        a.present &&
-        !isDateExcluded(a.date, group.id)
-      ).length;
-      
-      stats.byGroup[group.id].athletes.push({
-        name: athlete.name,
-        present: daysPresent,
-        total: countableDays,
-        percentage: countableDays > 0 ? Math.round((daysPresent / countableDays) * 100) : 0
-      });
-    });
+  return Array.from(set).filter(d => !isDateExcluded(d, groupId)).sort();
+}
+function activeDatesForTrainers(periodo){
+  const set = new Set();
+  trainerAttendance.forEach(t => {
+    if(periodo === "pre" ? isInPretemporada(t.date) : isInTemporada(t.date)) set.add(t.date);
   });
-  
-  return stats;
+  return Array.from(set).filter(d => !isDateExcludedClub(d)).sort();
 }
 
-function renderPretemporadaTab(){
-  const range = getPretemporadaRange();
-  const stats = getPretemporadaStats();
-  const allDays = getDaysInPretemporada();
-  const countableDays = allDays.filter(d => !isDateExcluded(d, null));
-  const excludedList = allDays.filter(d => isDateExcluded(d, null));
-  
-  let html = `<div class="card">
-    <div class="section-label"><div class="gate-poles"><span></span><span></span></div><span class="title">Resumen Pretemporada</span></div>
-    <div style="font-size:12px;color:${GRAY};margin-bottom:16px;">Período: 1-17 de julio de ${range.start.split("-")[0]} · No se contabiliza en el calendario regular (inicia el 19 de julio).</div>
-    <div style="font-size:12px;background:#EEF3FA;color:${NAVY};border-radius:8px;padding:10px;margin-bottom:16px;">
-      📌 Días totales: ${allDays.length} | Días a contar: ${countableDays.length} | Excluidos: ${excludedList.length}
+function trainerStatsPeriodo(periodo){
+  const dias = activeDatesForTrainers(periodo);
+  const diasSet = new Set(dias);
+  return trainers.map(tr => {
+    const present = trainerAttendance.filter(t => t.trainerId === tr.id && t.present && diasSet.has(t.date)).length;
+    return {
+      name: tr.name, present, total: dias.length,
+      pct: dias.length ? Math.round(present / dias.length * 100) : 0
+    };
+  }).sort((a,b) => a.pct - b.pct);
+}
+
+function groupStatsPeriodo(groupId, periodo){
+  const dias = activeDatesForGroup(groupId, periodo);
+  const diasSet = new Set(dias);
+  const miembros = athletes.filter(a => a.groupId === groupId);
+  const filas = miembros.map(a => {
+    const present = attendance.filter(r => r.athleteId === a.id && r.present && diasSet.has(r.date)).length;
+    return {
+      name: a.name, present, total: dias.length,
+      pct: dias.length ? Math.round(present / dias.length * 100) : 0
+    };
+  }).sort((x,y) => x.pct - y.pct);
+  const prom = filas.length ? Math.round(filas.reduce((s,f)=>s+f.pct,0) / filas.length) : 0;
+  return { dias: dias.length, filas, prom };
+}
+
+function pctColor(p){ return p >= 80 ? GREEN : p >= 60 ? GOLD : RED; }
+
+function barraHTML(nombre, present, total, pct){
+  return `<div class="prow">
+    <div class="top">
+      <span class="nm">${escapeHtml(nombre)}</span>
+      <span class="meta">${present}/${total}</span>
+      <span class="pc" style="color:${pctColor(pct)};">${pct}%</span>
+    </div>
+    <div class="track"><div class="fill" style="width:${pct}%;background:${pctColor(pct)};"></div></div>
+  </div>`;
+}
+
+/* ---- Calendario desplegable de días libres (solo jefe) ---- */
+function dlCalendarHTML(){
+  const isToday = dlDate === todayISO();
+  let html = `<div class="cal-card collapsible" style="margin-bottom:10px;">
+    <button type="button" class="date-toggle" id="dl-cal-toggle">
+      <span class="date-label">📅 ${formatFechaLarga(dlDate)}${isToday?` <span class="today-chip">Hoy</span>`:""}</span>
+      <span class="chev">${dlCalOpen?"Cerrar ▴":"Elegir fecha ▾"}</span>
+    </button>`;
+  if(dlCalOpen){
+    if(!dlCalViewMonth){
+      const [y,m] = dlDate.split("-").map(Number);
+      dlCalViewMonth = new Date(y, m-1, 1);
+    }
+    const year = dlCalViewMonth.getFullYear(), month = dlCalViewMonth.getMonth();
+    const startOffset = (new Date(year, month, 1).getDay() + 6) % 7;
+    const daysInMonth = new Date(year, month+1, 0).getDate();
+    const daysPrev = new Date(year, month, 0).getDate();
+    const t = new Date();
+    const todayStr = dstr(t.getFullYear(), t.getMonth(), t.getDate());
+    const marcados = new Set(excludedDates.map(e => e.date));
+
+    let cells = "";
+    for(let i=0;i<startOffset;i++){
+      const d = daysPrev - startOffset + i + 1;
+      const py = month===0? year-1 : year, pm = month===0? 11 : month-1;
+      cells += `<button type="button" class="cal-day other-month" data-dldate="${dstr(py,pm,d)}">${d}</button>`;
+    }
+    for(let d=1; d<=daysInMonth; d++){
+      const ds = dstr(year, month, d);
+      const cls = ["cal-day"];
+      if(ds === todayStr) cls.push("today");
+      if(ds === dlDate) cls.push("selected");
+      if(marcados.has(ds)) cls.push("has-data");
+      cells += `<button type="button" class="${cls.join(" ")}" data-dldate="${ds}">${d}</button>`;
+    }
+    const trailing = (7 - ((startOffset + daysInMonth) % 7)) % 7;
+    for(let d=1; d<=trailing; d++){
+      const ny = month===11? year+1 : year, nm = month===11? 0 : month+1;
+      cells += `<button type="button" class="cal-day other-month" data-dldate="${dstr(ny,nm,d)}">${d}</button>`;
+    }
+    html += `<div class="cal-body">
+      <div class="cal-head">
+        <button type="button" class="cal-nav-btn" id="dl-cal-prev">‹</button>
+        <span class="label">${MESES[month]} ${year}</span>
+        <button type="button" class="cal-nav-btn" id="dl-cal-next">›</button>
+      </div>
+      <div class="cal-weekdays">${DIAS_SEMANA.map(d=>`<span>${d}</span>`).join("")}</div>
+      <div class="cal-grid">${cells}</div>
     </div>`;
-  
-  if(authState.level === "master"){
-    // ===== VISTA JEFE =====
-    // Resumen de entrenadores
-    html += `<div style="margin-bottom:20px;">
-      <h3 style="font-size:14px;font-weight:600;color:${NAVY};margin-bottom:12px;">📋 Asistencia de Entrenadores</h3>`;
-    
-    const trainerEntries = Object.entries(stats.byTrainer);
-    if(!trainerEntries.length){
-      html += `<div style="font-size:13px;color:${GRAY};text-align:center;padding:12px 0;">No hay entrenadores registrados.</div>`;
-    }
-    trainerEntries.forEach(([trainerId, data]) => {
-      const colorClass = data.percentage >= 80 ? GREEN : data.percentage >= 60 ? GOLD : RED;
-      html += `<div style="background:#F7FAFC;border:1px solid #E7ECF2;border-radius:10px;padding:12px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;">
-        <div>
-          <span style="font-weight:500;color:${NAVY};">${escapeHtml(data.name)}</span>
-          <span style="font-size:12px;color:${GRAY};margin-left:8px;">${data.present}/${data.total} días</span>
-        </div>
-        <div style="font-size:18px;font-weight:700;color:${colorClass};">${data.percentage}%</div>
-      </div>`;
-    });
-    
-    html += `</div>
-    
-    <hr style="border:none;border-top:1px solid #DDDDDD;margin:20px 0;">
-    
-    <h3 style="font-size:14px;font-weight:600;color:${NAVY};margin-bottom:6px;">🗑️ Gestionar Días Libres</h3>
-    <div style="font-size:12px;color:${GRAY};margin-bottom:12px;">Solo el jefe de entrenadores puede marcar días libres o suspendidos. Estos días no cuentan para nadie.</div>
-    <div style="background:#FFF9E6;border:1px solid ${GOLD};border-radius:8px;padding:12px;margin-bottom:12px;">
-      <div style="font-size:13px;color:${NAVY};margin-bottom:10px;">Toca un día para marcarlo/desmarcarlo como libre:</div>
-      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(58px,1fr));gap:6px;">`;
-    
-    allDays.forEach(day => {
-      const isExcluded = isDateExcluded(day, null);
-      const dayLabel = new Date(day + "T00:00:00").toLocaleDateString("es-ES", {weekday:"short", day:"numeric"});
-      html += `<button type="button" class="day-toggle-btn${isExcluded?" excluded":""}" data-exclude-day="${day}" style="padding:8px 4px;border-radius:6px;border:1px solid ${isExcluded?RED:GRAY};background:${isExcluded?RED:"white"};color:${isExcluded?"white":NAVY};cursor:pointer;font-weight:500;font-size:11px;">${dayLabel}</button>`;
-    });
-    
-    html += `</div></div>`;
-    
-    // Lista de días excluidos con sus notas (editable)
-    if(excludedList.length){
-      html += `<div style="margin-top:14px;">
-        <div style="font-size:13px;font-weight:600;color:${NAVY};margin-bottom:8px;">📝 Días libres marcados y sus notas</div>`;
-      excludedList.forEach(day => {
-        const ed = excludedDates.find(e => e.date === day && !e.groupId);
-        const dayLabel = new Date(day + "T00:00:00").toLocaleDateString("es-ES", {weekday:"long", day:"numeric", month:"long"});
-        const noteVal = ed ? (ed.reason || "") : "";
-        html += `<div style="background:#FDECEC;border:1px solid #F3C9C9;border-radius:10px;padding:10px 12px;margin-bottom:8px;">
-          <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px;">
-            <span style="font-size:13px;font-weight:600;color:${RED};text-transform:capitalize;">${dayLabel}</span>
-            <button type="button" data-restore-day="${day}" style="background:none;border:none;color:${GRAY};font-size:12px;cursor:pointer;">↩️ Restaurar día</button>
-          </div>
-          <input type="text" class="excluded-note-input" data-note-date="${day}" value="${escapeHtml(noteVal)}" placeholder="Nota (ej: feriado, mantenimiento, día de descanso...)" style="width:100%;border:1px solid #E7ECF2;border-radius:6px;padding:6px 8px;font-size:12px;" />
-        </div>`;
-      });
-      html += `</div>`;
-    }
-    
-  } else {
-    // ===== VISTA ENTRENADOR (solo lectura) =====
-    const groupId = selectedGroupId;
-    if(groupId && stats.byGroup[groupId]){
-      const groupData = stats.byGroup[groupId];
-      html += `<div style="margin-bottom:20px;">
-        <h3 style="font-size:14px;font-weight:600;color:${NAVY};margin-bottom:12px;">👥 ${escapeHtml(groupData.name)}</h3>
-        <div style="font-size:12px;background:#EEF3FA;color:${NAVY};border-radius:8px;padding:8px;margin-bottom:12px;">
-          Días de conteo: ${groupData.countableDays}
-        </div>`;
-      
-      if(!groupData.athletes.length){
-        html += `<div style="font-size:13px;color:${GRAY};text-align:center;padding:12px 0;">No hay integrantes en este grupo.</div>`;
-      }
-      groupData.athletes.forEach(athlete => {
-        const colorClass = athlete.percentage >= 80 ? GREEN : athlete.percentage >= 60 ? GOLD : RED;
-        html += `<div style="background:#F7FAFC;border:1px solid #E7ECF2;border-radius:10px;padding:12px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;">
-          <div>
-            <span style="font-weight:500;color:${NAVY};">${escapeHtml(athlete.name)}</span>
-            <span style="font-size:12px;color:${GRAY};margin-left:8px;">${athlete.present}/${athlete.total} días</span>
-          </div>
-          <div style="font-size:18px;font-weight:700;color:${colorClass};">${athlete.percentage}%</div>
-        </div>`;
-      });
-      
-      html += `</div>`;
-      
-      // Los entrenadores solo ven (no editan) los días libres definidos por el jefe
-      if(excludedList.length){
-        html += `<hr style="border:none;border-top:1px solid #DDDDDD;margin:20px 0;">
-        <h3 style="font-size:14px;font-weight:600;color:${NAVY};margin-bottom:6px;">📅 Días libres del período</h3>
-        <div style="font-size:12px;color:${GRAY};margin-bottom:10px;">Definidos por el jefe de entrenadores. No cuentan en la asistencia.</div>`;
-        excludedList.forEach(day => {
-          const ed = excludedDates.find(e => e.date === day && !e.groupId);
-          const dayLabel = new Date(day + "T00:00:00").toLocaleDateString("es-ES", {weekday:"long", day:"numeric", month:"long"});
-          const note = ed && ed.reason ? ed.reason : "Día libre";
-          html += `<div style="background:#FDECEC;border:1px solid #F3C9C9;border-radius:10px;padding:10px 12px;margin-bottom:8px;">
-            <div style="font-size:13px;font-weight:600;color:${RED};text-transform:capitalize;">${dayLabel}</div>
-            <div style="font-size:12px;color:${NAVY};margin-top:2px;">📝 ${escapeHtml(note)}</div>
-          </div>`;
-        });
-      }
-    }
   }
-  
   html += `</div>`;
   return html;
 }
+
+function diasLibresPanelHTML(periodo){
+  const yaMarcado = excludedDates.find(e => e.date === dlDate && (dlScope === "all" ? e.groupId == null : e.groupId === dlScope));
+  let html = `<hr style="border:none;border-top:1px solid #EEF1F5;margin:18px 0;">
+  <div class="section-label"><div class="gate-poles"><span></span><span></span></div><span class="title">Días libres</span></div>
+  <div style="font-size:12px;color:${GRAY};margin-bottom:12px;">Los días que marques aquí no se cuentan en la asistencia.</div>`;
+
+  html += dlCalendarHTML();
+
+  html += `<div class="mini-lbl">Aplica a</div>
+  <select id="dl-scope" style="margin-bottom:10px;">
+    <option value="all" ${dlScope==="all"?"selected":""}>Todo el club</option>`;
+  PROGRAMS.forEach(p => {
+    groupsForProgram(p).forEach(g => {
+      html += `<option value="${g.id}" ${String(dlScope)===String(g.id)?"selected":""}>${escapeHtml(p)} · ${escapeHtml(g.name)}</option>`;
+    });
+  });
+  html += `</select>`;
+
+  html += `<input type="text" id="dl-note" value="${escapeHtml(dlNote)}" placeholder="Nota (ej: feriado, sin nieve)" style="margin-bottom:10px;" />`;
+
+  if(dlError) html += `<div class="error-box">${escapeHtml(dlError)}</div>`;
+
+  if(yaMarcado){
+    html += `<button class="btn-outline" id="dl-remove" style="width:100%;justify-content:center;">↩️ Quitar día libre</button>`;
+  } else {
+    html += `<button class="save-btn" id="dl-add" style="background:${RED};">${dlSaving?"Guardando...":"🚫 Marcar como libre"}</button>`;
+  }
+
+  const lista = excludedForPeriod(periodo);
+  html += `<div style="margin-top:14px;">
+    <div style="font-size:12px;font-weight:600;color:${NAVY};margin-bottom:8px;">Días marcados en este período</div>`;
+  if(!lista.length){
+    html += `<div style="font-size:12px;color:${GRAY};text-align:center;padding:10px 0;">Ninguno todavía.</div>`;
+  } else {
+    lista.forEach(ed => {
+      const esClub = ed.groupId == null;
+      html += `<div class="dl-day">
+        <div style="min-width:0;">
+          <div class="d">${formatFechaLarga(ed.date)}</div>
+          <div class="n">
+            <span class="dl-scope" style="background:${esClub?NAVY:BLUE};color:white;">${escapeHtml(scopeLabel(ed.groupId))}</span>
+            ${ed.reason ? ` ${escapeHtml(ed.reason)}` : ""}
+          </div>
+        </div>
+        <button type="button" class="x" data-dl-del="${ed.id}" aria-label="Quitar">🗑️</button>
+      </div>`;
+    });
+  }
+  html += `</div>`;
+  return html;
+}
+
+/* ---- Pestaña Asistencia ---- */
+function renderAsistenciaTab(){
+  const periodo = asistenciaPeriodo;
+  const esPre = periodo === "pre";
+  const pr = getPretemporadaRange();
+
+  let html = `<div class="card">
+    <div class="section-label"><div class="gate-poles"><span></span><span></span></div><span class="title">Asistencia</span></div>
+    <div class="seg">
+      <button type="button" data-periodo="pre" class="${esPre?"on":""}">Pretemporada</button>
+      <button type="button" data-periodo="temp" class="${!esPre?"on":""}">Temporada</button>
+    </div>
+    <div style="font-size:12px;color:${GRAY};margin-bottom:14px;">${esPre
+      ? `1 al 17 de julio. No se mezcla con la temporada.`
+      : `Desde el 19 de julio en adelante.`}</div>`;
+
+  if(authState.level === "master"){
+    const tstats = trainerStatsPeriodo(periodo);
+    const dias = activeDatesForTrainers(periodo).length;
+    const prom = tstats.length ? Math.round(tstats.reduce((s,t)=>s+t.pct,0)/tstats.length) : 0;
+
+    html += `<div class="kpis">
+      <div class="kpi"><div class="v" style="color:${pctColor(prom)};">${prom}%</div><div class="l">Promedio<br>entrenadores</div></div>
+      <div class="kpi"><div class="v">${dias}</div><div class="l">Días que<br>cuentan</div></div>
+      <div class="kpi"><div class="v">${excludedForPeriod(periodo).length}</div><div class="l">Días<br>libres</div></div>
+    </div>`;
+
+    html += `<div style="font-size:12px;font-weight:600;color:${NAVY};margin-bottom:8px;">🧑‍🏫 Entrenadores</div>`;
+    if(!tstats.length){
+      html += `<div style="font-size:12px;color:${GRAY};text-align:center;padding:10px 0;">No hay entrenadores registrados.</div>`;
+    } else {
+      tstats.forEach(t => { html += barraHTML(t.name, t.present, t.total, t.pct); });
+    }
+
+    html += `<hr style="border:none;border-top:1px solid #EEF1F5;margin:18px 0;">
+      <div style="font-size:12px;font-weight:600;color:${NAVY};margin-bottom:8px;">👥 Grupos</div>`;
+    const gs = groupsForProgram(currentProgram);
+    if(!gs.length){
+      html += `<div style="font-size:12px;color:${GRAY};text-align:center;padding:10px 0;">No hay grupos en ${escapeHtml(currentProgram)}.</div>`;
+    }
+    gs.forEach(g => {
+      const st = groupStatsPeriodo(g.id, periodo);
+      html += `<div style="background:#F7FAFC;border:1px solid #E7ECF2;border-radius:12px;padding:12px;margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;">
+          <span style="font-size:13px;font-weight:600;color:${NAVY};">${escapeHtml(g.name)}</span>
+          <span style="font-size:11px;color:${GRAY};">${st.dias} días · prom. <b style="color:${pctColor(st.prom)};">${st.prom}%</b></span>
+        </div>`;
+      if(!st.filas.length){
+        html += `<div style="font-size:12px;color:${GRAY};">Sin integrantes.</div>`;
+      } else {
+        st.filas.forEach(f => { html += barraHTML(f.name, f.present, f.total, f.pct); });
+      }
+      html += `</div>`;
+    });
+
+    html += diasLibresPanelHTML(periodo);
+
+  } else {
+    const gid = selectedGroupId;
+    const st = groupStatsPeriodo(gid, periodo);
+    const g = groups.find(x => x.id === gid);
+
+    html += `<div class="kpis">
+      <div class="kpi"><div class="v" style="color:${pctColor(st.prom)};">${st.prom}%</div><div class="l">Promedio<br>del grupo</div></div>
+      <div class="kpi"><div class="v">${st.dias}</div><div class="l">Días que<br>cuentan</div></div>
+      <div class="kpi"><div class="v">${st.filas.length}</div><div class="l">Integrantes</div></div>
+    </div>`;
+
+    html += `<div style="font-size:12px;font-weight:600;color:${NAVY};margin-bottom:8px;">👥 ${escapeHtml(g ? g.name : "Grupo")}</div>`;
+    if(!st.filas.length){
+      html += `<div style="font-size:12px;color:${GRAY};text-align:center;padding:12px 0;">Sin integrantes en este grupo.</div>`;
+    } else {
+      st.filas.forEach(f => { html += barraHTML(f.name, f.present, f.total, f.pct); });
+    }
+
+    const lista = excludedForPeriod(periodo).filter(ed => ed.groupId == null || ed.groupId === gid);
+    if(lista.length){
+      html += `<hr style="border:none;border-top:1px solid #EEF1F5;margin:18px 0;">
+        <div style="font-size:12px;font-weight:600;color:${NAVY};margin-bottom:4px;">📅 Días libres</div>
+        <div style="font-size:11px;color:${GRAY};margin-bottom:8px;">Definidos por el jefe. No cuentan en la asistencia.</div>`;
+      lista.forEach(ed => {
+        const esClub = ed.groupId == null;
+        html += `<div class="dl-day">
+          <div style="min-width:0;">
+            <div class="d">${formatFechaLarga(ed.date)}</div>
+            <div class="n">
+              <span class="dl-scope" style="background:${esClub?NAVY:BLUE};color:white;">${esClub?"Todo el club":"Tu grupo"}</span>
+              ${ed.reason ? ` ${escapeHtml(ed.reason)}` : ""}
+            </div>
+          </div>
+        </div>`;
+      });
+    }
+  }
+
+  html += `</div>`;
+  return html;
+}
+
 
 function renderTransportTab(){
   if(authState.level === "master") return renderTransportAdminView();
 
   let html = `<div class="card">
     <div class="section-label"><div class="gate-poles"><span></span><span></span></div><span class="title">Transporte</span></div>
-    <div style="font-size:12px;color:${GRAY};margin-bottom:14px;">Si no marcas nada, se asume que no usaste el transporte ese día.</div>`;
+    <div style="font-size:12px;color:${GRAY};margin-bottom:12px;">Si no marcas nada, se asume que no usaste transporte.</div>
+    <div class="tcompact">`;
+
   html += transportCalendarCardHTML();
 
-  html += `<div style="display:flex;gap:8px;margin-bottom:14px;">
-    <button type="button" class="pill" data-transport-used="true" style="flex:1;justify-content:center;${transportUsed?`background:${GREEN};color:white;border-color:${GREEN};`:""}">✓ Sí, usé transporte</button>
-    <button type="button" class="pill" data-transport-used="false" style="flex:1;justify-content:center;${!transportUsed?`background:${RED};color:white;border-color:${RED};`:""}">✕ No usé</button>
+  html += `<div class="tsel">
+    <button type="button" data-transport-used="true" style="${transportUsed?`background:${GREEN};color:white;border-color:${GREEN};`:""}">✓ Sí usé</button>
+    <button type="button" data-transport-used="false" style="${!transportUsed?`background:${RED};color:white;border-color:${RED};`:""}">✕ No usé</button>
   </div>`;
 
   if(transportUsed){
-    html += `<div class="stepper" style="margin-bottom:14px;">
-      <div class="lbl">Número de entrenadores (incluyéndote)</div>
-      <div class="box">
+    html += `<div class="tcount">
+      <div class="l">Entrenadores (contándote)</div>
+      <div class="r">
         <button type="button" data-transport-delta="-1">−</button>
         <input type="text" inputmode="numeric" id="transport-num-input" value="${transportNumTrainers}" />
         <button type="button" data-transport-delta="1">+</button>
@@ -1795,40 +1917,45 @@ function renderTransportTab(){
   }
 
   if(transportSaveError) html += `<div class="error-box">${escapeHtml(transportSaveError)}</div>`;
-  html += `<button class="save-btn" id="save-transport-btn">${transportSaving?"Guardando...":"✓ Guardar"}</button>`;
-  if(transportJustSaved) html += `<div class="info-box" style="margin-top:10px;">Guardado.</div>`;
-  html += `</div>`;
+  html += `<button class="save-btn" id="save-transport-btn" style="margin:0;">${transportSaving?"Guardando...":"✓ Guardar"}</button>`;
+  if(transportJustSaved) html += `<div class="info-box" style="margin:10px 0 0;">Guardado.</div>`;
+
+  html += `</div></div>`;
   return html;
 }
 
 function renderTransportAdminView(){
   let html = `<div class="card">
-    <div class="section-label"><div class="gate-poles"><span></span><span></span></div><span class="title">Transporte — resumen diario</span></div>
-    <div style="font-size:12px;color:${GRAY};margin-bottom:14px;">Solo aparecen los entrenadores que marcaron uso de transporte ese día.</div>`;
+    <div class="section-label"><div class="gate-poles"><span></span><span></span></div><span class="title">Transporte</span></div>
+    <div style="font-size:12px;color:${GRAY};margin-bottom:12px;">Solo aparecen quienes marcaron uso de transporte ese día.</div>
+    <div class="tcompact">`;
+
   html += adminTransportCalendarCardHTML();
 
   const dayEntries = trainerTransport.filter(t => t.date === adminTransportDate);
   if(!dayEntries.length){
-    html += `<div style="font-size:13px;color:${GRAY};text-align:center;padding:20px 0;">Nadie registró uso de transporte este día.</div>`;
+    html += `<div style="font-size:12px;color:${GRAY};text-align:center;padding:14px 0;">Nadie registró transporte este día.</div>`;
   } else {
     const totalTrainers = dayEntries.reduce((sum,t)=>sum+(t.numTrainers||0),0);
-    html += `<div class="total-box" style="margin-bottom:14px;"><span class="lbl">Total entrenadores transportados</span><span class="val">${totalTrainers}</span></div>`;
+    html += `<div class="kpis" style="margin-bottom:10px;">
+      <div class="kpi"><div class="v" style="color:${GOLD};">${totalTrainers}</div><div class="l">Entrenadores<br>transportados</div></div>
+      <div class="kpi"><div class="v">${dayEntries.length}</div><div class="l">Autos<br>registrados</div></div>
+    </div>`;
     dayEntries.forEach(t => {
-      html += `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px;border-radius:8px;background:#F7FAFC;margin-bottom:8px;">
-        <span style="font-size:14px;font-weight:500;color:${NAVY};">${escapeHtml(t.trainerCode)}</span>
-        <span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:${NAVY};">${t.numTrainers} entrenador${t.numTrainers===1?"":"es"}</span>
+      html += `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px;border-radius:8px;background:#F7FAFC;margin-bottom:6px;">
+        <span style="font-size:13px;font-weight:500;color:${NAVY};">${escapeHtml(t.trainerCode)}</span>
+        <span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:${GRAY};">${t.numTrainers} pers.</span>
       </div>`;
     });
   }
-  html += `</div>`;
+  html += `</div></div>`;
 
-  // Resumen histórico: viajes compartidos (2+ personas) por entrenador
   const sharedTrips = trainerTransport.filter(t => (t.numTrainers||0) >= 2);
   html += `<div class="card">
-    <div class="section-label"><div class="gate-poles"><span></span><span></span></div><span class="title">Resumen histórico — viajes compartidos</span></div>
-    <div style="font-size:12px;color:${GRAY};margin-bottom:14px;">Cuántas veces ha subido cada entrenador, contando solo días con 2 o más personas por auto.</div>`;
+    <div class="section-label"><div class="gate-poles"><span></span><span></span></div><span class="title">Viajes compartidos</span></div>
+    <div style="font-size:12px;color:${GRAY};margin-bottom:12px;">Historial contando solo días con 2 o más personas por auto.</div>`;
   if(!sharedTrips.length){
-    html += `<div style="font-size:13px;color:${GRAY};text-align:center;padding:16px 0;">Aún no hay viajes con 2 o más personas registrados.</div>`;
+    html += `<div style="font-size:12px;color:${GRAY};text-align:center;padding:14px 0;">Aún no hay viajes compartidos.</div>`;
   } else {
     const byTrainer = {};
     sharedTrips.forEach(t => {
@@ -1837,17 +1964,22 @@ function renderTransportAdminView(){
     });
     Object.keys(byTrainer).sort().forEach(code => {
       const counts = byTrainer[code];
+      const total = Object.values(counts).reduce((a,b)=>a+b,0);
       const parts = Object.keys(counts).map(Number).sort((a,b)=>b-a)
-        .map(n => `${n} persona${n===1?"":"s"} · ${counts[n]} ${counts[n]===1?"vez":"veces"}`);
-      html += `<div style="padding:10px;border-radius:8px;background:#F7FAFC;margin-bottom:8px;">
-        <div style="font-size:14px;font-weight:600;color:${NAVY};margin-bottom:4px;">${escapeHtml(code)}</div>
-        <div style="font-size:12px;color:#3A4658;">${parts.join(" &nbsp;·&nbsp; ")}</div>
+        .map(n => `${n} pers. · ${counts[n]}×`);
+      html += `<div style="padding:9px 11px;border-radius:9px;background:#F7FAFC;margin-bottom:6px;">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;">
+          <span style="font-size:13px;font-weight:600;color:${NAVY};">${escapeHtml(code)}</span>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:${GOLD};font-weight:700;">${total}</span>
+        </div>
+        <div style="font-size:11px;color:${GRAY};margin-top:2px;">${parts.join(" · ")}</div>
       </div>`;
     });
   }
   html += `</div>`;
   return html;
 }
+
 
 /* ============ EXPORT ============ */
 function buildDaySummaryText(){
@@ -2043,8 +2175,8 @@ function renderChangeCodePanel(){
 
 function renderHeader(){
   const visibleTabs = authState.level === "master"
-    ? [["setup","Grupos"],["daily","Registro diario"],["profile","Estadísticas"],["trainers","Entrenadores"],["checkins","Pulso semanal"],["transport","Transporte"],["pretemporada","📊 Pretemporada"],["access","Accesos"]]
-    : [["setup","Grupos"],["daily","Registro diario"],["profile","Estadísticas"],["checkins","Pulso semanal"],["transport","Transporte"],["pretemporada","📊 Pretemporada"]];
+    ? [["setup","Grupos"],["daily","Registro diario"],["profile","Estadísticas"],["trainers","Entrenadores"],["checkins","Pulso semanal"],["transport","Transporte"],["asistencia","📊 Asistencia"],["access","Accesos"]]
+    : [["setup","Grupos"],["daily","Registro diario"],["profile","Estadísticas"],["checkins","Pulso semanal"],["transport","Transporte"],["asistencia","📊 Asistencia"]];
   const roleLabel = authState.level==="master" ? "Jefe de entrenadores" : `${authState.program} · ${authState.category}`;
   return `
   <div class="hero">
@@ -2410,7 +2542,7 @@ function render(){
   else if(tab === "trainers" && authState.level === "master") body = renderTrainersTab();
   else if(tab === "checkins") body = renderCheckinsTab();
   else if(tab === "transport") body = renderTransportTab();
-  else if(tab === "pretemporada") body = renderPretemporadaTab();
+  else if(tab === "asistencia") body = renderAsistenciaTab();
   else { tab = "daily"; body = renderDailyTab(); }
 
   app.innerHTML = renderHeader() + (shouldShowMondayReminder() ? renderMondayBanner() : "") + `<div class="wrap">${body}</div>
@@ -2503,6 +2635,7 @@ function attachAppHandlers(){
       if(tab === "trainers") initTrainerAttendanceForm();
       if(tab === "checkins") initCheckinForm();
       if(tab === "transport" && authState.level !== "master") initTransportForm();
+      if(tab === "asistencia"){ dlCalOpen = false; dlError = ""; }
       render();
     });
   });
@@ -2514,7 +2647,7 @@ function attachAppHandlers(){
   if(tab === "trainers") attachTrainersTabHandlers();
   if(tab === "checkins") attachCheckinsTabHandlers();
   if(tab === "transport") attachTransportTabHandlers();
-  if(tab === "pretemporada") attachPretemporadaTabHandlers();
+  if(tab === "asistencia") attachAsistenciaTabHandlers();
 }
 
 function attachSetupTabHandlers(){
@@ -2863,58 +2996,98 @@ function attachAccessTabHandlers(){
   if(exportBackupBtn) exportBackupBtn.addEventListener("click", exportBackupJSON);
 }
 
-function attachPretemporadaTabHandlers(){
-  // Solo el jefe puede gestionar días libres.
+function attachAsistenciaTabHandlers(){
+  // Cambio de período (visible para todos)
+  document.querySelectorAll("[data-periodo]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      asistenciaPeriodo = btn.dataset.periodo;
+      dlError = "";
+      render();
+    });
+  });
+
+  // Gestión de días libres: solo el jefe
   if(authState.level !== "master") return;
 
-  // Marcar/desmarcar día como libre
-  document.querySelectorAll("[data-exclude-day]").forEach(btn => {
+  const toggle = document.getElementById("dl-cal-toggle");
+  if(toggle) toggle.addEventListener("click", () => {
+    dlCalOpen = !dlCalOpen;
+    if(dlCalOpen){
+      const [y,m] = dlDate.split("-").map(Number);
+      dlCalViewMonth = new Date(y, m-1, 1);
+    }
+    render();
+  });
+
+  const prev = document.getElementById("dl-cal-prev");
+  if(prev) prev.addEventListener("click", () => {
+    dlCalViewMonth = new Date(dlCalViewMonth.getFullYear(), dlCalViewMonth.getMonth()-1, 1);
+    render();
+  });
+  const next = document.getElementById("dl-cal-next");
+  if(next) next.addEventListener("click", () => {
+    dlCalViewMonth = new Date(dlCalViewMonth.getFullYear(), dlCalViewMonth.getMonth()+1, 1);
+    render();
+  });
+
+  document.querySelectorAll("[data-dldate]").forEach(btn => {
     btn.addEventListener("click", () => {
-      const date = btn.dataset.excludeDay;
-      toggleExcludedDate(date);
+      dlDate = btn.dataset.dldate;
+      dlCalOpen = false;
+      dlError = "";
+      render();
     });
   });
 
-  // Restaurar (quitar) día libre desde la lista
-  document.querySelectorAll("[data-restore-day]").forEach(btn => {
-    btn.addEventListener("click", () => {
-      const date = btn.dataset.restoreDay;
-      toggleExcludedDate(date);
-    });
+  const scopeSel = document.getElementById("dl-scope");
+  if(scopeSel) scopeSel.addEventListener("change", (e) => {
+    dlScope = e.target.value === "all" ? "all" : e.target.value;
+    render();
   });
 
-  // Guardar nota al perder foco en el campo de texto
-  document.querySelectorAll(".excluded-note-input").forEach(input => {
-    input.addEventListener("change", (e) => {
-      const date = input.dataset.noteDate;
-      saveExcludedNote(date, e.target.value);
-    });
-    input.addEventListener("keydown", (e) => {
-      if(e.key === "Enter"){ e.target.blur(); }
-    });
+  const noteInput = document.getElementById("dl-note");
+  if(noteInput) noteInput.addEventListener("input", (e) => { dlNote = e.target.value; });
+
+  const addBtn = document.getElementById("dl-add");
+  if(addBtn) addBtn.addEventListener("click", agregarDiaLibre);
+
+  const removeBtn = document.getElementById("dl-remove");
+  if(removeBtn) removeBtn.addEventListener("click", () => {
+    const ed = excludedDates.find(e => e.date === dlDate && (dlScope === "all" ? e.groupId == null : String(e.groupId) === String(dlScope)));
+    if(ed) borrarDiaLibre(ed.id);
+  });
+
+  document.querySelectorAll("[data-dl-del]").forEach(btn => {
+    btn.addEventListener("click", () => borrarDiaLibre(btn.dataset.dlDel));
   });
 }
 
-async function toggleExcludedDate(date){
-  const existing = excludedDates.find(ed => ed.date === date);
-  if(existing){
-    await sbDelete("excluded_dates", {id: existing.id});
-  } else {
-    await sbInsert("excluded_dates", [{date, group_id:null, reason:""}]);
-  }
-  await manualRefresh();
-}
+async function agregarDiaLibre(){
+  if(dlSaving) return;
+  const gid = dlScope === "all" ? null : dlScope;
+  const yaExiste = excludedDates.some(e => e.date === dlDate && (gid === null ? e.groupId == null : String(e.groupId) === String(gid)));
+  if(yaExiste){ dlError = "Ese día ya está marcado para ese alcance."; render(); return; }
 
-async function saveExcludedNote(date, note){
-  const existing = excludedDates.find(ed => ed.date === date);
-  if(!existing) return;
-  // Actualizar localmente para no perder el texto en el re-render
-  existing.reason = note;
+  dlSaving = true; dlError = ""; render();
   try{
-    await sbUpdate("excluded_dates", {id: existing.id}, {reason: note});
+    await sbInsert("excluded_dates", [{ date: dlDate, group_id: gid, reason: dlNote.trim() }]);
+    dlNote = "";
+    await loadAllData();
   }catch(e){
-    alert("No se pudo guardar la nota: " + e.message);
+    dlError = "No se pudo guardar: " + e.message;
   }
+  dlSaving = false;
+  render();
+}
+
+async function borrarDiaLibre(id){
+  try{
+    await sbDelete("excluded_dates", {id});
+    await loadAllData();
+  }catch(e){
+    dlError = "No se pudo eliminar: " + e.message;
+  }
+  render();
 }
 
 /* ============ INIT ============ */
@@ -2996,4 +3169,3 @@ init();
 </script>
 </body>
 </html>
-Agregar módulo pretemporada
