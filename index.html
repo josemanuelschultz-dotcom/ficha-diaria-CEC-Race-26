@@ -1653,34 +1653,73 @@ function activeDatesForTrainers(periodo){
   return Array.from(set).filter(d => !isDateExcludedClub(d)).sort();
 }
 
+// Días del período que sí cuentan (calendario completo menos días libres).
+// En pretemporada el rango es cerrado, así que el total es el mismo para todos.
+function diasContables(periodo, groupId){
+  if(periodo === "pre"){
+    const r = getPretemporadaRange();
+    const out = [];
+    let cur = new Date(r.start + "T00:00:00");
+    const fin = new Date(r.end + "T00:00:00");
+    while(cur <= fin){
+      const ds = dstr(cur.getFullYear(), cur.getMonth(), cur.getDate());
+      if(!isDateExcluded(ds, groupId)) out.push(ds);
+      cur.setDate(cur.getDate() + 1);
+    }
+    return out;
+  }
+  // En temporada los días varían por grupo y el período sigue abierto,
+  // así que se toman los días con actividad registrada.
+  return activeDatesForGroup(groupId, periodo);
+}
+
+function diasContablesTrainers(periodo){
+  if(periodo === "pre"){
+    const r = getPretemporadaRange();
+    const out = [];
+    let cur = new Date(r.start + "T00:00:00");
+    const fin = new Date(r.end + "T00:00:00");
+    while(cur <= fin){
+      const ds = dstr(cur.getFullYear(), cur.getMonth(), cur.getDate());
+      if(!isDateExcludedClub(ds)) out.push(ds);
+      cur.setDate(cur.getDate() + 1);
+    }
+    return out;
+  }
+  return activeDatesForTrainers(periodo);
+}
+
 function trainerStatsPeriodo(periodo){
+  const dias = diasContablesTrainers(periodo);
+  const diasSet = new Set(dias);
   const enPeriodo = d => periodo === "pre" ? isInPretemporada(d) : isInTemporada(d);
   return trainers.map(tr => {
-    const recs = trainerAttendance.filter(t => t.trainerId === tr.id && enPeriodo(t.date) && !isDateExcludedClub(t.date));
-    const present = recs.filter(t => t.present).length;
+    const recs = trainerAttendance.filter(t => t.trainerId === tr.id && enPeriodo(t.date));
+    const present = recs.filter(t => t.present && diasSet.has(t.date)).length;
     return {
-      name: tr.name, present, total: recs.length,
-      pct: recs.length ? Math.round(present / recs.length * 100) : 0
+      name: tr.name, present, total: dias.length,
+      pct: dias.length ? Math.round(present / dias.length * 100) : 0,
+      tieneDatos: recs.length > 0
     };
-  }).filter(t => t.total > 0).sort((a,b) => a.pct - b.pct);
+  }).filter(t => t.tieneDatos).sort((a,b) => a.pct - b.pct);
 }
 
 function groupStatsPeriodo(groupId, periodo){
+  const dias = diasContables(periodo, groupId);
+  const diasSet = new Set(dias);
   const enPeriodo = d => periodo === "pre" ? isInPretemporada(d) : isInTemporada(d);
   const miembros = athletes.filter(a => a.groupId === groupId);
   const filas = miembros.map(a => {
-    // Denominador propio de cada atleta: solo los días en que tiene registro.
-    // Así quien se incorporó tarde no arrastra los días previos a su llegada.
-    const recs = attendance.filter(r => r.athleteId === a.id && enPeriodo(r.date) && !isDateExcluded(r.date, groupId));
-    const present = recs.filter(r => r.present).length;
+    const recs = attendance.filter(r => r.athleteId === a.id && enPeriodo(r.date));
+    const present = recs.filter(r => r.present && diasSet.has(r.date)).length;
     return {
-      name: a.name, present, total: recs.length,
-      pct: recs.length ? Math.round(present / recs.length * 100) : 0
+      name: a.name, present, total: dias.length,
+      pct: dias.length ? Math.round(present / dias.length * 100) : 0,
+      tieneDatos: recs.length > 0
     };
-  }).filter(f => f.total > 0).sort((x,y) => x.pct - y.pct);
-  const dias = activeDatesForGroup(groupId, periodo).length;
+  }).filter(f => f.tieneDatos).sort((x,y) => x.pct - y.pct);
   const prom = filas.length ? Math.round(filas.reduce((s,f)=>s+f.pct,0) / filas.length) : 0;
-  return { dias, filas, prom };
+  return { dias: dias.length, filas, prom };
 }
 
 function pctColor(p){ return p >= 80 ? GREEN : p >= 60 ? GOLD : RED; }
