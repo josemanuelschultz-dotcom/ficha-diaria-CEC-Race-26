@@ -155,34 +155,34 @@
   .footer-note{text-align:center; font-size:12px; color:var(--gray); padding:10px 20px 30px;}
 
   .cal-card{
-    background:white; border-radius:16px; padding:18px;
-    box-shadow:0 6px 18px rgba(0,0,0,.08); margin-bottom:16px; overflow:hidden;
+    background:white; border-radius:14px; padding:14px;
+    box-shadow:0 4px 14px rgba(0,0,0,.07); margin-bottom:12px; overflow:hidden;
   }
-  .cal-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;}
-  .cal-head .label{font-family:'Oswald',sans-serif; font-weight:600; font-size:17px; color:var(--navy); text-transform:capitalize;}
-  .cal-nav-btn{width:34px; height:34px; border-radius:9px; border:1px solid var(--border); background:white; color:var(--navy); font-size:17px; display:flex; align-items:center; justify-content:center; flex-shrink:0;}
-  .cal-weekdays{display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); margin-bottom:6px;}
-  .cal-weekdays span{text-align:center; font-size:11px; color:var(--gray); font-weight:600; text-transform:uppercase;}
-  .cal-grid{display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:4px;}
+  .cal-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;}
+  .cal-head .label{font-family:'Oswald',sans-serif; font-weight:600; font-size:14px; color:var(--navy); text-transform:capitalize;}
+  .cal-nav-btn{width:26px; height:26px; border-radius:7px; border:1px solid var(--border); background:white; color:var(--navy); font-size:14px; display:flex; align-items:center; justify-content:center; flex-shrink:0;}
+  .cal-weekdays{display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); margin-bottom:4px;}
+  .cal-weekdays span{text-align:center; font-size:10px; color:var(--gray); font-weight:600; text-transform:uppercase;}
+  .cal-grid{display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:3px;}
   .cal-day{
-    aspect-ratio:1; width:100%; display:flex; align-items:center; justify-content:center; border-radius:11px; border:none; background:none;
-    font-family:'JetBrains Mono',monospace; font-size:15px; font-weight:600; color:var(--navy); min-width:0; position:relative;
+    height:32px; width:100%; display:flex; align-items:center; justify-content:center; border-radius:8px; border:none; background:none;
+    font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:600; color:var(--navy); min-width:0; position:relative;
   }
-  .cal-day.has-data::after{content:""; position:absolute; bottom:5px; left:50%; transform:translateX(-50%); width:5px; height:5px; border-radius:999px; background:var(--red);}
+  .cal-day.has-data::after{content:""; position:absolute; bottom:3px; left:50%; transform:translateX(-50%); width:4px; height:4px; border-radius:999px; background:var(--red);}
   .cal-day.selected.has-data::after{background:white;}
   .cal-day:hover{background:#F0F0F0;}
   .cal-day.other-month{color:#C9C9C9; font-weight:500;}
   .cal-day.today{box-shadow:inset 0 0 0 2px var(--red);}
   .cal-day.selected{background:var(--red); color:white;}
-  .cal-today-btn{width:100%; margin-top:14px; padding:10px; border-radius:10px; border:1px solid var(--border); background:white; color:var(--navy); font-size:14px; font-weight:600;}
-  .cal-card.collapsible{padding:8px 10px;}
-  .date-toggle{width:100%; display:flex; align-items:center; justify-content:space-between; gap:8px; background:none; border:none; padding:8px; text-align:left;}
-  .date-toggle .date-label{font-size:15px; font-weight:600; color:var(--navy);}
-  .date-toggle .chev{font-size:12px; color:var(--gray); font-weight:500; flex-shrink:0;}
-  .today-chip{display:inline-block; background:var(--green); color:white; font-size:11px; font-weight:600; border-radius:6px; padding:2px 7px; margin-left:4px; vertical-align:2px;}
-  .date-warn{display:flex; align-items:center; justify-content:space-between; gap:8px; background:#FFF6E0; border:1px solid #FCE7B0; color:#8A6100; font-size:12px; border-radius:8px; padding:6px 10px; margin:2px 8px 8px;}
-  .date-warn button{background:white; border:1px solid #E3C36B; border-radius:6px; padding:4px 10px; color:#8A6100; font-size:12px; font-weight:600; flex-shrink:0;}
-  .cal-body{padding:6px 8px 10px;}
+  .cal-today-btn{width:100%; margin-top:8px; padding:7px; border-radius:8px; border:1px solid var(--border); background:white; color:var(--navy); font-size:12px; font-weight:600;}
+  .cal-card.collapsible{padding:4px 8px; box-shadow:none; border:1px solid var(--border); border-radius:10px; margin-bottom:10px;}
+  .date-toggle{width:100%; display:flex; align-items:center; justify-content:space-between; gap:8px; background:none; border:none; padding:8px 6px; text-align:left;}
+  .date-toggle .date-label{font-size:13px; font-weight:600; color:var(--navy);}
+  .date-toggle .chev{font-size:11px; color:var(--gray); font-weight:500; flex-shrink:0;}
+  .today-chip{display:inline-block; background:var(--green); color:white; font-size:10px; font-weight:600; border-radius:5px; padding:1px 6px; margin-left:4px; vertical-align:1px;}
+  .date-warn{display:flex; align-items:center; justify-content:space-between; gap:8px; background:#FFF6E0; border:1px solid #FCE7B0; color:#8A6100; font-size:11px; border-radius:8px; padding:6px 9px; margin:2px 6px 8px;}
+  .date-warn button{background:white; border:1px solid #E3C36B; border-radius:6px; padding:3px 9px; color:#8A6100; font-size:11px; font-weight:600; flex-shrink:0;}
+  .cal-body{padding:2px 4px 8px;}
   .backup-row{display:flex; gap:8px; flex-wrap:wrap;}
 
   .seg{display:flex; gap:4px; background:#F0F2F5; border-radius:10px; padding:4px; margin-bottom:16px;}
@@ -217,6 +217,15 @@
   .dl-day .x{background:none; border:none; color:var(--gray); font-size:15px; padding:2px 4px; flex-shrink:0;}
   .dl-scope{font-size:11px; border-radius:5px; padding:1px 6px; font-weight:600;}
   .mini-lbl{font-size:11px; color:var(--gray); margin-bottom:4px;}
+
+  .lrow{display:flex; justify-content:space-between; align-items:center; gap:8px; background:#F7FAFC; border:1px solid #E7ECF2; border-radius:9px; padding:8px 10px; margin-bottom:6px;}
+  .lrow .nm{font-size:13px; font-weight:500; color:var(--navy); min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .lrow .val{font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--gray); flex-shrink:0;}
+  .lrow .val.big{font-size:13px; font-weight:700; color:var(--gold);}
+  .sub-lbl{font-size:12px; font-weight:600; color:var(--navy); margin-bottom:8px;}
+  .empty-note{font-size:12px; color:var(--gray); text-align:center; padding:12px 0;}
+  .hint{font-size:12px; color:var(--gray); margin-bottom:12px;}
+  .divider{border:none; border-top:1px solid #EEF1F5; margin:18px 0;}
 </style>
 </head>
 <body>
@@ -1594,7 +1603,7 @@ function adminTransportCalendarBodyHTML(){
 /* ============ ASISTENCIA: PERÍODOS Y DÍAS LIBRES ============ */
 function getPretemporadaRange(){
   const year = new Date().getFullYear();
-  return { start: `${year}-07-01`, end: `${year}-07-17` };
+  return { start: `${year}-06-30`, end: `${year}-07-17` };
 }
 function getTemporadaStart(){
   const year = new Date().getFullYear();
@@ -1645,30 +1654,33 @@ function activeDatesForTrainers(periodo){
 }
 
 function trainerStatsPeriodo(periodo){
-  const dias = activeDatesForTrainers(periodo);
-  const diasSet = new Set(dias);
+  const enPeriodo = d => periodo === "pre" ? isInPretemporada(d) : isInTemporada(d);
   return trainers.map(tr => {
-    const present = trainerAttendance.filter(t => t.trainerId === tr.id && t.present && diasSet.has(t.date)).length;
+    const recs = trainerAttendance.filter(t => t.trainerId === tr.id && enPeriodo(t.date) && !isDateExcludedClub(t.date));
+    const present = recs.filter(t => t.present).length;
     return {
-      name: tr.name, present, total: dias.length,
-      pct: dias.length ? Math.round(present / dias.length * 100) : 0
+      name: tr.name, present, total: recs.length,
+      pct: recs.length ? Math.round(present / recs.length * 100) : 0
     };
-  }).sort((a,b) => a.pct - b.pct);
+  }).filter(t => t.total > 0).sort((a,b) => a.pct - b.pct);
 }
 
 function groupStatsPeriodo(groupId, periodo){
-  const dias = activeDatesForGroup(groupId, periodo);
-  const diasSet = new Set(dias);
+  const enPeriodo = d => periodo === "pre" ? isInPretemporada(d) : isInTemporada(d);
   const miembros = athletes.filter(a => a.groupId === groupId);
   const filas = miembros.map(a => {
-    const present = attendance.filter(r => r.athleteId === a.id && r.present && diasSet.has(r.date)).length;
+    // Denominador propio de cada atleta: solo los días en que tiene registro.
+    // Así quien se incorporó tarde no arrastra los días previos a su llegada.
+    const recs = attendance.filter(r => r.athleteId === a.id && enPeriodo(r.date) && !isDateExcluded(r.date, groupId));
+    const present = recs.filter(r => r.present).length;
     return {
-      name: a.name, present, total: dias.length,
-      pct: dias.length ? Math.round(present / dias.length * 100) : 0
+      name: a.name, present, total: recs.length,
+      pct: recs.length ? Math.round(present / recs.length * 100) : 0
     };
-  }).sort((x,y) => x.pct - y.pct);
+  }).filter(f => f.total > 0).sort((x,y) => x.pct - y.pct);
+  const dias = activeDatesForGroup(groupId, periodo).length;
   const prom = filas.length ? Math.round(filas.reduce((s,f)=>s+f.pct,0) / filas.length) : 0;
-  return { dias: dias.length, filas, prom };
+  return { dias, filas, prom };
 }
 
 function pctColor(p){ return p >= 80 ? GREEN : p >= 60 ? GOLD : RED; }
@@ -1740,9 +1752,9 @@ function dlCalendarHTML(){
 
 function diasLibresPanelHTML(periodo){
   const yaMarcado = excludedDates.find(e => e.date === dlDate && (dlScope === "all" ? e.groupId == null : e.groupId === dlScope));
-  let html = `<hr style="border:none;border-top:1px solid #EEF1F5;margin:18px 0;">
+  let html = `<hr class="divider">
   <div class="section-label"><div class="gate-poles"><span></span><span></span></div><span class="title">Días libres</span></div>
-  <div style="font-size:12px;color:${GRAY};margin-bottom:12px;">Los días que marques aquí no se cuentan en la asistencia.</div>`;
+  <div class="hint">Los días que marques aquí no se cuentan en la asistencia.</div>`;
 
   html += dlCalendarHTML();
 
@@ -1768,9 +1780,9 @@ function diasLibresPanelHTML(periodo){
 
   const lista = excludedForPeriod(periodo);
   html += `<div style="margin-top:14px;">
-    <div style="font-size:12px;font-weight:600;color:${NAVY};margin-bottom:8px;">Días marcados en este período</div>`;
+    <div class="sub-lbl">Días marcados en este período</div>`;
   if(!lista.length){
-    html += `<div style="font-size:12px;color:${GRAY};text-align:center;padding:10px 0;">Ninguno todavía.</div>`;
+    html += `<div class="empty-note">Ninguno todavía.</div>`;
   } else {
     lista.forEach(ed => {
       const esClub = ed.groupId == null;
@@ -1803,7 +1815,7 @@ function renderAsistenciaTab(){
       <button type="button" data-periodo="temp" class="${!esPre?"on":""}">Temporada</button>
     </div>
     <div style="font-size:12px;color:${GRAY};margin-bottom:14px;">${esPre
-      ? `1 al 17 de julio. No se mezcla con la temporada.`
+      ? `30 de junio al 17 de julio. No se mezcla con la temporada.`
       : `Desde el 19 de julio en adelante.`}</div>`;
 
   if(authState.level === "master"){
@@ -1817,18 +1829,18 @@ function renderAsistenciaTab(){
       <div class="kpi"><div class="v">${excludedForPeriod(periodo).length}</div><div class="l">Días<br>libres</div></div>
     </div>`;
 
-    html += `<div style="font-size:12px;font-weight:600;color:${NAVY};margin-bottom:8px;">🧑‍🏫 Entrenadores</div>`;
+    html += `<div class="sub-lbl">🧑‍🏫 Entrenadores</div>`;
     if(!tstats.length){
-      html += `<div style="font-size:12px;color:${GRAY};text-align:center;padding:10px 0;">No hay entrenadores registrados.</div>`;
+      html += `<div class="empty-note">No hay entrenadores registrados.</div>`;
     } else {
       tstats.forEach(t => { html += barraHTML(t.name, t.present, t.total, t.pct); });
     }
 
-    html += `<hr style="border:none;border-top:1px solid #EEF1F5;margin:18px 0;">
-      <div style="font-size:12px;font-weight:600;color:${NAVY};margin-bottom:8px;">👥 Grupos</div>`;
+    html += `<hr class="divider">
+      <div class="sub-lbl">👥 Grupos</div>`;
     const gs = groupsForProgram(currentProgram);
     if(!gs.length){
-      html += `<div style="font-size:12px;color:${GRAY};text-align:center;padding:10px 0;">No hay grupos en ${escapeHtml(currentProgram)}.</div>`;
+      html += `<div class="empty-note">No hay grupos en ${escapeHtml(currentProgram)}.</div>`;
     }
     gs.forEach(g => {
       const st = groupStatsPeriodo(g.id, periodo);
@@ -1858,16 +1870,16 @@ function renderAsistenciaTab(){
       <div class="kpi"><div class="v">${st.filas.length}</div><div class="l">Integrantes</div></div>
     </div>`;
 
-    html += `<div style="font-size:12px;font-weight:600;color:${NAVY};margin-bottom:8px;">👥 ${escapeHtml(g ? g.name : "Grupo")}</div>`;
+    html += `<div class="sub-lbl">👥 ${escapeHtml(g ? g.name : "Grupo")}</div>`;
     if(!st.filas.length){
-      html += `<div style="font-size:12px;color:${GRAY};text-align:center;padding:12px 0;">Sin integrantes en este grupo.</div>`;
+      html += `<div class="empty-note">Sin integrantes en este grupo.</div>`;
     } else {
       st.filas.forEach(f => { html += barraHTML(f.name, f.present, f.total, f.pct); });
     }
 
     const lista = excludedForPeriod(periodo).filter(ed => ed.groupId == null || ed.groupId === gid);
     if(lista.length){
-      html += `<hr style="border:none;border-top:1px solid #EEF1F5;margin:18px 0;">
+      html += `<hr class="divider">
         <div style="font-size:12px;font-weight:600;color:${NAVY};margin-bottom:4px;">📅 Días libres</div>
         <div style="font-size:11px;color:${GRAY};margin-bottom:8px;">Definidos por el jefe. No cuentan en la asistencia.</div>`;
       lista.forEach(ed => {
@@ -1895,7 +1907,7 @@ function renderTransportTab(){
 
   let html = `<div class="card">
     <div class="section-label"><div class="gate-poles"><span></span><span></span></div><span class="title">Transporte</span></div>
-    <div style="font-size:12px;color:${GRAY};margin-bottom:12px;">Si no marcas nada, se asume que no usaste transporte.</div>
+    <div class="hint">Si no marcas nada, se asume que no usaste transporte.</div>
     <div class="tcompact">`;
 
   html += transportCalendarCardHTML();
@@ -1927,14 +1939,14 @@ function renderTransportTab(){
 function renderTransportAdminView(){
   let html = `<div class="card">
     <div class="section-label"><div class="gate-poles"><span></span><span></span></div><span class="title">Transporte</span></div>
-    <div style="font-size:12px;color:${GRAY};margin-bottom:12px;">Solo aparecen quienes marcaron uso de transporte ese día.</div>
+    <div class="hint">Solo aparecen quienes marcaron uso de transporte ese día.</div>
     <div class="tcompact">`;
 
   html += adminTransportCalendarCardHTML();
 
   const dayEntries = trainerTransport.filter(t => t.date === adminTransportDate);
   if(!dayEntries.length){
-    html += `<div style="font-size:12px;color:${GRAY};text-align:center;padding:14px 0;">Nadie registró transporte este día.</div>`;
+    html += `<div class="empty-note">Nadie registró transporte este día.</div>`;
   } else {
     const totalTrainers = dayEntries.reduce((sum,t)=>sum+(t.numTrainers||0),0);
     html += `<div class="kpis" style="margin-bottom:10px;">
@@ -1942,10 +1954,7 @@ function renderTransportAdminView(){
       <div class="kpi"><div class="v">${dayEntries.length}</div><div class="l">Autos<br>registrados</div></div>
     </div>`;
     dayEntries.forEach(t => {
-      html += `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px;border-radius:8px;background:#F7FAFC;margin-bottom:6px;">
-        <span style="font-size:13px;font-weight:500;color:${NAVY};">${escapeHtml(t.trainerCode)}</span>
-        <span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:${GRAY};">${t.numTrainers} pers.</span>
-      </div>`;
+      html += `<div class="lrow"><span class="nm">${escapeHtml(t.trainerCode)}</span><span class="val">${t.numTrainers} pers.</span></div>`;
     });
   }
   html += `</div></div>`;
@@ -1953,9 +1962,9 @@ function renderTransportAdminView(){
   const sharedTrips = trainerTransport.filter(t => (t.numTrainers||0) >= 2);
   html += `<div class="card">
     <div class="section-label"><div class="gate-poles"><span></span><span></span></div><span class="title">Viajes compartidos</span></div>
-    <div style="font-size:12px;color:${GRAY};margin-bottom:12px;">Historial contando solo días con 2 o más personas por auto.</div>`;
+    <div class="hint">Historial contando solo días con 2 o más personas por auto.</div>`;
   if(!sharedTrips.length){
-    html += `<div style="font-size:12px;color:${GRAY};text-align:center;padding:14px 0;">Aún no hay viajes compartidos.</div>`;
+    html += `<div class="empty-note">Aún no hay viajes compartidos.</div>`;
   } else {
     const byTrainer = {};
     sharedTrips.forEach(t => {
@@ -1967,10 +1976,9 @@ function renderTransportAdminView(){
       const total = Object.values(counts).reduce((a,b)=>a+b,0);
       const parts = Object.keys(counts).map(Number).sort((a,b)=>b-a)
         .map(n => `${n} pers. · ${counts[n]}×`);
-      html += `<div style="padding:9px 11px;border-radius:9px;background:#F7FAFC;margin-bottom:6px;">
+      html += `<div class="lrow" style="display:block;">
         <div style="display:flex;justify-content:space-between;align-items:baseline;">
-          <span style="font-size:13px;font-weight:600;color:${NAVY};">${escapeHtml(code)}</span>
-          <span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:${GOLD};font-weight:700;">${total}</span>
+          <span class="nm">${escapeHtml(code)}</span><span class="val big">${total}</span>
         </div>
         <div style="font-size:11px;color:${GRAY};margin-top:2px;">${parts.join(" · ")}</div>
       </div>`;
