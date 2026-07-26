@@ -325,9 +325,22 @@ function sbHeaders(extra){
   return Object.assign({ "apikey": SUPABASE_KEY, "Authorization": "Bearer " + SUPABASE_KEY, "Content-Type": "application/json" }, extra || {});
 }
 async function sbSelect(table, qs){
-  const res = await fetch(`${REST}/${table}?${qs || "select=*"}`, { headers: sbHeaders() });
-  if(!res.ok) throw new Error(`${table}: ${res.status} ${await res.text()}`);
-  return res.json();
+  // Supabase devuelve como máximo 1000 filas por consulta. Sin paginar,
+  // las tablas grandes (asistencia) se cargaban incompletas en silencio.
+  const PAGE = 1000;
+  let desde = 0, todo = [];
+  for(let vuelta = 0; vuelta < 100; vuelta++){
+    const res = await fetch(`${REST}/${table}?${qs || "select=*"}`, {
+      headers: sbHeaders({ "Range-Unit": "items", "Range": `${desde}-${desde + PAGE - 1}` })
+    });
+    if(!res.ok) throw new Error(`${table}: ${res.status} ${await res.text()}`);
+    const bloque = await res.json();
+    if(!Array.isArray(bloque)) return bloque;
+    todo = todo.concat(bloque);
+    if(bloque.length < PAGE) break;
+    desde += PAGE;
+  }
+  return todo;
 }
 async function sbInsert(table, rowOrRows, opts={}){
   const params = opts.onConflict ? `?on_conflict=${opts.onConflict}` : "";
