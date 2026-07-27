@@ -53,11 +53,127 @@
   .program-btn{background:none; border:none; color:#9A9A9A; font-family:'Oswald',sans-serif; text-transform:uppercase; letter-spacing:.08em; font-size:13px; padding:6px 2px 9px; border-bottom:2px solid transparent; margin-bottom:-1px;}
   .program-btn.active{color:var(--gold); border-bottom-color:var(--gold); font-weight:600;}
 
+  /* DASHBOARD & FILTROS */
+  .dashboard-kpis{display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:12px; margin-bottom:16px;}
+  .kpi-card{background:white; border-radius:12px; padding:14px; border-left:4px solid var(--navy); box-shadow:0 2px 8px rgba(11,37,69,.08);}
+  .kpi-label{font-size:11px; color:var(--gray); text-transform:uppercase; letter-spacing:.04em; margin-bottom:4px;}
+  .kpi-value{font-size:1.6rem; font-weight:700; color:var(--navy);}
+  .kpi-sub{font-size:11px; color:var(--gold); margin-top:2px;}
+  .alert-kpi{border-left-color:var(--red);}
+  .success-kpi{border-left-color:var(--green);}
+  
+  .filter-bar{background:white; border-radius:12px; padding:14px; margin-bottom:16px; box-shadow:0 2px 8px rgba(11,37,69,.08);}
+  .filter-title{font-size:12px; font-weight:600; color:var(--navy); margin-bottom:10px; text-transform:uppercase; letter-spacing:.04em;}
+  .filter-row{display:flex; gap:8px; flex-wrap:wrap;}
+  .filter-select{font-size:12px; padding:7px 10px; border-radius:6px; border:1px solid var(--border); background:white; color:var(--navy);}
+  .filter-btn{font-size:12px; padding:7px 12px; border-radius:6px; border:none; background:var(--navy); color:white; cursor:pointer;}
+  .filter-btn:hover{opacity:.9;}
+  .filter-btn.clear{background:#E0E0E0; color:var(--navy);}
+  
+  /* ALERTAS */
+  .alert-badge{display:inline-flex; align-items:center; gap:4px; font-size:11px; padding:4px 8px; border-radius:6px; background:#FFF4F4; color:var(--red);}
+  .alert-banner{background:#FFF4F4; border-left:4px solid var(--red); border-radius:8px; padding:10px 12px; margin-bottom:12px; font-size:12px; color:var(--red);}
+  .alert-list{list-style:none; margin:0; padding:0;}
+  .alert-list li{padding:6px 0; display:flex; gap:6px; align-items:flex-start;}
+  .alert-icon{font-size:14px; flex-shrink:0;}
+  
+  /* MULTI-SELECCIÓN */
+  .date-range-picker{display:flex; gap:8px; align-items:center; flex-wrap:wrap;}
+  .date-range-picker input{padding:6px 8px; font-size:12px; border:1px solid var(--border); border-radius:6px;}
+  .selected-range{font-size:12px; color:var(--navy); font-weight:600;}
+  .selection-actions{display:flex; gap:8px; flex-wrap:wrap;}
+  .status-btn{font-size:12px; padding:6px 10px; border-radius:6px; border:1px solid var(--border); background:white; color:var(--navy); cursor:pointer;}
+  .status-btn:hover{background:#F0F0F0;}
+  
+  /* MODAL MEJORADO */
+  .modal-overlay{position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,.5); display:flex; align-items:center; justify-content:center; z-index:100;}
+  .modal-content{background:white; border-radius:16px; padding:24px; max-width:400px; width:90%; max-height:80vh; overflow-y:auto;}
+  .modal-header{font-size:16px; font-weight:700; color:var(--navy); margin-bottom:16px;}
+  .modal-close{position:absolute; top:14px; right:14px; background:none; border:none; color:var(--gray); font-size:18px; cursor:pointer;}
+  .modal-status-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:16px;}
+  .modal-status-btn{padding:12px; border-radius:10px; border:2px solid var(--border); background:white; color:var(--navy); cursor:pointer; font-size:13px; font-weight:600;}
+  .modal-status-btn.selected{border-color:var(--navy); background:var(--navy); color:white;}
+  .modal-notes{margin:16px 0;}
+  .modal-notes label{display:block; font-size:12px; font-weight:600; color:var(--navy); margin-bottom:6px;}
+  .modal-notes textarea{width:100%; min-height:60px; padding:8px; border:1px solid var(--border); border-radius:8px; font-size:13px; color:var(--navy);}
+  .modal-actions{display:flex; gap:8px; margin-top:16px;}
+  .modal-actions button{flex:1; padding:10px; border-radius:8px; border:none; font-size:13px; font-weight:600; cursor:pointer;}
+  .modal-save{background:var(--green); color:white;}
+  .modal-delete{background:#FFE4E4; color:var(--red);}
+  .modal-cancel{background:var(--border); color:var(--navy);}
+  
+  /* PESTAÑAS DE PERÍODO */
+  .period-tabs{display:flex; gap:12px; margin-bottom:16px; border-bottom:2px solid var(--border);}
+  .period-tab{padding:10px 16px; border-bottom:3px solid transparent; font-size:13px; font-weight:600; color:var(--gray); cursor:pointer;}
+  .period-tab.active{color:var(--gold); border-bottom-color:var(--gold);}
+  
+  /* CALENDARIO CON GRID */
+  .calendar-grid{display:grid; grid-template-columns:repeat(7,1fr); gap:4px; margin-bottom:16px;}
+  .calendar-day{aspect-ratio:1; display:flex; align-items:center; justify-content:center; border-radius:8px; border:1px solid var(--border); background:white; cursor:pointer; font-size:12px; font-weight:600; transition:all .2s;}
+  .calendar-day:hover{box-shadow:0 4px 12px rgba(11,37,69,.15);}
+  .calendar-day.present{background:#E8F5E9; color:var(--green); border-color:var(--green);}
+  .calendar-day.absent{background:#FFF3CD; color:#856404; border-color:#FFC107;}
+  .calendar-day.free{background:#F0F0F0; color:var(--gray); border-color:var(--gray);}
+  .calendar-day.no_training{background:#E3F2FD; color:var(--blue); border-color:var(--blue);}
+  .calendar-day.selected{box-shadow:0 0 0 3px rgba(11,37,69,.2);}
+  .calendar-day.disabled{opacity:.4; cursor:default;}
+  
+  /* HISTORIAL */
+  .history-list{border:1px solid var(--border); border-radius:10px; overflow:hidden;}
+  .history-item{padding:12px; border-bottom:1px solid var(--border); font-size:12px;}
+  .history-item:last-child{border-bottom:none;}
+  .history-time{color:var(--gray); font-size:11px;}
+  .history-change{color:var(--navy); font-weight:600; margin:2px 0;}
+  
+  /* IMPORTAR */
+  .file-input-wrap{position:relative; overflow:hidden;}
+  .file-input-wrap input[type=file]{position:absolute; left:-9999px;}
+  .file-input-label{display:inline-flex; align-items:center; gap:6px; padding:10px 16px; background:var(--navy); color:white; border-radius:8px; cursor:pointer; font-size:13px; font-weight:600;}
+  .upload-preview{margin-top:12px; padding:12px; background:#EEF3FA; border-radius:8px; border:1px solid var(--blue);}
+  
+
+  /* TRANSPORTE EDITABLE */
+  .tr-edit-row{display:flex;align-items:center;gap:10px;padding:10px;border-radius:8px;background:#F7FAFC;margin-bottom:8px;}
+  .tr-edit-name{flex:1;font-size:14px;font-weight:500;color:var(--navy);}
+  .tr-stepper{display:flex;align-items:center;gap:8px;background:white;border:1px solid var(--border);border-radius:8px;padding:3px 6px;}
+  .tr-stepper button{width:26px;height:26px;border:none;border-radius:6px;background:#EEF3FA;color:var(--navy);font-size:16px;font-weight:700;cursor:pointer;line-height:1;}
+  .tr-stepper button:disabled{opacity:.35;cursor:default;}
+  .tr-count{min-width:20px;text-align:center;font-family:'JetBrains Mono',monospace;font-weight:600;color:var(--navy);}
+  .tr-del{border:none;background:none;cursor:pointer;font-size:15px;opacity:.55;}
+  .tr-del:hover{opacity:1;}
+  .tr-add-box{margin-top:14px;padding:12px;border:1px dashed var(--border);border-radius:10px;}
+  .tr-add-label{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--gray);margin-bottom:8px;}
+  .tr-add-row{display:flex;gap:8px;}
+  .tr-add-row .btn-navy{padding:8px 14px;}
+
+  /* GRAFICO VIAJES COMPARTIDOS */
+  .trips-chart{display:flex;flex-direction:column;gap:14px;}
+  .trip-row{display:flex;flex-direction:column;gap:5px;}
+  .trip-head{display:flex;justify-content:space-between;align-items:baseline;}
+  .trip-name{font-size:13px;font-weight:600;color:var(--navy);}
+  .trip-num{font-size:11px;color:var(--gray);font-family:'JetBrains Mono',monospace;}
+  .trip-track{display:flex;height:26px;border-radius:6px;overflow:hidden;min-width:32px;box-shadow:inset 0 0 0 1px rgba(11,37,69,.06);}
+  .trip-seg{display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:700;font-family:'JetBrains Mono',monospace;min-width:14px;}
+  .trip-legend{display:flex;flex-wrap:wrap;gap:14px;margin-top:18px;padding-top:14px;border-top:1px solid var(--border);}
+  .trip-leg-item{display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--gray);}
+  .trip-leg-item i{width:11px;height:11px;border-radius:3px;display:inline-block;}
+
+  /* NOTAS DE ATLETA */
+  .nota-box{margin-top:10px;}
+  .nota-box label{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--gray);margin-bottom:5px;}
+  .nota-box textarea{width:100%;min-height:64px;padding:9px;border:1px solid var(--border);border-radius:8px;font-size:13px;color:var(--navy);font-family:inherit;resize:vertical;}
+  .nota-chip{display:inline-flex;align-items:center;gap:4px;font-size:10px;padding:2px 7px;border-radius:20px;background:#FFF8E1;color:#8A6D00;margin-left:6px;}
+
   @media (max-width:480px){
     .hero{padding:14px 16px 18px;}
     .hero-title{font-size:1.2rem;}
     .eyebrow{font-size:10px; margin-bottom:2px;}
     .role-badge{font-size:11px; padding:5px 8px;}
+    .dashboard-kpis{grid-template-columns:repeat(2,1fr);}
+    .modal-content{max-width:90vw;}
+    .calendar-grid{gap:2px;}
+    .filter-row{flex-direction:column;}
+    .filter-select,.filter-btn{width:100;}
   }
 
   .wrap{max-width:720px; margin:-10px auto 0; padding:0 16px 40px;}
@@ -155,77 +271,35 @@
   .footer-note{text-align:center; font-size:12px; color:var(--gray); padding:10px 20px 30px;}
 
   .cal-card{
-    background:white; border-radius:14px; padding:14px;
-    box-shadow:0 4px 14px rgba(0,0,0,.07); margin-bottom:12px; overflow:hidden;
+    background:white; border-radius:16px; padding:18px;
+    box-shadow:0 6px 18px rgba(0,0,0,.08); margin-bottom:16px; overflow:hidden;
   }
-  .cal-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;}
-  .cal-head .label{font-family:'Oswald',sans-serif; font-weight:600; font-size:14px; color:var(--navy); text-transform:capitalize;}
-  .cal-nav-btn{width:26px; height:26px; border-radius:7px; border:1px solid var(--border); background:white; color:var(--navy); font-size:14px; display:flex; align-items:center; justify-content:center; flex-shrink:0;}
-  .cal-weekdays{display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); margin-bottom:4px;}
-  .cal-weekdays span{text-align:center; font-size:10px; color:var(--gray); font-weight:600; text-transform:uppercase;}
-  .cal-grid{display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:3px;}
+  .cal-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;}
+  .cal-head .label{font-family:'Oswald',sans-serif; font-weight:600; font-size:17px; color:var(--navy); text-transform:capitalize;}
+  .cal-nav-btn{width:34px; height:34px; border-radius:9px; border:1px solid var(--border); background:white; color:var(--navy); font-size:17px; display:flex; align-items:center; justify-content:center; flex-shrink:0;}
+  .cal-weekdays{display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); margin-bottom:6px;}
+  .cal-weekdays span{text-align:center; font-size:11px; color:var(--gray); font-weight:600; text-transform:uppercase;}
+  .cal-grid{display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:4px;}
   .cal-day{
-    height:32px; width:100%; display:flex; align-items:center; justify-content:center; border-radius:8px; border:none; background:none;
-    font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:600; color:var(--navy); min-width:0; position:relative;
+    aspect-ratio:1; width:100%; display:flex; align-items:center; justify-content:center; border-radius:11px; border:none; background:none;
+    font-family:'JetBrains Mono',monospace; font-size:15px; font-weight:600; color:var(--navy); min-width:0; position:relative;
   }
-  .cal-day.has-data::after{content:""; position:absolute; bottom:3px; left:50%; transform:translateX(-50%); width:4px; height:4px; border-radius:999px; background:var(--red);}
+  .cal-day.has-data::after{content:""; position:absolute; bottom:5px; left:50%; transform:translateX(-50%); width:5px; height:5px; border-radius:999px; background:var(--red);}
   .cal-day.selected.has-data::after{background:white;}
   .cal-day:hover{background:#F0F0F0;}
   .cal-day.other-month{color:#C9C9C9; font-weight:500;}
   .cal-day.today{box-shadow:inset 0 0 0 2px var(--red);}
   .cal-day.selected{background:var(--red); color:white;}
-  .cal-today-btn{width:100%; margin-top:8px; padding:7px; border-radius:8px; border:1px solid var(--border); background:white; color:var(--navy); font-size:12px; font-weight:600;}
-  .cal-card.collapsible{padding:4px 8px; box-shadow:none; border:1px solid var(--border); border-radius:10px; margin-bottom:10px;}
-  .date-toggle{width:100%; display:flex; align-items:center; justify-content:space-between; gap:8px; background:none; border:none; padding:8px 6px; text-align:left;}
-  .date-toggle .date-label{font-size:13px; font-weight:600; color:var(--navy);}
-  .date-toggle .chev{font-size:11px; color:var(--gray); font-weight:500; flex-shrink:0;}
-  .today-chip{display:inline-block; background:var(--green); color:white; font-size:10px; font-weight:600; border-radius:5px; padding:1px 6px; margin-left:4px; vertical-align:1px;}
-  .date-warn{display:flex; align-items:center; justify-content:space-between; gap:8px; background:#FFF6E0; border:1px solid #FCE7B0; color:#8A6100; font-size:11px; border-radius:8px; padding:6px 9px; margin:2px 6px 8px;}
-  .date-warn button{background:white; border:1px solid #E3C36B; border-radius:6px; padding:3px 9px; color:#8A6100; font-size:11px; font-weight:600; flex-shrink:0;}
-  .cal-body{padding:2px 4px 8px;}
+  .cal-today-btn{width:100%; margin-top:14px; padding:10px; border-radius:10px; border:1px solid var(--border); background:white; color:var(--navy); font-size:14px; font-weight:600;}
+  .cal-card.collapsible{padding:8px 10px;}
+  .date-toggle{width:100%; display:flex; align-items:center; justify-content:space-between; gap:8px; background:none; border:none; padding:8px; text-align:left;}
+  .date-toggle .date-label{font-size:15px; font-weight:600; color:var(--navy);}
+  .date-toggle .chev{font-size:12px; color:var(--gray); font-weight:500; flex-shrink:0;}
+  .today-chip{display:inline-block; background:var(--green); color:white; font-size:11px; font-weight:600; border-radius:6px; padding:2px 7px; margin-left:4px; vertical-align:2px;}
+  .date-warn{display:flex; align-items:center; justify-content:space-between; gap:8px; background:#FFF6E0; border:1px solid #FCE7B0; color:#8A6100; font-size:12px; border-radius:8px; padding:6px 10px; margin:2px 8px 8px;}
+  .date-warn button{background:white; border:1px solid #E3C36B; border-radius:6px; padding:4px 10px; color:#8A6100; font-size:12px; font-weight:600; flex-shrink:0;}
+  .cal-body{padding:6px 8px 10px;}
   .backup-row{display:flex; gap:8px; flex-wrap:wrap;}
-
-  .seg{display:flex; gap:4px; background:#F0F2F5; border-radius:10px; padding:4px; margin-bottom:16px;}
-  .seg button{flex:1; border:none; background:none; border-radius:8px; padding:9px 6px; font-size:13px; font-weight:600; color:var(--gray);}
-  .seg button.on{background:white; color:var(--navy); box-shadow:0 1px 4px rgba(11,37,69,.12);}
-
-  .kpis{display:flex; gap:8px; margin-bottom:16px;}
-  .kpi{flex:1; background:#F7FAFC; border-radius:10px; padding:10px 8px; text-align:center;}
-  .kpi .v{font-family:'JetBrains Mono',monospace; font-weight:700; font-size:1.15rem; color:var(--navy);}
-  .kpi .l{font-size:10px; color:var(--gray); margin-top:2px; line-height:1.25;}
-
-  .prow{margin-bottom:10px;}
-  .prow .top{display:flex; justify-content:space-between; align-items:baseline; gap:8px; margin-bottom:4px;}
-  .prow .nm{font-size:13px; font-weight:500; color:var(--navy); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
-  .prow .meta{font-size:11px; color:var(--gray); flex-shrink:0;}
-  .prow .pc{font-family:'JetBrains Mono',monospace; font-size:13px; font-weight:700; flex-shrink:0;}
-  .prow .track{width:100%; height:7px; border-radius:5px; background:#EEF1F5; overflow:hidden;}
-  .prow .fill{height:100%; border-radius:5px;}
-
-  .tcompact{border:1px solid var(--border); border-radius:12px; padding:12px;}
-  .tsel{display:flex; gap:8px; margin-bottom:10px;}
-  .tsel button{flex:1; display:flex; align-items:center; justify-content:center; gap:5px; border-radius:9px; padding:10px 6px; font-size:13px; font-weight:600; border:1px solid var(--border); background:white; color:var(--gray);}
-  .tcount{background:#F7FAFC; border-radius:9px; padding:9px 12px; margin-bottom:10px;}
-  .tcount .l{font-size:11px; color:var(--gray); margin-bottom:6px; text-align:center;}
-  .tcount .r{display:flex; align-items:center; justify-content:center; gap:14px;}
-  .tcount button{width:32px; height:32px; border-radius:8px; border:1px solid var(--border); background:white; color:var(--navy); font-size:17px; font-family:'JetBrains Mono',monospace;}
-  .tcount input{width:44px; text-align:center; border:none; background:none; outline:none; font-family:'JetBrains Mono',monospace; font-weight:700; font-size:1.25rem; color:var(--navy);}
-
-  .dl-day{display:flex; justify-content:space-between; align-items:center; gap:8px; border-radius:9px; padding:8px 10px; margin-bottom:6px; background:#FDECEC; border:1px solid #F3C9C9;}
-  .dl-day .d{font-size:12px; font-weight:600; color:var(--red); text-transform:capitalize;}
-  .dl-day .n{font-size:11px; color:#3A4658; margin-top:1px;}
-  .dl-day .x{background:none; border:none; color:var(--gray); font-size:15px; padding:2px 4px; flex-shrink:0;}
-  .dl-scope{font-size:11px; border-radius:5px; padding:1px 6px; font-weight:600;}
-  .mini-lbl{font-size:11px; color:var(--gray); margin-bottom:4px;}
-
-  .lrow{display:flex; justify-content:space-between; align-items:center; gap:8px; background:#F7FAFC; border:1px solid #E7ECF2; border-radius:9px; padding:8px 10px; margin-bottom:6px;}
-  .lrow .nm{font-size:13px; font-weight:500; color:var(--navy); min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
-  .lrow .val{font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--gray); flex-shrink:0;}
-  .lrow .val.big{font-size:13px; font-weight:700; color:var(--gold);}
-  .sub-lbl{font-size:12px; font-weight:600; color:var(--navy); margin-bottom:8px;}
-  .empty-note{font-size:12px; color:var(--gray); text-align:center; padding:12px 0;}
-  .hint{font-size:12px; color:var(--gray); margin-bottom:12px;}
-  .divider{border:none; border-top:1px solid #EEF1F5; margin:18px 0;}
 </style>
 </head>
 <body>
@@ -325,22 +399,9 @@ function sbHeaders(extra){
   return Object.assign({ "apikey": SUPABASE_KEY, "Authorization": "Bearer " + SUPABASE_KEY, "Content-Type": "application/json" }, extra || {});
 }
 async function sbSelect(table, qs){
-  // Supabase devuelve como máximo 1000 filas por consulta. Sin paginar,
-  // las tablas grandes (asistencia) se cargaban incompletas en silencio.
-  const PAGE = 1000;
-  let desde = 0, todo = [];
-  for(let vuelta = 0; vuelta < 100; vuelta++){
-    const res = await fetch(`${REST}/${table}?${qs || "select=*"}`, {
-      headers: sbHeaders({ "Range-Unit": "items", "Range": `${desde}-${desde + PAGE - 1}` })
-    });
-    if(!res.ok) throw new Error(`${table}: ${res.status} ${await res.text()}`);
-    const bloque = await res.json();
-    if(!Array.isArray(bloque)) return bloque;
-    todo = todo.concat(bloque);
-    if(bloque.length < PAGE) break;
-    desde += PAGE;
-  }
-  return todo;
+  const res = await fetch(`${REST}/${table}?${qs || "select=*"}`, { headers: sbHeaders() });
+  if(!res.ok) throw new Error(`${table}: ${res.status} ${await res.text()}`);
+  return res.json();
 }
 async function sbInsert(table, rowOrRows, opts={}){
   const params = opts.onConflict ? `?on_conflict=${opts.onConflict}` : "";
@@ -369,7 +430,7 @@ async function sbDelete(table, match){
 /* ============ MAPPERS (DB snake_case -> app camelCase) ============ */
 function mapAthlete(row){
   return { id: row.id, groupId: row.group_id, name: row.name, phone: row.phone || "",
-    medical: { enfermedades: row.enfermedades || "", alergias: row.alergias || "", medicamentos: row.medicamentos || "", otros: row.otros || "" } };
+    medical: { enfermedades: row.enfermedades || "", alergias: row.alergias || "", medicamentos: row.medicamentos || "", otros: row.otros || "", notas: row.notas || "" } };
 }
 function mapSession(row){
   return { id: row.id, groupId: row.group_id, date: row.date, sessionNumber: row.session_number,
@@ -378,7 +439,14 @@ function mapSession(row){
     totalCurvas: row.total_curvas || 0, notas: row.notas || "", trazado: row.trazado || null };
 }
 function mapAttendance(row){
-  return { id: row.id, athleteId: row.athlete_id, groupId: row.group_id, date: row.date, present: row.present };
+  const period = classifyPeriod(row.date);
+  const status = row.status || (row.present ? "present" : "absent");
+  return { id: row.id, athleteId: row.athlete_id, groupId: row.group_id, date: row.date, present: row.present, status, period, notes: row.notes || "" };
+}
+function mapTrainerAttendance(row){
+  const period = classifyPeriod(row.date);
+  const status = row.status || (row.present ? "present" : "absent");
+  return { id: row.id, trainerId: row.trainer_id, date: row.date, present: row.present, status, period, notes: row.notes || "" };
 }
 
 function lsGet(key, fallback){
@@ -389,6 +457,62 @@ function lsSet(key, value){ try{ localStorage.setItem(key, JSON.stringify(value)
 function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
 function todayISO(){ const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; }
 function escapeHtml(str){ const d=document.createElement("div"); d.textContent = str==null? "": String(str); return d.innerHTML; }
+
+/* ============ NUEVAS FUNCIONES HELPER ============ */
+const CORTE_TEMPORADA = "2026-07-18"; // <= esta fecha es Pre Temporada
+function classifyPeriod(dateStr){
+  if(!dateStr) return "temporada_26";
+  return dateStr <= CORTE_TEMPORADA ? "pre_temporada" : "temporada_26";
+}
+function periodLabel(p){
+  return p === "pre_temporada" ? "Pre Temporada" : "Temporada 26";
+}
+
+function getDateFromStr(dateStr){
+  const [y, m, d] = dateStr.split("-").map(Number);
+  return new Date(y, m-1, d);
+}
+
+function calculateAttendanceStats(items, period = null){
+  const filtered = period ? items.filter(i => i.period === period) : items;
+  const present = filtered.filter(i => i.status === "present").length;
+  const absent = filtered.filter(i => i.status === "absent").length;
+  const free = filtered.filter(i => i.status === "free_day").length;
+  const noTrain = filtered.filter(i => i.status === "no_training").length;
+  const countable = present + absent;
+  const percent = countable > 0 ? Math.round((present / countable) * 100) : 0;
+  return { present, absent, free, noTrain, countable, percent };
+}
+
+function calculateAlerts(){
+  alertsData = { lowAttendance: [], noTraining: [], consecutive: [] };
+  
+  // Entrenadores con baja asistencia
+  trainers.forEach(trainer => {
+    const stats = calculateAttendanceStats(trainerAttendance.filter(t => t.id && t.id.includes(trainer.id)));
+    if(stats.percent < 80 && stats.countable > 0){
+      alertsData.lowAttendance.push({ type: "trainer", name: trainer.name, percent: stats.percent });
+    }
+  });
+  
+  // Atletas con baja asistencia
+  athletes.forEach(athlete => {
+    const stats = calculateAttendanceStats(attendance.filter(a => a.athleteId === athlete.id));
+    if(stats.percent < 80 && stats.countable > 0){
+      alertsData.lowAttendance.push({ type: "athlete", name: athlete.name, percent: stats.percent });
+    }
+  });
+}
+
+function getDayEditStatusLabel(status){
+  const labels = { present: "✓ Presente", absent: "✗ Ausente", free_day: "🏖️ Día Libre", no_training: "⊘ Sin Entrenamiento" };
+  return labels[status] || status;
+}
+
+function getDayEditStatusColor(status){
+  const colors = { present: "#2E8B57", absent: "#FFC107", free_day: "#8D8D8D", no_training: "#3E92CC" };
+  return colors[status] || "#999";
+}
 
 function blankFicha(){ return {phone:"", enfermedades:"", alergias:"", medicamentos:"", otros:""}; }
 function blankAccessConfig(){
@@ -437,15 +561,6 @@ let changeCodeConfirm = "";
 let changeCodeError = "";
 let changeCodeSaving = false;
 let changeCodeSuccess = false;
-let excludedDates = [];            // Días libres definidos por el jefe
-let asistenciaPeriodo = "temp";    // "pre" | "temp"
-let dlCalOpen = false;             // calendario desplegable de días libres
-let dlDate = todayISO();           // fecha seleccionada en ese calendario
-let dlCalViewMonth = null;
-let dlScope = "all";               // "all" o id de grupo
-let dlNote = "";
-let dlSaving = false;
-let dlError = "";
 
 let tab = "daily";
 let selectedGroupId = null;
@@ -484,6 +599,36 @@ let adminTransportCalViewMonth = null;
 let calendarViewMonth = null; // Date (first day of the month being viewed)
 let outsideClickHandler = null;
 
+/* ============ NUEVAS VARIABLES PARA MEJORAS ============ */
+// Filtros
+let filterPeriod = "all"; // "pre_temporada", "temporada_26", "all"
+let filterMonth = ""; // "2026-01", etc
+let filterStatus = ""; // "present", "absent", "free", "no_training", ""
+let filterTrainer = ""; // trainer code or ""
+let filterAthlete = ""; // athlete id or ""
+let selectedDateRange = { start: null, end: null };
+let multiSelectMode = false;
+
+// Modal de edición de día
+let dayEditModal = null; // { type: "trainer"|"athlete", id, date, status, notes }
+let dayEditStatus = "";
+let dayEditNotes = "";
+
+// Auditoría
+let showAuditHistory = false;
+let auditFilter = { type: "", id: "", date: "" };
+
+// Alertas calculadas
+let alertsData = { lowAttendance: [], noTraining: [], consecutive: [] };
+let attendanceAuditLog = [];
+let transportAdminError = "";
+let athleteNotas = {};   // athleteId -> texto
+let notasSaving = {};    // athleteId -> bool
+
+// Importar datos
+let importPreview = null;
+let importProgress = { loaded: 0, total: 0 };
+
 function persistAuth(){ if(authState) lsSet(K_AUTH, authState); else localStorage.removeItem(K_AUTH); }
 
 /* ============ DERIVED HELPERS ============ */
@@ -513,13 +658,7 @@ function groupsSortedByCategory(){
 }
 
 function athleteStats(athleteId, groupId){
-  // La pretemporada (1-17 julio) no entra aquí: se ve en la pestaña Asistencia.
-  // Además se descuentan los días libres marcados por el jefe.
-  const attRecs = attendance.filter(a =>
-    a.athleteId === athleteId &&
-    isInTemporada(a.date) &&
-    !isDateExcluded(a.date, groupId)
-  );
+  const attRecs = attendance.filter(a => a.athleteId === athleteId);
   const totalDays = attRecs.length;
   const presentDays = attRecs.filter(a => a.present).length;
   const attendancePct = totalDays ? Math.round(presentDays/totalDays*100) : 0;
@@ -1072,13 +1211,103 @@ function trainerCalendarBodyHTML(){
 }
 
 function renderTrainersTab(){
+  calculateAlerts();
+  
   let html = `<div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
+      <div>
+        <div class="section-label"><div class="gate-poles"><span></span><span></span></div><span class="title">Gestión de Asistencia</span></div>
+        <div style="font-size:12px;color:${GRAY};">Solo visible para el jefe de entrenadores. Gestiona la asistencia por período.</div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="filter-btn ${!filterAthlete ? "clear" : ""}" onclick="filterAthlete='';render();">👥 Entrenadores</button>
+        <button class="filter-btn ${filterAthlete ? "clear" : ""}" onclick="filterAthlete='grupos';render();">🏃 Atletas</button>
+      </div>
+    </div>
+  </div>`;
+  
+  if(!filterAthlete){
+    // VISTA DE ENTRENADORES
+  html += `<div class="card">
     <div class="section-label"><div class="gate-poles"><span></span><span></span></div><span class="title">Asistencia de entrenadores</span></div>
-    <div style="font-size:12px;color:${GRAY};margin-bottom:0;">Solo visible para el jefe de entrenadores.</div>
-    </div>`;
-  html += trainerCalendarCardHTML();
-  html += `<div class="card">`;
-
+    <div style="font-size:12px;color:${GRAY};margin-bottom:16px;">Período actual: ${filterPeriod || "Todos"}</div>
+    
+    <!-- DASHBOARD KPIs -->
+    <div class="dashboard-kpis">`;
+  
+  const allStats = calculateAttendanceStats(trainerAttendance);
+  const preStats = calculateAttendanceStats(trainerAttendance.filter(t => t.period === "pre_temporada"));
+  const tempStats = calculateAttendanceStats(trainerAttendance.filter(t => t.period === "temporada_26"));
+  
+  html += `
+      <div class="kpi-card">
+        <div class="kpi-label">PRE TEMPORADA</div>
+        <div class="kpi-value">${preStats.percent}%</div>
+        <div class="kpi-sub">${preStats.present}/${preStats.countable} presentes</div>
+      </div>
+      <div class="kpi-card success-kpi">
+        <div class="kpi-label">TEMPORADA 26</div>
+        <div class="kpi-value">${tempStats.percent}%</div>
+        <div class="kpi-sub">${tempStats.present}/${tempStats.countable} presentes</div>
+      </div>
+      <div class="kpi-card ${alertsData.lowAttendance.length > 0 ? "alert-kpi" : ""}">
+        <div class="kpi-label">CON ALERTA</div>
+        <div class="kpi-value">${alertsData.lowAttendance.length}</div>
+        <div class="kpi-sub">Baja asistencia</div>
+      </div>
+    </div>
+    
+    <!-- ALERTAS -->
+    ${alertsData.lowAttendance.length > 0 ? `<div class="alert-banner">
+      ⚠️ ${alertsData.lowAttendance.length} entrenador(es) con asistencia &lt; 80%
+    </div>` : ""}
+    
+    <!-- FILTROS -->
+    <div class="filter-bar">
+      <div class="filter-title">Filtros</div>
+      <div class="filter-row">
+        <select class="filter-select" id="filter-period-select">
+          <option value="">Todos los períodos</option>
+          <option value="pre_temporada" ${filterPeriod === "pre_temporada" ? "selected" : ""}>Pre Temporada (hasta 17)</option>
+          <option value="temporada_26" ${filterPeriod === "temporada_26" ? "selected" : ""}>Temporada 26 (desde 19)</option>
+        </select>
+        <select class="filter-select" id="filter-trainer-select">
+          <option value="">Todos los entrenadores</option>
+          ${trainers.map(t => `<option value="${t.id}" ${filterTrainer === t.id ? "selected" : ""}>${escapeHtml(t.name)}</option>`).join("")}
+        </select>
+        <button class="filter-btn clear" onclick="filterPeriod='';filterTrainer='';render();">Limpiar</button>
+      </div>
+    </div>
+    
+    <!-- IMPORTAR DATOS -->
+    <div class="card" style="margin-top:12px;">
+      <div class="section-label"><div class="gate-poles"><span></span><span></span></div><span class="title">📥 Importar datos</span></div>
+      <div class="file-input-wrap">
+        <input type="file" id="import-file" accept=".xlsx,.xls,.csv" onchange="handleFileImport(event)" />
+        <label class="file-input-label" for="import-file">📤 Seleccionar archivo Excel</label>
+      </div>
+    </div>
+  </div>`;
+  
+  // CALENDARIOS POR PERÍODO
+  html += `<div class="card">
+    <div class="period-tabs">
+      <div class="period-tab ${filterPeriod !== "temporada_26" ? "active" : ""}" onclick="filterPeriod='pre_temporada';render();">
+        🔴 PRE TEMPORADA (hasta 17)
+      </div>
+      <div class="period-tab ${filterPeriod === "temporada_26" ? "active" : ""}" onclick="filterPeriod='temporada_26';render();">
+        🟢 TEMPORADA 26 (desde 19)
+      </div>
+    </div>
+    
+    <div style="margin-bottom:20px;">
+      ${renderTrainerAttendanceCalendar(filterPeriod || "pre_temporada")}
+    </div>
+  </div>`;
+  
+  // MARCAR ASISTENCIA DEL DÍA (restaurado)
+  html += `<div class="card">
+    <div class="section-label"><div class="gate-poles"><span></span><span></span></div><span class="title">Marcar asistencia — ${formatFechaLarga(selectedDate)}</span></div>`;
   if(!trainers.length){
     html += `<div style="font-size:13px;color:${GRAY};text-align:center;padding:12px 0;">Aún no hay entrenadores registrados.</div>`;
   } else {
@@ -1091,36 +1320,200 @@ function renderTrainersTab(){
         <span style="cursor:pointer;color:${GRAY};" data-remove-trainer="${t.id}">🗑️</span>
       </div>`;
     });
+    if(trainerSaveError) html += `<div class="error-box">${escapeHtml(trainerSaveError)}</div>`;
+    html += `<button class="save-btn" id="save-trainer-att-btn">${trainerSaving? "Guardando...":"✓ Guardar asistencia"}</button>`;
+    if(trainerJustSaved) html += `<div class="info-box" style="margin-top:10px;">Asistencia guardada.</div>`;
   }
-
-  if(trainerSaveError) html += `<div class="error-box">${escapeHtml(trainerSaveError)}</div>`;
-  html += `<button class="save-btn" id="save-trainer-att-btn">${trainerSaving? "Guardando...":"✓ Guardar asistencia"}</button>`;
-  if(trainerJustSaved){
-    html += `<div class="info-box" style="margin-top:10px;">Asistencia guardada.</div>`;
-  }
-  html += `</div>`;
-
-  html += `<div class="card">
-    <div class="section-label"><div class="gate-poles"><span></span><span></span></div><span class="title">Agregar entrenador</span></div>
-    <div style="display:flex;gap:8px;">
+  html += `<div style="display:flex;gap:8px;margin-top:14px;">
       <input type="text" id="new-trainer-name" placeholder="Nombre del entrenador" value="${escapeHtml(newTrainerName)}" style="flex:1;" />
       <button class="btn-navy" id="add-trainer-btn" style="background:${RED};">➕</button>
-    </div>
-  </div>`;
+    </div>`;
+  html += `</div>`;
 
+  // DETALLE POR ENTRENADOR
   if(trainers.length){
     html += `<div class="card">
-      <div class="section-label"><div class="gate-poles"><span></span><span></span></div><span class="title">% Asistencia por entrenador</span></div>`;
+      <div class="section-label"><div class="gate-poles"><span></span><span></span></div><span class="title">Asistencia por entrenador</span></div>`;
+    
     trainers.forEach(t => {
-      const st = trainerStats(t.id);
-      html += `<div class="pctbar-row">
-        <div class="pctbar-top"><span>${escapeHtml(t.name)}</span><span style="font-family:'JetBrains Mono',monospace;font-weight:600;color:${NAVY};">${st.pct}% (${st.present}/${st.total})</span></div>
-        <div class="pctbar-track"><div class="pctbar-fill" style="width:${st.pct}%;background:${GREEN};"></div></div>
+      const stats = calculateAttendanceStats(trainerAttendance.filter(ta => ta.trainerId === t.id));
+      const preStats = calculateAttendanceStats(trainerAttendance.filter(ta => ta.trainerId === t.id && ta.period === "pre_temporada"));
+      const tempStats = calculateAttendanceStats(trainerAttendance.filter(ta => ta.trainerId === t.id && ta.period === "temporada_26"));
+      
+      const alertClass = stats.percent < 80 && stats.countable > 0 ? "alert-badge" : "";
+      
+      html += `<div style="padding:12px;background:#F7FAFC;border-radius:10px;margin-bottom:10px;border-left:4px solid ${stats.percent >= 80 ? GREEN : RED};">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+          <span style="font-weight:600;color:${NAVY};">${escapeHtml(t.name)}</span>
+          <span class="${alertClass}">${stats.percent}%</span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:11px;">
+          <div>📍 Pre: ${preStats.percent}% (${preStats.present}/${preStats.countable})</div>
+          <div>🏁 Temp: ${tempStats.percent}% (${tempStats.present}/${tempStats.countable})</div>
+        </div>
+        <button class="btn-outline" onclick="generateExcelReport('all', 'trainer', '${t.id}')" style="width:100%;margin-top:8px;font-size:11px;">
+          📊 Exportar reporte
+        </button>
       </div>`;
     });
+    
     html += `</div>`;
   }
+  
+  // HISTORIAL DE CAMBIOS
+  if(attendanceAuditLog.length > 0){
+    html += `<div class="card">
+      <div class="section-label"><div class="gate-poles"><span></span><span></span></div><span class="title">📋 Historial de cambios</span></div>
+      <div class="history-list">`;
+      
+      attendanceAuditLog.slice(-20).reverse().forEach(log => {
+        const date = new Date(log.changedAt);
+        const timeStr = date.toLocaleTimeString("es-ES", { hour:"2-digit", minute:"2-digit" });
+        html += `<div class="history-item">
+          <div class="history-time">${date.toLocaleDateString()} ${timeStr}</div>
+          <div class="history-change">
+            ${log.type === "trainer" ? "Entrenador" : "Atleta"}: 
+            ${escapeHtml(log.oldStatus)} → ${getDayEditStatusLabel(log.newStatus)} · ${escapeHtml(log.date)}
+          </div>
+        </div>`;
+      });
+      
+      html += `</div></div>`;
+    }
+  
+  } else {
+    // VISTA DE ATLETAS
+    html += `<div class="card">
+      <div class="section-label"><div class="gate-poles"><span></span><span></span></div><span class="title">Asistencia de atletas (por grupo)</span></div>
+      <div style="font-size:12px;color:${GRAY};margin-bottom:16px;">Período actual: ${filterPeriod || "Todos"}</div>
+      
+      <!-- DASHBOARD KPIs PARA ATLETAS -->
+      <div class="dashboard-kpis">`;
+    
+    const athleteAllStats = calculateAttendanceStats(attendance);
+    const athletePreStats = calculateAttendanceStats(attendance.filter(a => a.period === "pre_temporada"));
+    const athleteTempStats = calculateAttendanceStats(attendance.filter(a => a.period === "temporada_26"));
+    
+    html += `
+        <div class="kpi-card">
+          <div class="kpi-label">PRE TEMPORADA</div>
+          <div class="kpi-value">${athletePreStats.percent}%</div>
+          <div class="kpi-sub">${athletePreStats.present}/${athletePreStats.countable} presentes</div>
+        </div>
+        <div class="kpi-card success-kpi">
+          <div class="kpi-label">TEMPORADA 26</div>
+          <div class="kpi-value">${athleteTempStats.percent}%</div>
+          <div class="kpi-sub">${athleteTempStats.present}/${athleteTempStats.countable} presentes</div>
+        </div>
+      </div>
+      
+      <!-- FILTROS PARA ATLETAS -->
+      <div class="filter-bar">
+        <div class="filter-title">Filtros</div>
+        <div class="filter-row">
+          <select class="filter-select" id="filter-period-select-athletes">
+            <option value="">Todos los períodos</option>
+            <option value="pre_temporada" ${filterPeriod === "pre_temporada" ? "selected" : ""}>Pre Temporada (hasta 17)</option>
+            <option value="temporada_26" ${filterPeriod === "temporada_26" ? "selected" : ""}>Temporada 26 (desde 19)</option>
+          </select>
+          <button class="filter-btn clear" onclick="filterPeriod='';render();">Limpiar</button>
+        </div>
+      </div>
+      
+      <!-- GRUPOS -->`;
+    
+    groupsSortedByCategory().forEach(group => {
+      const groupAthletes = athletes.filter(a => a.groupId === group.id);
+      const groupAttendance = attendance.filter(a => a.groupId === group.id);
+      const stats = calculateAttendanceStats(groupAttendance);
+      const preStats = calculateAttendanceStats(groupAttendance.filter(a => a.period === "pre_temporada"));
+      const tempStats = calculateAttendanceStats(groupAttendance.filter(a => a.period === "temporada_26"));
+      
+      html += `<div style="margin-top:16px;padding:12px;background:#F7FAFC;border-radius:10px;border-left:4px solid ${GOLD};">
+        <div style="font-weight:600;color:${NAVY};margin-bottom:8px;">${group.program} · ${escapeHtml(group.name)}</div>
+        <div style="font-size:11px;color:${GRAY};margin-bottom:8px;">
+          Total: ${stats.percent}% | Pre: ${preStats.percent}% | Temp: ${tempStats.percent}%
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;">`;
+      
+      groupAthletes.forEach(athlete => {
+        const athleteRecords = attendance.filter(a => a.athleteId === athlete.id);
+        const athleteStats = calculateAttendanceStats(athleteRecords);
+        html += `<button class="status-btn" onclick="openDayEditModal('athlete', '${athlete.id}', '${selectedDate}')" title="${escapeHtml(athlete.name)} - ${athleteStats.percent}%">
+          ${escapeHtml(athlete.name.substring(0,15))} ${athleteStats.percent}%
+        </button>`;
+      });
+      
+      html += `</div>
+        <button class="btn-outline" onclick="generateExcelReport('${filterPeriod || "all"}', 'athlete', '${group.id}')" style="width:100%;font-size:11px;">
+          📊 Reporte del grupo
+        </button>
+      </div>`;
+    });
+    
+    html += `</div>`;
+  }
+  
+  html += renderDayEditModal();
+  
+  return html;
+}
 
+function renderTrainerAttendanceCalendar(period){
+  const year = 2026, month = 6; // Julio
+  const firstOfMonth = new Date(year, month, 1);
+  const startOffset = (firstOfMonth.getDay() + 6) % 7;
+  const daysInMonth = new Date(year, month+1, 0).getDate();
+  const daysInPrevMonth = new Date(year, month, 0).getDate();
+  
+  let html = `<div style="margin-bottom:16px;">
+    <div style="font-size:12px;color:${GRAY};margin-bottom:8px;text-transform:uppercase;font-weight:600;">Julio 2026</div>
+    <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:8px;">
+      ${DIAS_SEMANA.map(d => `<div style="text-align:center;font-size:11px;font-weight:600;color:${GRAY};padding:6px 0;">${d}</div>`).join("")}
+    </div>
+    <div class="calendar-grid">`;
+  
+  // Días del mes anterior
+  for(let i=0;i<startOffset;i++){
+    html += `<div class="calendar-day disabled">${daysInPrevMonth - startOffset + i + 1}</div>`;
+  }
+  
+  // Días del mes actual
+  for(let d=1; d<=daysInMonth; d++){
+    const dateStr = dstr(year, month, d);
+    const dayPeriod = classifyPeriod(dateStr);
+    
+    if((period === "pre_temporada" && dayPeriod !== "pre_temporada") || 
+       (period === "temporada_26" && dayPeriod !== "temporada_26")){
+      html += `<div class="calendar-day disabled">${d}</div>`;
+      continue;
+    }
+    
+    const dayAttendance = trainerAttendance.filter(t => t.date === dateStr);
+    const present = dayAttendance.filter(t => t.status === "present").length;
+    const total = dayAttendance.filter(t => t.status !== "free_day" && t.status !== "no_training").length;
+    const isFree = d === 18;
+    
+    let className = "calendar-day";
+    if(isFree) className += " free";
+    else if(total === 0) className += " no_training";
+    else if(present === total) className += " present";
+    else if(present === 0) className += " absent";
+    
+    html += `<div class="${className}" onclick="filterTrainer='';selectedDate='${dateStr}';render();">
+      <div style="font-size:11px;font-weight:600;">${d}</div>
+      ${total > 0 ? `<div style="font-size:9px;opacity:.7;">${present}/${total}</div>` : ""}
+    </div>`;
+  }
+  
+  // Días del mes siguiente
+  const totalCells = startOffset + daysInMonth;
+  const trailing = (7 - (totalCells % 7)) % 7;
+  for(let d=1; d<=trailing; d++){
+    html += `<div class="calendar-day disabled">${d}</div>`;
+  }
+  
+  html += `</div></div>`;
   return html;
 }
 
@@ -1613,366 +2006,23 @@ function adminTransportCalendarBodyHTML(){
   </div>`;
 }
 
-/* ============ ASISTENCIA: PERÍODOS Y DÍAS LIBRES ============ */
-function getPretemporadaRange(){
-  const year = new Date().getFullYear();
-  return { start: `${year}-06-30`, end: `${year}-07-17` };
-}
-function getTemporadaStart(){
-  const year = new Date().getFullYear();
-  return `${year}-07-19`;
-}
-function isInPretemporada(dateStr){
-  const r = getPretemporadaRange();
-  return dateStr >= r.start && dateStr <= r.end;
-}
-function isInTemporada(dateStr){
-  return dateStr >= getTemporadaStart();
-}
-
-// Un día libre "all" afecta a todo el club. Uno con groupId afecta solo a ese grupo.
-function isDateExcluded(date, groupId){
-  return excludedDates.some(ed => ed.date === date && (ed.groupId == null || ed.groupId === groupId));
-}
-// Los entrenadores no pertenecen a una categoría: solo les afectan los días de todo el club.
-function isDateExcludedClub(date){
-  return excludedDates.some(ed => ed.date === date && ed.groupId == null);
-}
-function excludedForPeriod(periodo){
-  const list = excludedDates.filter(ed => periodo === "pre" ? isInPretemporada(ed.date) : isInTemporada(ed.date));
-  return list.sort((a,b) => a.date.localeCompare(b.date));
-}
-function scopeLabel(groupId){
-  if(groupId == null) return "Todo el club";
-  const g = groups.find(gr => gr.id === groupId);
-  return g ? `${g.program} · ${g.name}` : "Categoría";
-}
-
-// Días con actividad registrada en el período (base del conteo)
-function activeDatesForGroup(groupId, periodo){
-  const set = new Set();
-  attendance.forEach(a => {
-    const ath = athletes.find(x => x.id === a.athleteId);
-    if(!ath || ath.groupId !== groupId) return;
-    if(periodo === "pre" ? isInPretemporada(a.date) : isInTemporada(a.date)) set.add(a.date);
-  });
-  return Array.from(set).filter(d => !isDateExcluded(d, groupId)).sort();
-}
-function activeDatesForTrainers(periodo){
-  const set = new Set();
-  trainerAttendance.forEach(t => {
-    if(periodo === "pre" ? isInPretemporada(t.date) : isInTemporada(t.date)) set.add(t.date);
-  });
-  return Array.from(set).filter(d => !isDateExcludedClub(d)).sort();
-}
-
-// Días del período que sí cuentan (calendario completo menos días libres).
-// En pretemporada el rango es cerrado, así que el total es el mismo para todos.
-function diasContables(periodo, groupId){
-  if(periodo === "pre"){
-    const r = getPretemporadaRange();
-    const out = [];
-    let cur = new Date(r.start + "T00:00:00");
-    const fin = new Date(r.end + "T00:00:00");
-    while(cur <= fin){
-      const ds = dstr(cur.getFullYear(), cur.getMonth(), cur.getDate());
-      if(!isDateExcluded(ds, groupId)) out.push(ds);
-      cur.setDate(cur.getDate() + 1);
-    }
-    return out;
-  }
-  // En temporada los días varían por grupo y el período sigue abierto,
-  // así que se toman los días con actividad registrada.
-  return activeDatesForGroup(groupId, periodo);
-}
-
-function diasContablesTrainers(periodo){
-  if(periodo === "pre"){
-    const r = getPretemporadaRange();
-    const out = [];
-    let cur = new Date(r.start + "T00:00:00");
-    const fin = new Date(r.end + "T00:00:00");
-    while(cur <= fin){
-      const ds = dstr(cur.getFullYear(), cur.getMonth(), cur.getDate());
-      if(!isDateExcludedClub(ds)) out.push(ds);
-      cur.setDate(cur.getDate() + 1);
-    }
-    return out;
-  }
-  return activeDatesForTrainers(periodo);
-}
-
-function trainerStatsPeriodo(periodo){
-  const dias = diasContablesTrainers(periodo);
-  const diasSet = new Set(dias);
-  const enPeriodo = d => periodo === "pre" ? isInPretemporada(d) : isInTemporada(d);
-  return trainers.map(tr => {
-    const recs = trainerAttendance.filter(t => t.trainerId === tr.id && enPeriodo(t.date));
-    const present = recs.filter(t => t.present && diasSet.has(t.date)).length;
-    return {
-      name: tr.name, present, total: dias.length,
-      pct: dias.length ? Math.round(present / dias.length * 100) : 0,
-      tieneDatos: recs.length > 0
-    };
-  }).filter(t => t.tieneDatos).sort((a,b) => a.pct - b.pct);
-}
-
-function groupStatsPeriodo(groupId, periodo){
-  const dias = diasContables(periodo, groupId);
-  const diasSet = new Set(dias);
-  const enPeriodo = d => periodo === "pre" ? isInPretemporada(d) : isInTemporada(d);
-  const miembros = athletes.filter(a => a.groupId === groupId);
-  const filas = miembros.map(a => {
-    const recs = attendance.filter(r => r.athleteId === a.id && enPeriodo(r.date));
-    const present = recs.filter(r => r.present && diasSet.has(r.date)).length;
-    return {
-      name: a.name, present, total: dias.length,
-      pct: dias.length ? Math.round(present / dias.length * 100) : 0,
-      tieneDatos: recs.length > 0
-    };
-  }).filter(f => f.tieneDatos).sort((x,y) => x.pct - y.pct);
-  const prom = filas.length ? Math.round(filas.reduce((s,f)=>s+f.pct,0) / filas.length) : 0;
-  return { dias: dias.length, filas, prom };
-}
-
-function pctColor(p){ return p >= 80 ? GREEN : p >= 60 ? GOLD : RED; }
-
-function barraHTML(nombre, present, total, pct){
-  return `<div class="prow">
-    <div class="top">
-      <span class="nm">${escapeHtml(nombre)}</span>
-      <span class="meta">${present}/${total}</span>
-      <span class="pc" style="color:${pctColor(pct)};">${pct}%</span>
-    </div>
-    <div class="track"><div class="fill" style="width:${pct}%;background:${pctColor(pct)};"></div></div>
-  </div>`;
-}
-
-/* ---- Calendario desplegable de días libres (solo jefe) ---- */
-function dlCalendarHTML(){
-  const isToday = dlDate === todayISO();
-  let html = `<div class="cal-card collapsible" style="margin-bottom:10px;">
-    <button type="button" class="date-toggle" id="dl-cal-toggle">
-      <span class="date-label">📅 ${formatFechaLarga(dlDate)}${isToday?` <span class="today-chip">Hoy</span>`:""}</span>
-      <span class="chev">${dlCalOpen?"Cerrar ▴":"Elegir fecha ▾"}</span>
-    </button>`;
-  if(dlCalOpen){
-    if(!dlCalViewMonth){
-      const [y,m] = dlDate.split("-").map(Number);
-      dlCalViewMonth = new Date(y, m-1, 1);
-    }
-    const year = dlCalViewMonth.getFullYear(), month = dlCalViewMonth.getMonth();
-    const startOffset = (new Date(year, month, 1).getDay() + 6) % 7;
-    const daysInMonth = new Date(year, month+1, 0).getDate();
-    const daysPrev = new Date(year, month, 0).getDate();
-    const t = new Date();
-    const todayStr = dstr(t.getFullYear(), t.getMonth(), t.getDate());
-    const marcados = new Set(excludedDates.map(e => e.date));
-
-    let cells = "";
-    for(let i=0;i<startOffset;i++){
-      const d = daysPrev - startOffset + i + 1;
-      const py = month===0? year-1 : year, pm = month===0? 11 : month-1;
-      cells += `<button type="button" class="cal-day other-month" data-dldate="${dstr(py,pm,d)}">${d}</button>`;
-    }
-    for(let d=1; d<=daysInMonth; d++){
-      const ds = dstr(year, month, d);
-      const cls = ["cal-day"];
-      if(ds === todayStr) cls.push("today");
-      if(ds === dlDate) cls.push("selected");
-      if(marcados.has(ds)) cls.push("has-data");
-      cells += `<button type="button" class="${cls.join(" ")}" data-dldate="${ds}">${d}</button>`;
-    }
-    const trailing = (7 - ((startOffset + daysInMonth) % 7)) % 7;
-    for(let d=1; d<=trailing; d++){
-      const ny = month===11? year+1 : year, nm = month===11? 0 : month+1;
-      cells += `<button type="button" class="cal-day other-month" data-dldate="${dstr(ny,nm,d)}">${d}</button>`;
-    }
-    html += `<div class="cal-body">
-      <div class="cal-head">
-        <button type="button" class="cal-nav-btn" id="dl-cal-prev">‹</button>
-        <span class="label">${MESES[month]} ${year}</span>
-        <button type="button" class="cal-nav-btn" id="dl-cal-next">›</button>
-      </div>
-      <div class="cal-weekdays">${DIAS_SEMANA.map(d=>`<span>${d}</span>`).join("")}</div>
-      <div class="cal-grid">${cells}</div>
-    </div>`;
-  }
-  html += `</div>`;
-  return html;
-}
-
-function diasLibresPanelHTML(periodo){
-  const yaMarcado = excludedDates.find(e => e.date === dlDate && (dlScope === "all" ? e.groupId == null : e.groupId === dlScope));
-  let html = `<hr class="divider">
-  <div class="section-label"><div class="gate-poles"><span></span><span></span></div><span class="title">Días libres</span></div>
-  <div class="hint">Los días que marques aquí no se cuentan en la asistencia.</div>`;
-
-  html += dlCalendarHTML();
-
-  html += `<div class="mini-lbl">Aplica a</div>
-  <select id="dl-scope" style="margin-bottom:10px;">
-    <option value="all" ${dlScope==="all"?"selected":""}>Todo el club</option>`;
-  PROGRAMS.forEach(p => {
-    groupsForProgram(p).forEach(g => {
-      html += `<option value="${g.id}" ${String(dlScope)===String(g.id)?"selected":""}>${escapeHtml(p)} · ${escapeHtml(g.name)}</option>`;
-    });
-  });
-  html += `</select>`;
-
-  html += `<input type="text" id="dl-note" value="${escapeHtml(dlNote)}" placeholder="Nota (ej: feriado, sin nieve)" style="margin-bottom:10px;" />`;
-
-  if(dlError) html += `<div class="error-box">${escapeHtml(dlError)}</div>`;
-
-  if(yaMarcado){
-    html += `<button class="btn-outline" id="dl-remove" style="width:100%;justify-content:center;">↩️ Quitar día libre</button>`;
-  } else {
-    html += `<button class="save-btn" id="dl-add" style="background:${RED};">${dlSaving?"Guardando...":"🚫 Marcar como libre"}</button>`;
-  }
-
-  const lista = excludedForPeriod(periodo);
-  html += `<div style="margin-top:14px;">
-    <div class="sub-lbl">Días marcados en este período</div>`;
-  if(!lista.length){
-    html += `<div class="empty-note">Ninguno todavía.</div>`;
-  } else {
-    lista.forEach(ed => {
-      const esClub = ed.groupId == null;
-      html += `<div class="dl-day">
-        <div style="min-width:0;">
-          <div class="d">${formatFechaLarga(ed.date)}</div>
-          <div class="n">
-            <span class="dl-scope" style="background:${esClub?NAVY:BLUE};color:white;">${escapeHtml(scopeLabel(ed.groupId))}</span>
-            ${ed.reason ? ` ${escapeHtml(ed.reason)}` : ""}
-          </div>
-        </div>
-        <button type="button" class="x" data-dl-del="${ed.id}" aria-label="Quitar">🗑️</button>
-      </div>`;
-    });
-  }
-  html += `</div>`;
-  return html;
-}
-
-/* ---- Pestaña Asistencia ---- */
-function renderAsistenciaTab(){
-  const periodo = asistenciaPeriodo;
-  const esPre = periodo === "pre";
-  const pr = getPretemporadaRange();
-
-  let html = `<div class="card">
-    <div class="section-label"><div class="gate-poles"><span></span><span></span></div><span class="title">Asistencia</span></div>
-    <div class="seg">
-      <button type="button" data-periodo="pre" class="${esPre?"on":""}">Pretemporada</button>
-      <button type="button" data-periodo="temp" class="${!esPre?"on":""}">Temporada</button>
-    </div>
-    <div style="font-size:12px;color:${GRAY};margin-bottom:14px;">${esPre
-      ? `30 de junio al 17 de julio. No se mezcla con la temporada.`
-      : `Desde el 19 de julio en adelante.`}</div>`;
-
-  if(authState.level === "master"){
-    const tstats = trainerStatsPeriodo(periodo);
-    const dias = activeDatesForTrainers(periodo).length;
-    const prom = tstats.length ? Math.round(tstats.reduce((s,t)=>s+t.pct,0)/tstats.length) : 0;
-
-    html += `<div class="kpis">
-      <div class="kpi"><div class="v" style="color:${pctColor(prom)};">${prom}%</div><div class="l">Promedio<br>entrenadores</div></div>
-      <div class="kpi"><div class="v">${dias}</div><div class="l">Días que<br>cuentan</div></div>
-      <div class="kpi"><div class="v">${excludedForPeriod(periodo).length}</div><div class="l">Días<br>libres</div></div>
-    </div>`;
-
-    html += `<div class="sub-lbl">🧑‍🏫 Entrenadores</div>`;
-    if(!tstats.length){
-      html += `<div class="empty-note">No hay entrenadores registrados.</div>`;
-    } else {
-      tstats.forEach(t => { html += barraHTML(t.name, t.present, t.total, t.pct); });
-    }
-
-    html += `<hr class="divider">
-      <div class="sub-lbl">👥 Grupos</div>`;
-    const gs = groupsForProgram(currentProgram);
-    if(!gs.length){
-      html += `<div class="empty-note">No hay grupos en ${escapeHtml(currentProgram)}.</div>`;
-    }
-    gs.forEach(g => {
-      const st = groupStatsPeriodo(g.id, periodo);
-      html += `<div style="background:#F7FAFC;border:1px solid #E7ECF2;border-radius:12px;padding:12px;margin-bottom:10px;">
-        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;">
-          <span style="font-size:13px;font-weight:600;color:${NAVY};">${escapeHtml(g.name)}</span>
-          <span style="font-size:11px;color:${GRAY};">${st.dias} días · prom. <b style="color:${pctColor(st.prom)};">${st.prom}%</b></span>
-        </div>`;
-      if(!st.filas.length){
-        html += `<div style="font-size:12px;color:${GRAY};">Sin integrantes.</div>`;
-      } else {
-        st.filas.forEach(f => { html += barraHTML(f.name, f.present, f.total, f.pct); });
-      }
-      html += `</div>`;
-    });
-
-    html += diasLibresPanelHTML(periodo);
-
-  } else {
-    const gid = selectedGroupId;
-    const st = groupStatsPeriodo(gid, periodo);
-    const g = groups.find(x => x.id === gid);
-
-    html += `<div class="kpis">
-      <div class="kpi"><div class="v" style="color:${pctColor(st.prom)};">${st.prom}%</div><div class="l">Promedio<br>del grupo</div></div>
-      <div class="kpi"><div class="v">${st.dias}</div><div class="l">Días que<br>cuentan</div></div>
-      <div class="kpi"><div class="v">${st.filas.length}</div><div class="l">Integrantes</div></div>
-    </div>`;
-
-    html += `<div class="sub-lbl">👥 ${escapeHtml(g ? g.name : "Grupo")}</div>`;
-    if(!st.filas.length){
-      html += `<div class="empty-note">Sin integrantes en este grupo.</div>`;
-    } else {
-      st.filas.forEach(f => { html += barraHTML(f.name, f.present, f.total, f.pct); });
-    }
-
-    const lista = excludedForPeriod(periodo).filter(ed => ed.groupId == null || ed.groupId === gid);
-    if(lista.length){
-      html += `<hr class="divider">
-        <div style="font-size:12px;font-weight:600;color:${NAVY};margin-bottom:4px;">📅 Días libres</div>
-        <div style="font-size:11px;color:${GRAY};margin-bottom:8px;">Definidos por el jefe. No cuentan en la asistencia.</div>`;
-      lista.forEach(ed => {
-        const esClub = ed.groupId == null;
-        html += `<div class="dl-day">
-          <div style="min-width:0;">
-            <div class="d">${formatFechaLarga(ed.date)}</div>
-            <div class="n">
-              <span class="dl-scope" style="background:${esClub?NAVY:BLUE};color:white;">${esClub?"Todo el club":"Tu grupo"}</span>
-              ${ed.reason ? ` ${escapeHtml(ed.reason)}` : ""}
-            </div>
-          </div>
-        </div>`;
-      });
-    }
-  }
-
-  html += `</div>`;
-  return html;
-}
-
-
 function renderTransportTab(){
   if(authState.level === "master") return renderTransportAdminView();
 
   let html = `<div class="card">
     <div class="section-label"><div class="gate-poles"><span></span><span></span></div><span class="title">Transporte</span></div>
-    <div class="hint">Si no marcas nada, se asume que no usaste transporte.</div>
-    <div class="tcompact">`;
-
+    <div style="font-size:12px;color:${GRAY};margin-bottom:14px;">Si no marcas nada, se asume que no usaste el transporte ese día.</div>`;
   html += transportCalendarCardHTML();
 
-  html += `<div class="tsel">
-    <button type="button" data-transport-used="true" style="${transportUsed?`background:${GREEN};color:white;border-color:${GREEN};`:""}">✓ Sí usé</button>
-    <button type="button" data-transport-used="false" style="${!transportUsed?`background:${RED};color:white;border-color:${RED};`:""}">✕ No usé</button>
+  html += `<div style="display:flex;gap:8px;margin-bottom:14px;">
+    <button type="button" class="pill" data-transport-used="true" style="flex:1;justify-content:center;${transportUsed?`background:${GREEN};color:white;border-color:${GREEN};`:""}">✓ Sí, usé transporte</button>
+    <button type="button" class="pill" data-transport-used="false" style="flex:1;justify-content:center;${!transportUsed?`background:${RED};color:white;border-color:${RED};`:""}">✕ No usé</button>
   </div>`;
 
   if(transportUsed){
-    html += `<div class="tcount">
-      <div class="l">Entrenadores (contándote)</div>
-      <div class="r">
+    html += `<div class="stepper" style="margin-bottom:14px;">
+      <div class="lbl">Número de entrenadores (incluyéndote)</div>
+      <div class="box">
         <button type="button" data-transport-delta="-1">−</button>
         <input type="text" inputmode="numeric" id="transport-num-input" value="${transportNumTrainers}" />
         <button type="button" data-transport-delta="1">+</button>
@@ -1981,65 +2031,119 @@ function renderTransportTab(){
   }
 
   if(transportSaveError) html += `<div class="error-box">${escapeHtml(transportSaveError)}</div>`;
-  html += `<button class="save-btn" id="save-transport-btn" style="margin:0;">${transportSaving?"Guardando...":"✓ Guardar"}</button>`;
-  if(transportJustSaved) html += `<div class="info-box" style="margin:10px 0 0;">Guardado.</div>`;
-
-  html += `</div></div>`;
-  return html;
-}
-
-function renderTransportAdminView(){
-  let html = `<div class="card">
-    <div class="section-label"><div class="gate-poles"><span></span><span></span></div><span class="title">Transporte</span></div>
-    <div class="hint">Solo aparecen quienes marcaron uso de transporte ese día.</div>
-    <div class="tcompact">`;
-
-  html += adminTransportCalendarCardHTML();
-
-  const dayEntries = trainerTransport.filter(t => t.date === adminTransportDate);
-  if(!dayEntries.length){
-    html += `<div class="empty-note">Nadie registró transporte este día.</div>`;
-  } else {
-    const totalTrainers = dayEntries.reduce((sum,t)=>sum+(t.numTrainers||0),0);
-    html += `<div class="kpis" style="margin-bottom:10px;">
-      <div class="kpi"><div class="v" style="color:${GOLD};">${totalTrainers}</div><div class="l">Entrenadores<br>transportados</div></div>
-      <div class="kpi"><div class="v">${dayEntries.length}</div><div class="l">Autos<br>registrados</div></div>
-    </div>`;
-    dayEntries.forEach(t => {
-      html += `<div class="lrow"><span class="nm">${escapeHtml(t.trainerCode)}</span><span class="val">${t.numTrainers} pers.</span></div>`;
-    });
-  }
-  html += `</div></div>`;
-
-  const sharedTrips = trainerTransport.filter(t => (t.numTrainers||0) >= 2);
-  html += `<div class="card">
-    <div class="section-label"><div class="gate-poles"><span></span><span></span></div><span class="title">Viajes compartidos</span></div>
-    <div class="hint">Historial contando solo días con 2 o más personas por auto.</div>`;
-  if(!sharedTrips.length){
-    html += `<div class="empty-note">Aún no hay viajes compartidos.</div>`;
-  } else {
-    const byTrainer = {};
-    sharedTrips.forEach(t => {
-      if(!byTrainer[t.trainerCode]) byTrainer[t.trainerCode] = {};
-      byTrainer[t.trainerCode][t.numTrainers] = (byTrainer[t.trainerCode][t.numTrainers] || 0) + 1;
-    });
-    Object.keys(byTrainer).sort().forEach(code => {
-      const counts = byTrainer[code];
-      const total = Object.values(counts).reduce((a,b)=>a+b,0);
-      const parts = Object.keys(counts).map(Number).sort((a,b)=>b-a)
-        .map(n => `${n} pers. · ${counts[n]}×`);
-      html += `<div class="lrow" style="display:block;">
-        <div style="display:flex;justify-content:space-between;align-items:baseline;">
-          <span class="nm">${escapeHtml(code)}</span><span class="val big">${total}</span>
-        </div>
-        <div style="font-size:11px;color:${GRAY};margin-top:2px;">${parts.join(" · ")}</div>
-      </div>`;
-    });
-  }
+  html += `<button class="save-btn" id="save-transport-btn">${transportSaving?"Guardando...":"✓ Guardar"}</button>`;
+  if(transportJustSaved) html += `<div class="info-box" style="margin-top:10px;">Guardado.</div>`;
   html += `</div>`;
   return html;
 }
 
+function renderTransportAdminView(){
+  const dayEntries = trainerTransport.filter(t => t.date === adminTransportDate)
+    .sort((a,b)=> a.trainerCode.localeCompare(b.trainerCode));
+  const registrados = new Set(dayEntries.map(t => t.trainerCode));
+  const faltantes = COORDINATOR_CODES.filter(c => !registrados.has(c)).sort();
+
+  let html = `<div class="card">
+    <div class="section-label"><div class="gate-poles"><span></span><span></span></div><span class="title">Transporte — resumen diario</span></div>
+    <div style="font-size:12px;color:${GRAY};margin-bottom:14px;">Como jefe puedes corregir el registro de cualquier entrenador en cualquier fecha.</div>`;
+  html += adminTransportCalendarCardHTML();
+
+  if(!dayEntries.length){
+    html += `<div style="font-size:13px;color:${GRAY};text-align:center;padding:16px 0;">Nadie registró uso de transporte este día.</div>`;
+  } else {
+    const totalTrainers = dayEntries.reduce((s,t)=>s+(t.numTrainers||0),0);
+    html += `<div class="total-box" style="margin-bottom:14px;"><span class="lbl">Total entrenadores transportados</span><span class="val">${totalTrainers}</span></div>`;
+    dayEntries.forEach(t => {
+      html += `<div class="tr-edit-row">
+        <span class="tr-edit-name">${escapeHtml(t.trainerCode)}</span>
+        <div class="tr-stepper">
+          <button data-tt-dec="${t.id}" ${t.numTrainers<=1?"disabled":""}>−</button>
+          <span class="tr-count">${t.numTrainers}</span>
+          <button data-tt-inc="${t.id}" ${t.numTrainers>=6?"disabled":""}>+</button>
+        </div>
+        <button class="tr-del" data-tt-del="${t.id}" title="Eliminar registro">🗑️</button>
+      </div>`;
+    });
+  }
+
+  if(faltantes.length){
+    html += `<div class="tr-add-box">
+      <div class="tr-add-label">Agregar un entrenador que no registró</div>
+      <div class="tr-add-row">
+        <select id="tt-add-code" class="filter-select" style="flex:1;">
+          ${faltantes.map(c=>`<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join("")}
+        </select>
+        <select id="tt-add-num" class="filter-select">
+          ${[1,2,3,4,5,6].map(n=>`<option value="${n}">${n} pers.</option>`).join("")}
+        </select>
+        <button class="btn-navy" id="tt-add-btn">➕</button>
+      </div>
+    </div>`;
+  }
+  if(transportAdminError) html += `<div class="error-box">${escapeHtml(transportAdminError)}</div>`;
+  html += `</div>`;
+
+  html += renderSharedTripsChart();
+  return html;
+}
+
+/* ---- Historial gráfico de viajes compartidos ---- */
+function renderSharedTripsChart(){
+  const shared = trainerTransport.filter(t => (t.numTrainers||0) >= 2);
+  let html = `<div class="card">
+    <div class="section-label"><div class="gate-poles"><span></span><span></span></div><span class="title">Viajes compartidos — historial</span></div>
+    <div style="font-size:12px;color:${GRAY};margin-bottom:16px;">Solo días con 2 o más personas por auto.</div>`;
+
+  if(!shared.length){
+    html += `<div style="font-size:13px;color:${GRAY};text-align:center;padding:16px 0;">Aún no hay viajes compartidos registrados.</div></div>`;
+    return html;
+  }
+
+  // Agregado por entrenador
+  const by = {};
+  shared.forEach(t => {
+    if(!by[t.trainerCode]) by[t.trainerCode] = { viajes:0, personas:0, dist:{} };
+    by[t.trainerCode].viajes += 1;
+    by[t.trainerCode].personas += t.numTrainers;
+    by[t.trainerCode].dist[t.numTrainers] = (by[t.trainerCode].dist[t.numTrainers]||0) + 1;
+  });
+  const filas = Object.keys(by).map(c => ({ code:c, ...by[c] })).sort((a,b)=> b.viajes - a.viajes);
+  const maxViajes = Math.max(...filas.map(f=>f.viajes));
+  const totalViajes = shared.length;
+  const totalPersonas = shared.reduce((s,t)=>s+t.numTrainers,0);
+
+  html += `<div class="dashboard-kpis" style="margin-bottom:18px;">
+    <div class="kpi-card"><div class="kpi-label">Viajes compartidos</div><div class="kpi-value">${totalViajes}</div></div>
+    <div class="kpi-card success-kpi"><div class="kpi-label">Personas movilizadas</div><div class="kpi-value">${totalPersonas}</div></div>
+    <div class="kpi-card"><div class="kpi-label">Promedio por auto</div><div class="kpi-value">${(totalPersonas/totalViajes).toFixed(1)}</div></div>
+  </div>`;
+
+  // Barras horizontales por entrenador
+  const PAL = { 2:"#3E92CC", 3:"#2E8B57", 4:"#C9A227", 5:"#D1495B", 6:"#7B4BC9" };
+  html += `<div class="trips-chart">`;
+  filas.forEach(f => {
+    const pct = Math.round((f.viajes / maxViajes) * 100);
+    const segs = Object.keys(f.dist).map(Number).sort((a,b)=>a-b);
+    html += `<div class="trip-row">
+      <div class="trip-head">
+        <span class="trip-name">${escapeHtml(f.code)}</span>
+        <span class="trip-num">${f.viajes} ${f.viajes===1?"viaje":"viajes"} · ${f.personas} pers.</span>
+      </div>
+      <div class="trip-track" style="width:${pct}%;">
+        ${segs.map(n => `<div class="trip-seg" style="flex:${f.dist[n]};background:${PAL[n]||"#8D8D8D"};" title="${f.dist[n]}× con ${n} personas">${f.dist[n]>=2?f.dist[n]:""}</div>`).join("")}
+      </div>
+    </div>`;
+  });
+  html += `</div>`;
+
+  // Leyenda
+  const usados = Array.from(new Set(shared.map(t=>t.numTrainers))).sort((a,b)=>a-b);
+  html += `<div class="trip-legend">${usados.map(n =>
+    `<span class="trip-leg-item"><i style="background:${PAL[n]||"#8D8D8D"}"></i>${n} personas</span>`).join("")}</div>`;
+
+  html += `</div>`;
+  return html;
+}
 
 /* ============ EXPORT ============ */
 function buildDaySummaryText(){
@@ -2117,10 +2221,10 @@ function exportExcel(){
       topTrab && topTrab.value>0 ? `${topTrab.name} (${topTrab.value}%)` : "—",
       topFund && topFund.value>0 ? `${topFund.name} (${topFund.value}%)` : "—"]);
   });
-  const fichaSheet = [["Integrante","Teléfono","Enfermedades relevantes","Alergias","Medicamentos permanentes","Otros"]];
+  const fichaSheet = [["Integrante","Teléfono","Enfermedades relevantes","Alergias","Medicamentos permanentes","Otros","Notas adicionales"]];
   groupAthletes().forEach(a => {
     const m = a.medical || blankFicha();
-    fichaSheet.push([a.name, a.phone||"—", m.enfermedades||"—", m.alergias||"—", m.medicamentos||"—", m.otros||"—"]);
+    fichaSheet.push([a.name, a.phone||"—", m.enfermedades||"—", m.alergias||"—", m.medicamentos||"—", m.otros||"—", a.notas||"—"]);
   });
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(attSheet), "Asistencia");
@@ -2235,8 +2339,8 @@ function renderChangeCodePanel(){
 
 function renderHeader(){
   const visibleTabs = authState.level === "master"
-    ? [["setup","Grupos"],["daily","Registro diario"],["profile","Estadísticas"],["trainers","Entrenadores"],["checkins","Pulso semanal"],["transport","Transporte"],["asistencia","📊 Asistencia"],["access","Accesos"]]
-    : [["setup","Grupos"],["daily","Registro diario"],["profile","Estadísticas"],["checkins","Pulso semanal"],["transport","Transporte"],["asistencia","📊 Asistencia"]];
+    ? [["setup","Grupos"],["daily","Registro diario"],["profile","Estadísticas"],["trainers","Entrenadores"],["checkins","Pulso semanal"],["transport","Transporte"],["access","Accesos"]]
+    : [["setup","Grupos"],["daily","Registro diario"],["profile","Estadísticas"],["checkins","Pulso semanal"],["transport","Transporte"]];
   const roleLabel = authState.level==="master" ? "Jefe de entrenadores" : `${authState.program} · ${authState.category}`;
   return `
   <div class="hero">
@@ -2310,7 +2414,7 @@ function renderSetupTab(){
           <div class="athlete-row">
             <span class="athlete-name">${escapeHtml(a.name)}</span>
             ${a.phone ? `<span class="phone-badge">📞 ${escapeHtml(a.phone)}</span>` : ""}
-            <button class="ficha-btn${isOpen?" open":""}" data-toggle-ficha="${a.id}">🩺 Ficha ${isOpen?"▲":"▼"}</button>
+            <button class="ficha-btn${isOpen?" open":""}" data-toggle-ficha="${a.id}">🩺 Ficha ${isOpen?"▲":"▼"}</button>${(a.notas||"").trim()?`<span class="nota-chip" title="${escapeHtml(a.notas)}">📝 nota</span>`:""}
             <span style="cursor:pointer;color:${GRAY};" data-remove-athlete="${a.id}">🗑️</span>
           </div>`;
         if(isOpen){
@@ -2327,6 +2431,10 @@ function renderSetupTab(){
             <label class="field-label">Otros</label>
             <textarea id="ficha-otros" rows="2" placeholder="Cualquier otro dato relevante para su seguridad...">${escapeHtml(fichaDraft.otros)}</textarea>
             <button class="btn-navy" id="save-ficha-btn" data-athlete="${a.id}" style="width:100%;justify-content:center;margin-top:10px;">✓ Guardar ficha</button>
+            <div style="border-top:1px solid #E7ECF2;margin-top:14px;padding-top:12px;">
+              ${athleteNotaFieldHTML(a)}
+              <div style="font-size:11px;color:${GRAY};margin-top:4px;">Se guarda solo al salir del campo. Separado de la ficha médica.</div>
+            </div>
           </div>`;
         }
         html += `</div>`;
@@ -2573,6 +2681,331 @@ function renderAccessTab(){
   return html;
 }
 
+/* ============ FUNCIONES DE MODAL Y EDICIÓN ============ */
+function openDayEditModal(type, id, date){
+  const att = type === "trainer" 
+    ? trainerAttendance.find(t => t.trainerId === id && t.date === date)
+    : attendance.find(a => a.athleteId === id && a.date === date);
+  
+  dayEditModal = { type, id, date, status: att?.status || "present", notes: att?.notes || "" };
+  dayEditStatus = dayEditModal.status;
+  dayEditNotes = dayEditModal.notes;
+  render();
+}
+
+function closeDayEditModal(){
+  dayEditModal = null;
+  dayEditStatus = "";
+  dayEditNotes = "";
+  render();
+}
+
+async function saveDayEdit(){
+  if(!dayEditModal) return;
+  const { type, id, date } = dayEditModal;
+  const period = classifyPeriod(date);
+  const table = type === "trainer" ? "trainer_attendance" : "attendance";
+  const idField = type === "trainer" ? "trainer_id" : "athlete_id";
+  
+  try{
+    const existing = type === "trainer"
+      ? trainerAttendance.find(t => t.trainerId === id && t.date === date)
+      : attendance.find(a => a.athleteId === id && a.date === date);
+    
+    if(existing){
+      const data = { status: dayEditStatus, notes: dayEditNotes, period };
+      await sbUpdate(table, { id: existing.id }, data);
+      existing.status = dayEditStatus;
+      existing.notes = dayEditNotes;
+      existing.period = period;
+    } else {
+      const data = { [idField]: id, date, status: dayEditStatus, notes: dayEditNotes, period, present: dayEditStatus === "present" };
+      const row = await sbInsert(table, data);
+      if(type === "trainer"){
+        trainerAttendance.push(mapTrainerAttendance(row));
+      } else {
+        attendance.push(mapAttendance(row));
+      }
+    }
+    
+    // Auditoría propia en memoria (NO usar checkinAuditLog: es de chequeos semanales)
+    attendanceAuditLog.push({
+      id: uid(), type, entityId: id, date,
+      oldStatus: existing ? existing.status : "nuevo",
+      newStatus: dayEditStatus,
+      changedAt: new Date().toISOString(),
+      changedBy: (authState && authState.trainerCode) || "jefe"
+    });
+    
+    closeDayEditModal();
+    calculateAlerts();
+    render();
+  } catch(e){
+    alert("Error al guardar: " + e.message);
+  }
+}
+
+async function deleteDayRecord(){
+  if(!dayEditModal) return;
+  const { type, id, date } = dayEditModal;
+  const table = type === "trainer" ? "trainer_attendance" : "attendance";
+  
+  if(!confirm("¿Eliminar este registro?")) return;
+  
+  try{
+    const existing = type === "trainer"
+      ? trainerAttendance.find(t => t.trainerId === id && t.date === date)
+      : attendance.find(a => a.athleteId === id && a.date === date);
+    
+    if(existing){
+      await sbDelete(table, { id: existing.id });
+      if(type === "trainer"){
+        trainerAttendance = trainerAttendance.filter(t => t.id !== existing.id);
+      } else {
+        attendance = attendance.filter(a => a.id !== existing.id);
+      }
+    }
+    
+    closeDayEditModal();
+    calculateAlerts();
+    render();
+  } catch(e){
+    alert("Error al eliminar: " + e.message);
+  }
+}
+
+function renderDayEditModal(){
+  if(!dayEditModal) return "";
+  return `
+  <div class="modal-overlay" id="day-edit-overlay">
+    <div class="modal-content">
+      <button class="modal-close" onclick="closeDayEditModal()">×</button>
+      <div class="modal-header">${getDayLabel(dayEditModal.date)}</div>
+      
+      <div class="modal-status-grid">
+        ${["present", "absent", "free_day", "no_training"].map(s => `
+          <button class="modal-status-btn ${dayEditStatus===s?"selected":""}" onclick="dayEditStatus='${s}';render()">
+            ${getDayEditStatusLabel(s)}
+          </button>
+        `).join("")}
+      </div>
+      
+      <div class="modal-notes">
+        <label>Notas (opcional)</label>
+        <textarea id="day-notes-input" placeholder="Lesión, enfermedad, viaje...">${escapeHtml(dayEditNotes)}</textarea>
+      </div>
+      
+      <div class="modal-actions">
+        <button class="modal-save" onclick="saveDayEdit()">Guardar</button>
+        <button class="modal-delete" onclick="deleteDayRecord()">Eliminar</button>
+        <button class="modal-cancel" onclick="closeDayEditModal()">Cancelar</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function getDayLabel(dateStr){
+  const [y,m,d] = dateStr.split("-").map(Number);
+  const months = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+  const days = ["Dom","Lun","Mar","Mié","Jue","Vie","Sab"];
+  const date = new Date(y,m-1,d);
+  return `${days[date.getDay()]} ${d} de ${months[m-1]}`;
+}
+
+/* ============ FUNCIONES DE REPORTES ============ */
+function generateExcelReport(period = null, entityType = "trainer", entityId = null){
+  const XLSX = window.XLSX;
+  if(!XLSX) { alert("Excel no disponible"); return; }
+  
+  const wb = XLSX.utils.book_new();
+  
+  if(entityType === "trainer" && entityId){
+    const trainer = trainers.find(t => t.id === entityId);
+    const records = trainerAttendance.filter(t => t.trainerId === entityId);
+    const filtered = period ? records.filter(r => r.period === period) : records;
+    
+    const data = [
+      ["REPORTE DE ASISTENCIA", `Entrenador: ${trainer?.name || "Desconocido"}`],
+      ["Período", period === "pre_temporada" ? "PRE TEMPORADA (hasta 17)" : period === "temporada_26" ? "TEMPORADA 26 (desde 19)" : "Todos"],
+      [],
+      ["Fecha", "Estado", "Notas"],
+      ...filtered.map(r => [r.date, getDayEditStatusLabel(r.status), r.notes || ""])
+    ];
+    
+    const stats = calculateAttendanceStats(filtered);
+    data.push([]);
+    data.push(["RESUMEN"]);
+    data.push(["Presentes", stats.present]);
+    data.push(["Ausentes", stats.absent]);
+    data.push(["Días libres", stats.free]);
+    data.push(["Sin entrenamiento", stats.noTrain]);
+    data.push(["Asistencia", `${stats.percent}%`]);
+    
+    const ws = XLSX.utils.aoa_to_sheet(data);
+    XLSX.utils.book_append_sheet(wb, ws, "Reporte");
+    XLSX.writeFile(wb, `Reporte_${trainer?.name || "entrenador"}_${period || "total"}.xlsx`);
+  } else if(entityType === "athlete" && entityId){
+    const athlete = athletes.find(a => a.id === entityId);
+    const records = attendance.filter(a => a.athleteId === entityId);
+    const filtered = period ? records.filter(r => r.period === period) : records;
+    
+    const data = [
+      ["REPORTE DE ASISTENCIA", `Atleta: ${athlete?.name || "Desconocido"}`],
+      ["Período", period === "pre_temporada" ? "PRE TEMPORADA (hasta 17)" : period === "temporada_26" ? "TEMPORADA 26 (desde 19)" : "Todos"],
+      [],
+      ["Fecha", "Estado", "Notas"],
+      ...filtered.map(r => [r.date, getDayEditStatusLabel(r.status), r.notes || ""])
+    ];
+    
+    const stats = calculateAttendanceStats(filtered);
+    data.push([]);
+    data.push(["RESUMEN"]);
+    data.push(["Presentes", stats.present]);
+    data.push(["Ausentes", stats.absent]);
+    data.push(["Días libres", stats.free]);
+    data.push(["Sin entrenamiento", stats.noTrain]);
+    data.push(["Asistencia", `${stats.percent}%`]);
+    
+    const ws = XLSX.utils.aoa_to_sheet(data);
+    XLSX.utils.book_append_sheet(wb, ws, "Reporte");
+    XLSX.writeFile(wb, `Reporte_${athlete?.name || "atleta"}_${period || "total"}.xlsx`);
+  }
+}
+
+/* ============ FUNCIONES DE IMPORTACIÓN ============ */
+function handleFileImport(event){
+  const file = event.target.files[0];
+  if(!file) return;
+  
+  const XLSX = window.XLSX;
+  const reader = new FileReader();
+  
+  reader.onload = (e) => {
+    try{
+      const wb = XLSX.read(e.target.result, { type: "binary" });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const data = XLSX.utils.sheet_to_json(ws);
+      
+      importPreview = data.slice(0, 10);
+      importProgress = { loaded: data.length, total: data.length };
+      render();
+      
+      // Procesar importación
+      processImportData(data);
+    } catch(err){
+      alert("Error al leer archivo: " + err.message);
+    }
+  };
+  reader.readAsBinaryString(file);
+}
+
+async function processImportData(data){
+  const table = filterTrainer ? "trainer_attendance" : "attendance";
+  let imported = 0;
+  
+  for(const row of data){
+    try{
+      const date = row.Fecha || row.Date || "";
+      const status = (row.Estado || row.Status || "").toLowerCase();
+      const notes = row.Notas || row.Notes || "";
+      
+      if(!date || !["present", "absent", "free_day", "no_training"].includes(status)) continue;
+      
+      const period = classifyPeriod(date);
+      const payload = { date, status, notes, period, present: status === "present" };
+      
+      if(table === "trainer_attendance" && filterTrainer){
+        payload.trainer_id = filterTrainer;
+      } else if(filterAthlete){
+        payload.athlete_id = filterAthlete;
+      }
+      
+      await sbInsert(table, payload, { onConflict: "id", merge: true });
+      imported++;
+    } catch(e){
+      console.error("Error importando fila:", e);
+    }
+  }
+  
+  alert(`Importados ${imported} registros`);
+  await loadAllData();
+  calculateAlerts();
+  render();
+}
+
+
+/* ============ TRANSPORTE: ACCIONES DEL JEFE ============ */
+async function adjustTransport(id, delta){
+  const rec = trainerTransport.find(t => t.id === id);
+  if(!rec) return;
+  const nuevo = Math.min(6, Math.max(1, (rec.numTrainers||1) + delta));
+  if(nuevo === rec.numTrainers) return;
+  transportAdminError = "";
+  const previo = rec.numTrainers;
+  rec.numTrainers = nuevo; render();
+  try{
+    await sbUpdate("trainer_transport", { id }, { num_trainers: nuevo });
+  }catch(e){
+    rec.numTrainers = previo;
+    transportAdminError = "No se pudo guardar el cambio: " + e.message;
+    render();
+  }
+}
+
+async function removeTransport(id){
+  const rec = trainerTransport.find(t => t.id === id);
+  if(!rec) return;
+  if(!confirm(`¿Eliminar el registro de transporte de ${rec.trainerCode} del ${formatFechaLarga(rec.date)}?`)) return;
+  transportAdminError = "";
+  try{
+    await sbDelete("trainer_transport", { id });
+    trainerTransport = trainerTransport.filter(t => t.id !== id);
+  }catch(e){
+    transportAdminError = "No se pudo eliminar: " + e.message;
+  }
+  render();
+}
+
+async function addTransport(code, num){
+  if(!code) return;
+  transportAdminError = "";
+  try{
+    const row = await sbInsert("trainer_transport", {
+      trainer_code: code, date: adminTransportDate, num_trainers: num
+    });
+    trainerTransport.push({ id:row.id, trainerCode:row.trainer_code, date:row.date, numTrainers:row.num_trainers });
+  }catch(e){
+    transportAdminError = "No se pudo agregar: " + e.message;
+  }
+  render();
+}
+
+/* ============ NOTAS POR ATLETA ============ */
+async function saveAthleteNota(athleteId){
+  const at = athletes.find(a => a.id === athleteId);
+  if(!at) return;
+  const texto = (athleteNotas[athleteId] !== undefined ? athleteNotas[athleteId] : at.notas) || "";
+  if(texto === (at.notas || "")) return;   // sin cambios
+  notasSaving[athleteId] = true;
+  try{
+    await sbUpdate("athletes", { id: athleteId }, { notas: texto });
+    at.notas = texto;
+    delete athleteNotas[athleteId];
+  }catch(e){
+    alert("No se pudo guardar la nota: " + e.message);
+  }
+  notasSaving[athleteId] = false;
+  render();
+}
+
+function athleteNotaFieldHTML(at){
+  const valor = athleteNotas[at.id] !== undefined ? athleteNotas[at.id] : (at.notas || "");
+  return `<div class="nota-box">
+    <label>Notas adicionales${notasSaving[at.id] ? " · guardando…" : ""}</label>
+    <textarea data-nota-athlete="${at.id}" placeholder="Observaciones del entrenador sobre ${escapeHtml(at.name)}…">${escapeHtml(valor)}</textarea>
+  </div>`;
+}
+
 /* ============ MAIN RENDER DISPATCHER ============ */
 function render(){
   const app = document.getElementById("app");
@@ -2602,7 +3035,6 @@ function render(){
   else if(tab === "trainers" && authState.level === "master") body = renderTrainersTab();
   else if(tab === "checkins") body = renderCheckinsTab();
   else if(tab === "transport") body = renderTransportTab();
-  else if(tab === "asistencia") body = renderAsistenciaTab();
   else { tab = "daily"; body = renderDailyTab(); }
 
   app.innerHTML = renderHeader() + (shouldShowMondayReminder() ? renderMondayBanner() : "") + `<div class="wrap">${body}</div>
@@ -2695,7 +3127,6 @@ function attachAppHandlers(){
       if(tab === "trainers") initTrainerAttendanceForm();
       if(tab === "checkins") initCheckinForm();
       if(tab === "transport" && authState.level !== "master") initTransportForm();
-      if(tab === "asistencia"){ dlCalOpen = false; dlError = ""; }
       render();
     });
   });
@@ -2707,7 +3138,6 @@ function attachAppHandlers(){
   if(tab === "trainers") attachTrainersTabHandlers();
   if(tab === "checkins") attachCheckinsTabHandlers();
   if(tab === "transport") attachTransportTabHandlers();
-  if(tab === "asistencia") attachAsistenciaTabHandlers();
 }
 
 function attachSetupTabHandlers(){
@@ -2750,6 +3180,46 @@ function attachSetupTabHandlers(){
     });
     savedFichaBtn.addEventListener("click", () => saveFicha(savedFichaBtn.dataset.athlete));
   }
+  
+  // Listeners para nuevas funcionalidades de entrenadores
+  const filterPeriodSelect = document.getElementById("filter-period-select");
+  if(filterPeriodSelect) filterPeriodSelect.addEventListener("change", (e) => { filterPeriod = e.target.value; render(); });
+  
+  const filterPeriodSelectAthletes = document.getElementById("filter-period-select-athletes");
+  if(filterPeriodSelectAthletes) filterPeriodSelectAthletes.addEventListener("change", (e) => { filterPeriod = e.target.value; render(); });
+  
+  const filterTrainerSelect = document.getElementById("filter-trainer-select");
+  if(filterTrainerSelect) filterTrainerSelect.addEventListener("change", (e) => { filterTrainer = e.target.value; render(); });
+  
+  // Modal de edición de notas
+  const dayNotesInput = document.getElementById("day-notes-input");
+  if(dayNotesInput) dayNotesInput.addEventListener("input", (e) => { dayEditNotes = e.target.value; });
+  
+  // Overlay modal
+  const dayEditOverlay = document.getElementById("day-edit-overlay");
+  if(dayEditOverlay) dayEditOverlay.addEventListener("click", (e) => {
+    if(e.target === dayEditOverlay) closeDayEditModal();
+  });
+
+  // --- Transporte: edición por el jefe ---
+  document.querySelectorAll("[data-tt-inc]").forEach(b =>
+    b.addEventListener("click", () => adjustTransport(b.dataset.ttInc, +1)));
+  document.querySelectorAll("[data-tt-dec]").forEach(b =>
+    b.addEventListener("click", () => adjustTransport(b.dataset.ttDec, -1)));
+  document.querySelectorAll("[data-tt-del]").forEach(b =>
+    b.addEventListener("click", () => removeTransport(b.dataset.ttDel)));
+  const ttAdd = document.getElementById("tt-add-btn");
+  if(ttAdd) ttAdd.addEventListener("click", () => {
+    const code = document.getElementById("tt-add-code").value;
+    const num  = parseInt(document.getElementById("tt-add-num").value, 10);
+    addTransport(code, num);
+  });
+
+  // --- Notas por atleta ---
+  document.querySelectorAll("[data-nota-athlete]").forEach(ta => {
+    ta.addEventListener("input", e => { athleteNotas[ta.dataset.notaAthlete] = e.target.value; });
+    ta.addEventListener("blur",  () => saveAthleteNota(ta.dataset.notaAthlete));
+  });
 }
 
 function initTrazadoCanvas(canvas, sessionNum){
@@ -3056,100 +3526,6 @@ function attachAccessTabHandlers(){
   if(exportBackupBtn) exportBackupBtn.addEventListener("click", exportBackupJSON);
 }
 
-function attachAsistenciaTabHandlers(){
-  // Cambio de período (visible para todos)
-  document.querySelectorAll("[data-periodo]").forEach(btn => {
-    btn.addEventListener("click", () => {
-      asistenciaPeriodo = btn.dataset.periodo;
-      dlError = "";
-      render();
-    });
-  });
-
-  // Gestión de días libres: solo el jefe
-  if(authState.level !== "master") return;
-
-  const toggle = document.getElementById("dl-cal-toggle");
-  if(toggle) toggle.addEventListener("click", () => {
-    dlCalOpen = !dlCalOpen;
-    if(dlCalOpen){
-      const [y,m] = dlDate.split("-").map(Number);
-      dlCalViewMonth = new Date(y, m-1, 1);
-    }
-    render();
-  });
-
-  const prev = document.getElementById("dl-cal-prev");
-  if(prev) prev.addEventListener("click", () => {
-    dlCalViewMonth = new Date(dlCalViewMonth.getFullYear(), dlCalViewMonth.getMonth()-1, 1);
-    render();
-  });
-  const next = document.getElementById("dl-cal-next");
-  if(next) next.addEventListener("click", () => {
-    dlCalViewMonth = new Date(dlCalViewMonth.getFullYear(), dlCalViewMonth.getMonth()+1, 1);
-    render();
-  });
-
-  document.querySelectorAll("[data-dldate]").forEach(btn => {
-    btn.addEventListener("click", () => {
-      dlDate = btn.dataset.dldate;
-      dlCalOpen = false;
-      dlError = "";
-      render();
-    });
-  });
-
-  const scopeSel = document.getElementById("dl-scope");
-  if(scopeSel) scopeSel.addEventListener("change", (e) => {
-    dlScope = e.target.value === "all" ? "all" : e.target.value;
-    render();
-  });
-
-  const noteInput = document.getElementById("dl-note");
-  if(noteInput) noteInput.addEventListener("input", (e) => { dlNote = e.target.value; });
-
-  const addBtn = document.getElementById("dl-add");
-  if(addBtn) addBtn.addEventListener("click", agregarDiaLibre);
-
-  const removeBtn = document.getElementById("dl-remove");
-  if(removeBtn) removeBtn.addEventListener("click", () => {
-    const ed = excludedDates.find(e => e.date === dlDate && (dlScope === "all" ? e.groupId == null : String(e.groupId) === String(dlScope)));
-    if(ed) borrarDiaLibre(ed.id);
-  });
-
-  document.querySelectorAll("[data-dl-del]").forEach(btn => {
-    btn.addEventListener("click", () => borrarDiaLibre(btn.dataset.dlDel));
-  });
-}
-
-async function agregarDiaLibre(){
-  if(dlSaving) return;
-  const gid = dlScope === "all" ? null : dlScope;
-  const yaExiste = excludedDates.some(e => e.date === dlDate && (gid === null ? e.groupId == null : String(e.groupId) === String(gid)));
-  if(yaExiste){ dlError = "Ese día ya está marcado para ese alcance."; render(); return; }
-
-  dlSaving = true; dlError = ""; render();
-  try{
-    await sbInsert("excluded_dates", [{ date: dlDate, group_id: gid, reason: dlNote.trim() }]);
-    dlNote = "";
-    await loadAllData();
-  }catch(e){
-    dlError = "No se pudo guardar: " + e.message;
-  }
-  dlSaving = false;
-  render();
-}
-
-async function borrarDiaLibre(id){
-  try{
-    await sbDelete("excluded_dates", {id});
-    await loadAllData();
-  }catch(e){
-    dlError = "No se pudo eliminar: " + e.message;
-  }
-  render();
-}
-
 /* ============ INIT ============ */
 function showLoadingScreen(msg){
   document.getElementById("app").innerHTML = `<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;color:${GRAY};font-size:14px;text-align:center;padding:20px;">${msg || "Cargando sistema..."}</div>`;
@@ -3162,9 +3538,9 @@ function showFatalError(message){
 }
 
 async function loadAllData(){
-  const [gRows, aRows, sRows, atRows, acRows, trRows, taRows, wcRows, calRows, ttRows, edRows] = await Promise.all([
+  const [gRows, aRows, sRows, atRows, acRows, trRows, taRows, wcRows, calRows, ttRows] = await Promise.all([
     sbSelect("groups"), sbSelect("athletes"), sbSelect("sessions"), sbSelect("attendance"), sbSelect("access_config"),
-    sbSelect("trainers"), sbSelect("trainer_attendance"), sbSelect("weekly_checkins"), sbSelect("checkin_audit_log"), sbSelect("trainer_transport"), sbSelect("excluded_dates")
+    sbSelect("trainers"), sbSelect("trainer_attendance"), sbSelect("weekly_checkins"), sbSelect("checkin_audit_log"), sbSelect("trainer_transport")
   ]);
   groups = gRows.map(r => ({id:r.id, name:r.name, program:r.program}));
   athletes = aRows.map(mapAthlete);
@@ -3178,11 +3554,10 @@ async function loadAllData(){
     }
   }
   trainers = trRows.map(r => ({id:r.id, name:r.name}));
-  trainerAttendance = taRows.map(r => ({id:r.id, trainerId:r.trainer_id, date:r.date, present:r.present}));
+  trainerAttendance = taRows.map(mapTrainerAttendance);
   weeklyCheckins = wcRows.map(r => ({id:r.id, groupId:r.group_id, trainerCode:r.trainer_code, weekStart:r.week_start, q1:r.q1||"", q2:r.q2||"", q3:r.q3||"", q4:r.q4||"", q5:r.q5||"", q6:r.q6||"", sentToJefe:!!r.sent_to_jefe, sentAt:r.sent_at}));
   trainerTransport = ttRows.map(r => ({id:r.id, trainerCode:r.trainer_code, date:r.date, numTrainers:r.num_trainers}));
   checkinAuditLog = calRows.map(r => ({id:r.id, groupId:r.group_id, trainerCode:r.trainer_code, weekStart:r.week_start, action:r.action, q1:r.q1, q2:r.q2, q3:r.q3, q4:r.q4, q5:r.q5, q6:r.q6, changedAt:r.changed_at}));
-  excludedDates = edRows.map(r => ({id:r.id, groupId:r.group_id, date:r.date, reason:r.reason||""}));
 }
 
 async function init(){
