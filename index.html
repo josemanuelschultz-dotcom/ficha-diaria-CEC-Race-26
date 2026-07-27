@@ -161,6 +161,14 @@
   .migrupo-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
   .migrupo-row .btn-navy{white-space:nowrap;}
 
+  .dia-estado{margin:0 0 12px;padding:10px;border:1px dashed var(--border);border-radius:10px;}
+  .dia-estado-lbl{font-size:10px;text-transform:uppercase;letter-spacing:.04em;color:var(--gray);margin-bottom:7px;}
+  .dia-estado-lbl b{color:var(--navy);}
+  .dia-estado-btns{display:flex;gap:6px;flex-wrap:wrap;}
+  .dia-btn{flex:1;min-width:78px;padding:6px 8px;font-size:11px;font-weight:500;border:1px solid var(--border);border-radius:7px;background:white;color:var(--navy);cursor:pointer;}
+  .dia-btn.active{background:var(--navy);border-color:var(--navy);color:white;}
+  .dia-btn.del{flex:0 0 auto;min-width:0;color:#B3261E;border-color:#F0C4C4;}
+  .dia-btn.del:hover{background:#FDECEC;}
   .periodo-tabs{display:flex;gap:6px;margin-bottom:10px;}
   .periodo-tab{flex:1;padding:7px 8px;font-size:12px;font-weight:500;border:1px solid var(--border);border-radius:8px;background:white;color:var(--gray);cursor:pointer;}
   .periodo-tab.active{background:var(--navy);border-color:var(--navy);color:white;}
@@ -175,6 +183,12 @@
   .cal-leyenda .lg.att-full{background:#A5D6A7;} .cal-leyenda .lg.att-part{background:#FAC775;}
   .cal-leyenda .lg.att-none{background:#F09595;} .cal-leyenda .lg.att-libre{background:#CFD4DA;}
   .pct-periodos{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:10px;color:var(--gray);font-family:'JetBrains Mono',monospace;margin-top:3px;}
+  .pill.mini{padding:6px 8px;font-size:11px;font-weight:600;min-width:26px;}
+  .ind-leyenda{font-size:10px;color:var(--gray);margin:2px 0 10px;}
+  .ind-leyenda b{color:var(--navy);}
+  .pct-excluidos{font-size:10px;color:var(--gray);font-family:'JetBrains Mono',monospace;margin-top:3px;}
+  .obs-box{background:#FFFDF5;border:1px solid #F0E6C8;border-radius:12px;padding:12px;margin-bottom:16px;}
+  .exp-grid{display:flex;flex-wrap:wrap;gap:6px;}
   .exp-btn{border:1px solid var(--border);background:white;color:var(--navy);font-size:10px;padding:2px 8px;border-radius:5px;cursor:pointer;white-space:nowrap;}
   .exp-btn:hover{background:#F0F0F0;}
 
@@ -680,11 +694,12 @@ function groupsSortedByCategory(){
 }
 
 function athleteStats(athleteId, groupId){
-  const attRecs = attendance.filter(a => a.athleteId === athleteId);
+  const attRecs = attendance.filter(a => a.athleteId === athleteId
+    && (a.status === "present" || a.status === "absent"));
   const totalDays = attRecs.length;
-  const presentDays = attRecs.filter(a => a.present).length;
+  const presentDays = attRecs.filter(a => a.status === "present").length;
   const attendancePct = totalDays ? Math.round(presentDays/totalDays*100) : 0;
-  const presentDates = new Set(attRecs.filter(a=>a.present).map(a=>a.date));
+  const presentDates = new Set(attRecs.filter(a=>a.status==="present").map(a=>a.date));
   const credited = sessions.filter(s => s.groupId === groupId && presentDates.has(s.date));
   const cfg = configForGroup(groupId);
 
@@ -1028,7 +1043,7 @@ async function saveDay(){
   saving = true; render();
 
   try{
-    const attRows = groupAthletes().map(a => ({ athlete_id: a.id, group_id: selectedGroupId, date: selectedDate, present: !!attendanceState[a.id] }));
+    const attRows = groupAthletes().map(a => ({ athlete_id: a.id, group_id: selectedGroupId, date: selectedDate, present: !!attendanceState[a.id], status: attendanceState[a.id] ? "present" : "absent", period: classifyPeriod(selectedDate) }));
     if(attRows.length){
       const savedAtt = await sbInsert("attendance", attRows, {onConflict:"athlete_id,date", merge:true});
       const savedAttArr = Array.isArray(savedAtt) ? savedAtt : [savedAtt];
@@ -1128,12 +1143,12 @@ async function saveTrainerAttendance(){
   trainerSaveError = "";
   trainerSaving = true; render();
   try{
-    const rows = trainers.map(t => ({ trainer_id: t.id, date: trainerAttDate, present: !!trainerAttendanceState[t.id] }));
+    const rows = trainers.map(t => ({ trainer_id: t.id, date: trainerAttDate, present: !!trainerAttendanceState[t.id], status: trainerAttendanceState[t.id] ? "present" : "absent", period: classifyPeriod(trainerAttDate) }));
     if(rows.length){
       const saved = await sbInsert("trainer_attendance", rows, {onConflict:"trainer_id,date", merge:true});
       const savedArr = Array.isArray(saved) ? saved : [saved];
       savedArr.forEach(row => {
-        const mapped = {id:row.id, trainerId:row.trainer_id, date:row.date, present:row.present};
+        const mapped = mapTrainerAttendance(row);
         const idx = trainerAttendance.findIndex(x => x.trainerId===mapped.trainerId && x.date===mapped.date);
         if(idx>=0) trainerAttendance[idx]=mapped; else trainerAttendance.push(mapped);
       });
@@ -1146,9 +1161,11 @@ async function saveTrainerAttendance(){
   render();
 }
 function trainerStats(trainerId){
-  const recs = trainerAttendance.filter(r => r.trainerId === trainerId);
+  // Los dias libres y sin entrenamiento NO entran en el total
+  const recs = trainerAttendance.filter(r => r.trainerId === trainerId
+    && (r.status === "present" || r.status === "absent"));
   const total = recs.length;
-  const present = recs.filter(r => r.present).length;
+  const present = recs.filter(r => r.status === "present").length;
   return { total, present, pct: total ? Math.round((present/total)*100) : 0 };
 }
 
@@ -1263,17 +1280,23 @@ function renderTrainersTab(){
     <span><i class="lg att-none"></i>Nadie</span>
     <span><i class="lg att-libre"></i>Libre / sin entren.</span>
   </div>`;
+  html += estadoDiaHTML();
   html += `<div class="card">`;
 
   if(!trainers.length){
     html += `<div style="font-size:13px;color:${GRAY};text-align:center;padding:12px 0;">Aún no hay entrenadores registrados.</div>`;
   } else {
+    const diaNoCuenta = ["free_day","no_training"].includes(estadoDelDia(trainerAttDate));
     trainers.forEach(t => {
       const present = trainerAttendanceState[t.id];
-      html += `<div style="display:flex;align-items:center;gap:8px;padding:10px;border-radius:8px;background:#F7FAFC;margin-bottom:8px;">
+      const est = estadoEntrenador(t.id);
+      const indiv = (est === "free_day" || est === "no_training") ? est : null;
+      html += `<div style="display:flex;align-items:center;gap:6px;padding:10px;border-radius:8px;background:#F7FAFC;margin-bottom:8px;${diaNoCuenta?"opacity:.45;":""}">
         <span style="flex:1;font-size:14px;font-weight:500;color:${NAVY};">${escapeHtml(t.name)}</span>
         <button class="pill" data-tatt="${t.id}" data-present="true" style="${present?`background:${GREEN};color:white;border-color:${GREEN};`:""}padding:6px 10px;font-size:12px;">✓ Presente</button>
-        <button class="pill" data-tatt="${t.id}" data-present="false" style="${!present?`background:${RED};color:white;border-color:${RED};`:""}padding:6px 10px;font-size:12px;">✕ Ausente</button>
+        <button class="pill" data-tatt="${t.id}" data-present="false" style="${(!present&&!indiv)?`background:${RED};color:white;border-color:${RED};`:""}padding:6px 10px;font-size:12px;">✕ Ausente</button>
+        <button class="pill mini" data-tlibre="${t.id}" data-estado="free_day" title="Día libre solo para este entrenador" style="${indiv==="free_day"?`background:${GRAY};color:white;border-color:${GRAY};`:""}">L</button>
+        <button class="pill mini" data-tlibre="${t.id}" data-estado="no_training" title="Sin entrenamiento solo para este entrenador" style="${indiv==="no_training"?`background:${BLUE};color:white;border-color:${BLUE};`:""}">S</button>
         <span style="cursor:pointer;color:${GRAY};" data-remove-trainer="${t.id}">🗑️</span>
       </div>`;
     });
@@ -1295,22 +1318,36 @@ function renderTrainersTab(){
   </div>`;
 
   if(trainers.length){
+    const bloque = (titulo, sub, periodo, color) => {
+      let h = `<div class="card">
+        <div class="section-label"><div class="gate-poles"><span></span><span></span></div><span class="title">${titulo}</span></div>
+        <div style="font-size:11px;color:${GRAY};margin:-6px 0 12px;">${sub}</div>`;
+      const filas = trainers.map(t => ({
+        t, st: calculateAttendanceStats(trainerAttendance.filter(a => a.trainerId===t.id && a.period===periodo))
+      })).sort((a,b) => b.st.percent - a.st.percent);
+      if(!filas.some(f => f.st.countable)){
+        h += `<div style="font-size:12px;color:${GRAY};text-align:center;padding:10px 0;">Sin registros en este período.</div>`;
+      } else {
+        filas.forEach(({t, st}) => {
+          h += `<div class="pctbar-row">
+            <div class="pctbar-top"><span>${escapeHtml(t.name)}</span><span style="font-family:'JetBrains Mono',monospace;font-weight:600;color:${NAVY};">${st.countable ? `${st.percent}% (${st.present}/${st.countable})` : "—"}</span></div>
+            <div class="pctbar-track"><div class="pctbar-fill" style="width:${st.percent}%;background:${color};"></div></div>
+            ${st.free+st.noTrain ? `<div class="pct-excluidos">${st.free+st.noTrain} día${st.free+st.noTrain===1?"":"s"} sin contar</div>` : ""}
+          </div>`;
+        });
+      }
+      return h + `</div>`;
+    };
+    html += bloque("% Asistencia · Pre temporada", "30 de junio al 17 de julio", "pre_temporada", GOLD);
+    html += bloque("% Asistencia · En pistas", "Desde el 19 de julio", "temporada_26", GREEN);
+
     html += `<div class="card">
-      <div class="section-label"><div class="gate-poles"><span></span><span></span></div><span class="title">% Asistencia por entrenador</span></div>`;
-    trainers.forEach(t => {
-      const st = trainerStats(t.id);
-      const pre = calculateAttendanceStats(trainerAttendance.filter(a=>a.trainerId===t.id&&a.period==="pre_temporada"));
-      const tem = calculateAttendanceStats(trainerAttendance.filter(a=>a.trainerId===t.id&&a.period==="temporada_26"));
-      html += `<div class="pctbar-row">
-        <div class="pctbar-top"><span>${escapeHtml(t.name)}</span><span style="font-family:'JetBrains Mono',monospace;font-weight:600;color:${NAVY};">${st.pct}% (${st.present}/${st.total})</span></div>
-        <div class="pctbar-track"><div class="pctbar-fill" style="width:${st.pct}%;background:${GREEN};"></div></div>
-        <div class="pct-periodos">
-          <span>Pre ${pre.percent}% (${pre.present}/${pre.countable}) · T26 ${tem.percent}% (${tem.present}/${tem.countable})</span>
-          <button type="button" class="exp-btn" data-export-trainer="${t.id}" title="Exportar a Excel"><span>Exportar</span></button>
-        </div>
-      </div>`;
-    });
-    html += `</div>`;
+      <div class="section-label"><div class="gate-poles"><span></span><span></span></div><span class="title">Exportar por entrenador</span></div>
+      <div class="exp-grid">
+        ${trainers.map(t => `<button type="button" class="exp-btn" data-export-trainer="${t.id}">${escapeHtml(t.name)}</button>`).join("")}
+      </div>
+      <div style="font-size:11px;color:${GRAY};margin-top:8px;">Descarga el Excel del período activo: <b>${periodLabel(filterPeriod)}</b>.</div>
+    </div>`;
   }
 
   return html;
@@ -2271,7 +2308,7 @@ function renderDailyTab(){
     <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">`;
 
   if(authState.level === "master"){
-    html += `<select id="daily-group-select">${groupsForProgram(currentProgram).map(g => `<option value="${g.id}" ${g.id===selectedGroupId?"selected":""}>${escapeHtml(g.name)}</option>`).join("")}</select>`;
+    html += `<select id="daily-group-select">${groupsSortedByCategory().map(g => `<option value="${g.id}" ${g.id===selectedGroupId?"selected":""}>${g.program} · ${escapeHtml(g.name)}</option>`).join("")}</select>`;
   } else {
     html += `<div class="cat-fixed">${authState.program} · ${authState.category}</div>`;
   }
@@ -2397,7 +2434,7 @@ function renderProfileTab(){
   let html = `<div class="card">
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;">`;
   if(authState.level === "master"){
-    html += `<select id="profile-group-select">${groupsForProgram(currentProgram).map(g => `<option value="${g.id}" ${g.id===selectedGroupId?"selected":""}>${escapeHtml(g.name)}</option>`).join("")}</select>`;
+    html += `<select id="profile-group-select">${groupsSortedByCategory().map(g => `<option value="${g.id}" ${g.id===selectedGroupId?"selected":""}>${g.program} · ${escapeHtml(g.name)}</option>`).join("")}</select>`;
   }
   const gAthletes = groupAthletes();
   html += `<select id="profile-athlete-select">${gAthletes.map(a => `<option value="${a.id}" ${a.id===profileAthleteId?"selected":""}>${escapeHtml(a.name)}</option>`).join("")}</select>`;
@@ -2423,7 +2460,11 @@ function renderProfileTab(){
       <div><b>Medicamentos:</b> ${escapeHtml(m.medicamentos)||"—"}</div>
       <div><b>Otros:</b> ${escapeHtml(m.otros)||"—"}</div>
     </div>
-    <div style="font-size:11px;color:${GRAY};margin-top:8px;">Para editar estos datos, ve a la pestaña "Grupos".</div>
+    <div style="font-size:11px;color:${GRAY};margin-top:8px;">Para editar los datos médicos, ve a la pestaña "Grupos".</div>
+  </div>`;
+
+  html += `<div class="obs-box">
+    ${athleteNotaFieldHTML(profileAthlete)}
   </div>`;
 
   const cfg = configForGroup(selectedGroupId);
@@ -2748,6 +2789,109 @@ async function processImportData(data){
 }
 
 
+
+
+async function marcarEntrenadorDia(trainerId, estado){
+  const fecha = trainerAttDate, periodo = classifyPeriod(fecha);
+  trainerSaveError = ""; trainerSaving = true; render();
+  try{
+    const ex = trainerAttendance.find(r => r.trainerId === trainerId && r.date === fecha);
+    if(ex){
+      await sbUpdate("trainer_attendance", { id: ex.id }, { status: estado, period: periodo });
+      ex.status = estado; ex.period = periodo;
+    } else {
+      const row = await sbInsert("trainer_attendance",
+        { trainer_id: trainerId, date: fecha, present: estado === "present", status: estado, period: periodo },
+        { onConflict: "trainer_id,date", merge: true });
+      trainerAttendance.push(mapTrainerAttendance(Array.isArray(row) ? row[0] : row));
+    }
+    if(estado === "present" || estado === "absent") trainerAttendanceState[trainerId] = estado === "present";
+  }catch(e){
+    trainerSaveError = `No se pudo cambiar el estado de ese entrenador. Detalle: ${e.message}.`;
+  }
+  trainerSaving = false; render();
+}
+
+function estadoEntrenador(trainerId){
+  const r = trainerAttendance.find(x => x.trainerId === trainerId && x.date === trainerAttDate);
+  return r ? r.status : null;
+}
+
+/* ============ ESTADO DEL DIA (libre / sin entrenamiento) ============ */
+function estadoDelDia(fecha){
+  const rows = trainerAttendance.filter(r => r.date === fecha);
+  if(!rows.length) return "vacio";
+  if(rows.every(r => r.status === "free_day"))    return "free_day";
+  if(rows.every(r => r.status === "no_training")) return "no_training";
+  return "normal";
+}
+
+async function marcarDia(nuevoEstado){
+  const fecha = trainerAttDate;
+  const periodo = classifyPeriod(fecha);
+  trainerSaveError = ""; trainerSaving = true; render();
+  try{
+    const existentes = trainerAttendance.filter(r => r.date === fecha);
+    if(existentes.length){
+      const patch = nuevoEstado === "normal"
+        ? null
+        : { status: nuevoEstado, period: periodo };
+      if(patch){
+        await sbUpdate("trainer_attendance", { date: fecha }, patch);
+        existentes.forEach(r => { r.status = nuevoEstado; r.period = periodo; });
+      } else {
+        for(const r of existentes){
+          const st = r.present ? "present" : "absent";
+          await sbUpdate("trainer_attendance", { id: r.id }, { status: st, period: periodo });
+          r.status = st; r.period = periodo;
+        }
+      }
+    } else if(nuevoEstado !== "normal"){
+      const rows = trainers.map(t => ({ trainer_id: t.id, date: fecha, present: false, status: nuevoEstado, period: periodo }));
+      if(rows.length){
+        const saved = await sbInsert("trainer_attendance", rows, {onConflict:"trainer_id,date", merge:true});
+        (Array.isArray(saved)?saved:[saved]).forEach(row => trainerAttendance.push(mapTrainerAttendance(row)));
+      }
+    }
+    trainerJustSaved = true;
+  }catch(e){
+    trainerSaveError = `No se pudo cambiar el estado del día. Detalle: ${e.message}.`;
+  }
+  trainerSaving = false; render();
+}
+
+async function borrarDia(){
+  const fecha = trainerAttDate;
+  const n = trainerAttendance.filter(r => r.date === fecha).length;
+  if(!n) return;
+  if(!confirm(`¿Borrar los ${n} registros de asistencia del ${formatFechaLarga(fecha)}? No se puede deshacer.`)) return;
+  trainerSaveError = ""; trainerSaving = true; render();
+  try{
+    await sbDelete("trainer_attendance", { date: fecha });
+    trainerAttendance = trainerAttendance.filter(r => r.date !== fecha);
+  }catch(e){
+    trainerSaveError = `No se pudo borrar. Detalle: ${e.message}.`;
+  }
+  trainerSaving = false; render();
+}
+
+function estadoDiaHTML(){
+  const est = estadoDelDia(trainerAttDate);
+  const n = trainerAttendance.filter(r => r.date === trainerAttDate).length;
+  const opciones = [
+    ["normal","Normal"],
+    ["free_day","Día libre"],
+    ["no_training","Sin entrenamiento"],
+  ];
+  return `<div class="dia-estado">
+    <div class="dia-estado-lbl">Estado del día${est==="free_day"||est==="no_training"?` · <b>no cuenta en el %</b>`:""}</div>
+    <div class="dia-estado-btns">
+      ${opciones.map(([v,l]) => `<button type="button" class="dia-btn${est===v?" active":""}" data-dia-estado="${v}">${l}</button>`).join("")}
+      ${n ? `<button type="button" class="dia-btn del" data-dia-borrar="1" title="Borrar registros del día">Borrar</button>` : ""}
+    </div>
+  </div>`;
+}
+
 /* ============ TRANSPORTE: ACCIONES DEL JEFE ============ */
 async function adjustTransport(id, delta){
   const rec = trainerTransport.find(t => t.id === id);
@@ -3012,6 +3156,20 @@ function attachExtraHandlers(){
   document.querySelectorAll("[data-export-trainer]").forEach(b =>
     b.addEventListener("click", () => generateExcelReport(filterPeriod, "trainer", b.dataset.exportTrainer)));
 
+  // --- Estado del dia: libre / sin entrenamiento / borrar ---
+  document.querySelectorAll("[data-dia-estado]").forEach(b =>
+    b.addEventListener("click", () => marcarDia(b.dataset.diaEstado)));
+  const diaDel = document.querySelector("[data-dia-borrar]");
+  if(diaDel) diaDel.addEventListener("click", borrarDia);
+
+  // --- Dia libre individual por entrenador ---
+  document.querySelectorAll("[data-tlibre]").forEach(b =>
+    b.addEventListener("click", () => {
+      const actual = estadoEntrenador(b.dataset.tlibre);
+      const destino = actual === b.dataset.estado ? "absent" : b.dataset.estado;
+      marcarEntrenadorDia(b.dataset.tlibre, destino);
+    }));
+
   // --- Notas por atleta ---
   document.querySelectorAll("[data-nota-athlete]").forEach(ta => {
     ta.addEventListener("input", e => { athleteNotas[ta.dataset.notaAthlete] = e.target.value; });
@@ -3103,7 +3261,12 @@ function initTrazadoCanvas(canvas, sessionNum){
 
 function attachDailyTabHandlers(){
   const groupSelect = document.getElementById("daily-group-select");
-  if(groupSelect) groupSelect.addEventListener("change", (e) => { selectedGroupId = e.target.value; initDailyForm(); render(); });
+  if(groupSelect) groupSelect.addEventListener("change", (e) => {
+    selectedGroupId = e.target.value;
+    const g = groups.find(x => x.id === selectedGroupId);
+    if(g) currentProgram = g.program;
+    initDailyForm(); render();
+  });
 
   const calToggleBtn = document.getElementById("cal-toggle-btn");
   if(calToggleBtn) calToggleBtn.addEventListener("click", () => { calendarOpen = !calendarOpen; render(); });
