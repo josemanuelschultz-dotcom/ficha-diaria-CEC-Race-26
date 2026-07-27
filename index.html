@@ -158,6 +158,9 @@
   .trip-leg-item{display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--gray);}
   .trip-leg-item i{width:11px;height:11px;border-radius:3px;display:inline-block;}
 
+  .migrupo-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+  .migrupo-row .btn-navy{white-space:nowrap;}
+
   /* NOTAS DE ATLETA */
   .nota-box{margin-top:10px;}
   .nota-box label{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--gray);margin-bottom:5px;}
@@ -622,6 +625,8 @@ let auditFilter = { type: "", id: "", date: "" };
 let alertsData = { lowAttendance: [], noTraining: [], consecutive: [] };
 let attendanceAuditLog = [];
 let transportAdminError = "";
+const K_MIGRUPO = "cec26_jefe_migrupo";
+let jefeMiGrupo = lsGet(K_MIGRUPO, { program: "Race", category: "U12" });
 let athleteNotas = {};   // athleteId -> texto
 let notasSaving = {};    // athleteId -> bool
 
@@ -1226,6 +1231,19 @@ function renderTrainersTab(){
     </div>
   </div>`;
   
+  // ATAJO A MI PROPIO GRUPO (sin cambiar de usuario)
+  const miG = groups.find(g => g.program === jefeMiGrupo.program && g.name === jefeMiGrupo.category);
+  html += `<div class="card">
+    <div class="section-label"><div class="gate-poles"><span></span><span></span></div><span class="title">Mi grupo</span></div>
+    <div class="migrupo-row">
+      <select class="filter-select" id="migrupo-select" style="flex:1;">
+        ${groups.map(g => `<option value="${g.id}" ${miG && g.id===miG.id ? "selected":""}>${g.program} · ${escapeHtml(g.name)}</option>`).join("")}
+      </select>
+      <button class="btn-navy" id="migrupo-ir">Abrir registro →</button>
+    </div>
+    <div style="font-size:11px;color:${GRAY};margin-top:8px;">Abre la ficha diaria de ese grupo sin cerrar sesión de jefe.</div>
+  </div>`;
+
   if(!filterAthlete){
     // VISTA DE ENTRENADORES
   html += `<div class="card">
@@ -2037,11 +2055,21 @@ function renderTransportTab(){
   return html;
 }
 
+function allTrainerCodes(){
+  const set = new Set();
+  const cc = (accessConfig && accessConfig.categoryCodes) || {};
+  Object.values(cc).forEach(cats => Object.values(cats || {}).forEach(arr =>
+    (arr || []).forEach(c => { if(c) set.add(c); })));
+  Object.keys(COORDINATOR_MAP || {}).forEach(c => set.add(c));
+  trainerTransport.forEach(t => { if(t.trainerCode) set.add(t.trainerCode); });
+  return Array.from(set).sort((a,b)=>a.localeCompare(b));
+}
+
 function renderTransportAdminView(){
   const dayEntries = trainerTransport.filter(t => t.date === adminTransportDate)
     .sort((a,b)=> a.trainerCode.localeCompare(b.trainerCode));
   const registrados = new Set(dayEntries.map(t => t.trainerCode));
-  const faltantes = COORDINATOR_CODES.filter(c => !registrados.has(c)).sort();
+  const faltantes = allTrainerCodes().filter(c => !registrados.has(c));
 
   let html = `<div class="card">
     <div class="section-label"><div class="gate-poles"><span></span><span></span></div><span class="title">Transporte — resumen diario</span></div>
@@ -2049,7 +2077,11 @@ function renderTransportAdminView(){
   html += adminTransportCalendarCardHTML();
 
   if(!dayEntries.length){
-    html += `<div style="font-size:13px;color:${GRAY};text-align:center;padding:16px 0;">Nadie registró uso de transporte este día.</div>`;
+    const conDatos = Array.from(new Set(trainerTransport.map(t=>t.date))).sort();
+    const ultimo = conDatos.length ? conDatos[conDatos.length-1] : null;
+    html += `<div style="font-size:13px;color:${GRAY};text-align:center;padding:16px 0;">Nadie registró uso de transporte este día.
+      ${ultimo && ultimo!==adminTransportDate ? `<br><button class="filter-btn" id="tt-goto-last" style="margin-top:10px;">Ir al último día con registros (${formatFechaLarga(ultimo)})</button>` : ""}
+    </div>`;
   } else {
     const totalTrainers = dayEntries.reduce((s,t)=>s+(t.numTrainers||0),0);
     html += `<div class="total-box" style="margin-bottom:14px;"><span class="lbl">Total entrenadores transportados</span><span class="val">${totalTrainers}</span></div>`;
@@ -3215,6 +3247,28 @@ function attachSetupTabHandlers(){
     addTransport(code, num);
   });
 
+  // --- Ir al ultimo dia con transporte ---
+  const ttGoto = document.getElementById("tt-goto-last");
+  if(ttGoto) ttGoto.addEventListener("click", () => {
+    const c = Array.from(new Set(trainerTransport.map(t=>t.date))).sort();
+    if(c.length){ adminTransportDate = c[c.length-1]; render(); }
+  });
+
+  // --- Atajo a mi grupo (jefe) ---
+  const miGrupoIr = document.getElementById("migrupo-ir");
+  if(miGrupoIr) miGrupoIr.addEventListener("click", () => {
+    const gid = document.getElementById("migrupo-select").value;
+    const g = groups.find(x => x.id === gid);
+    if(!g) return;
+    jefeMiGrupo = { program: g.program, category: g.name };
+    lsSet(K_MIGRUPO, jefeMiGrupo);
+    currentProgram = g.program;
+    selectedGroupId = g.id;
+    tab = "daily";
+    initDailyForm();
+    render();
+  });
+
   // --- Notas por atleta ---
   document.querySelectorAll("[data-nota-athlete]").forEach(ta => {
     ta.addEventListener("input", e => { athleteNotas[ta.dataset.notaAthlete] = e.target.value; });
@@ -3557,6 +3611,10 @@ async function loadAllData(){
   trainerAttendance = taRows.map(mapTrainerAttendance);
   weeklyCheckins = wcRows.map(r => ({id:r.id, groupId:r.group_id, trainerCode:r.trainer_code, weekStart:r.week_start, q1:r.q1||"", q2:r.q2||"", q3:r.q3||"", q4:r.q4||"", q5:r.q5||"", q6:r.q6||"", sentToJefe:!!r.sent_to_jefe, sentAt:r.sent_at}));
   trainerTransport = ttRows.map(r => ({id:r.id, trainerCode:r.trainer_code, date:r.date, numTrainers:r.num_trainers}));
+  // Abrir la vista de transporte en el ultimo dia con registros (si hoy no tiene)
+  if(!trainerTransport.some(t => t.date === adminTransportDate) && trainerTransport.length){
+    adminTransportDate = trainerTransport.map(t => t.date).sort().slice(-1)[0];
+  }
   checkinAuditLog = calRows.map(r => ({id:r.id, groupId:r.group_id, trainerCode:r.trainer_code, weekStart:r.week_start, action:r.action, q1:r.q1, q2:r.q2, q3:r.q3, q4:r.q4, q5:r.q5, q6:r.q6, changedAt:r.changed_at}));
 }
 
