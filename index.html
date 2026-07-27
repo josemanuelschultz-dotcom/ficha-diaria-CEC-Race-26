@@ -161,6 +161,8 @@
   .migrupo-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
   .migrupo-row .btn-navy{white-space:nowrap;}
 
+  .pct-periodos{font-size:10px;color:var(--gray);font-family:'JetBrains Mono',monospace;margin-top:3px;}
+
   /* NOTAS DE ATLETA */
   .nota-box{margin-top:10px;}
   .nota-box label{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--gray);margin-bottom:5px;}
@@ -1216,116 +1218,19 @@ function trainerCalendarBodyHTML(){
 }
 
 function renderTrainersTab(){
-  calculateAlerts();
-  
   let html = `<div class="card">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
-      <div>
-        <div class="section-label"><div class="gate-poles"><span></span><span></span></div><span class="title">Gestión de Asistencia</span></div>
-        <div style="font-size:12px;color:${GRAY};">Solo visible para el jefe de entrenadores. Gestiona la asistencia por período.</div>
-      </div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;">
-        <button class="filter-btn ${!filterAthlete ? "clear" : ""}" onclick="filterAthlete='';render();">👥 Entrenadores</button>
-        <button class="filter-btn ${filterAthlete ? "clear" : ""}" onclick="filterAthlete='grupos';render();">🏃 Atletas</button>
-      </div>
-    </div>
-  </div>`;
-  
-  // ATAJO A MI PROPIO GRUPO (sin cambiar de usuario)
-  const miG = groups.find(g => g.program === jefeMiGrupo.program && g.name === jefeMiGrupo.category);
-  html += `<div class="card">
-    <div class="section-label"><div class="gate-poles"><span></span><span></span></div><span class="title">Mi grupo</span></div>
+    <div class="section-label"><div class="gate-poles"><span></span><span></span></div><span class="title">Asistencia de entrenadores</span></div>
+    <div style="font-size:12px;color:${GRAY};margin-bottom:10px;">Solo visible para el jefe de entrenadores.</div>
     <div class="migrupo-row">
       <select class="filter-select" id="migrupo-select" style="flex:1;">
-        ${groups.map(g => `<option value="${g.id}" ${miG && g.id===miG.id ? "selected":""}>${g.program} · ${escapeHtml(g.name)}</option>`).join("")}
+        ${groups.map(g => `<option value="${g.id}" ${jefeMiGrupo && g.program===jefeMiGrupo.program && g.name===jefeMiGrupo.category ? "selected":""}>${g.program} · ${escapeHtml(g.name)}</option>`).join("")}
       </select>
       <button class="btn-navy" id="migrupo-ir">Abrir registro →</button>
     </div>
-    <div style="font-size:11px;color:${GRAY};margin-top:8px;">Abre la ficha diaria de ese grupo sin cerrar sesión de jefe.</div>
-  </div>`;
+    </div>`;
+  html += trainerCalendarCardHTML();
+  html += `<div class="card">`;
 
-  if(!filterAthlete){
-    // VISTA DE ENTRENADORES
-  html += `<div class="card">
-    <div class="section-label"><div class="gate-poles"><span></span><span></span></div><span class="title">Asistencia de entrenadores</span></div>
-    <div style="font-size:12px;color:${GRAY};margin-bottom:16px;">Período actual: ${filterPeriod || "Todos"}</div>
-    
-    <!-- DASHBOARD KPIs -->
-    <div class="dashboard-kpis">`;
-  
-  const allStats = calculateAttendanceStats(trainerAttendance);
-  const preStats = calculateAttendanceStats(trainerAttendance.filter(t => t.period === "pre_temporada"));
-  const tempStats = calculateAttendanceStats(trainerAttendance.filter(t => t.period === "temporada_26"));
-  
-  html += `
-      <div class="kpi-card">
-        <div class="kpi-label">PRE TEMPORADA</div>
-        <div class="kpi-value">${preStats.percent}%</div>
-        <div class="kpi-sub">${preStats.present}/${preStats.countable} presentes</div>
-      </div>
-      <div class="kpi-card success-kpi">
-        <div class="kpi-label">TEMPORADA 26</div>
-        <div class="kpi-value">${tempStats.percent}%</div>
-        <div class="kpi-sub">${tempStats.present}/${tempStats.countable} presentes</div>
-      </div>
-      <div class="kpi-card ${alertsData.lowAttendance.length > 0 ? "alert-kpi" : ""}">
-        <div class="kpi-label">CON ALERTA</div>
-        <div class="kpi-value">${alertsData.lowAttendance.length}</div>
-        <div class="kpi-sub">Baja asistencia</div>
-      </div>
-    </div>
-    
-    <!-- ALERTAS -->
-    ${alertsData.lowAttendance.length > 0 ? `<div class="alert-banner">
-      ⚠️ ${alertsData.lowAttendance.length} entrenador(es) con asistencia &lt; 80%
-    </div>` : ""}
-    
-    <!-- FILTROS -->
-    <div class="filter-bar">
-      <div class="filter-title">Filtros</div>
-      <div class="filter-row">
-        <select class="filter-select" id="filter-period-select">
-          <option value="">Todos los períodos</option>
-          <option value="pre_temporada" ${filterPeriod === "pre_temporada" ? "selected" : ""}>Pre Temporada (hasta 17)</option>
-          <option value="temporada_26" ${filterPeriod === "temporada_26" ? "selected" : ""}>Temporada 26 (desde 19)</option>
-        </select>
-        <select class="filter-select" id="filter-trainer-select">
-          <option value="">Todos los entrenadores</option>
-          ${trainers.map(t => `<option value="${t.id}" ${filterTrainer === t.id ? "selected" : ""}>${escapeHtml(t.name)}</option>`).join("")}
-        </select>
-        <button class="filter-btn clear" onclick="filterPeriod='';filterTrainer='';render();">Limpiar</button>
-      </div>
-    </div>
-    
-    <!-- IMPORTAR DATOS -->
-    <div class="card" style="margin-top:12px;">
-      <div class="section-label"><div class="gate-poles"><span></span><span></span></div><span class="title">📥 Importar datos</span></div>
-      <div class="file-input-wrap">
-        <input type="file" id="import-file" accept=".xlsx,.xls,.csv" onchange="handleFileImport(event)" />
-        <label class="file-input-label" for="import-file">📤 Seleccionar archivo Excel</label>
-      </div>
-    </div>
-  </div>`;
-  
-  // CALENDARIOS POR PERÍODO
-  html += `<div class="card">
-    <div class="period-tabs">
-      <div class="period-tab ${filterPeriod !== "temporada_26" ? "active" : ""}" onclick="filterPeriod='pre_temporada';render();">
-        🔴 PRE TEMPORADA (hasta 17)
-      </div>
-      <div class="period-tab ${filterPeriod === "temporada_26" ? "active" : ""}" onclick="filterPeriod='temporada_26';render();">
-        🟢 TEMPORADA 26 (desde 19)
-      </div>
-    </div>
-    
-    <div style="margin-bottom:20px;">
-      ${renderTrainerAttendanceCalendar(filterPeriod || "pre_temporada")}
-    </div>
-  </div>`;
-  
-  // MARCAR ASISTENCIA DEL DÍA (restaurado)
-  html += `<div class="card">
-    <div class="section-label"><div class="gate-poles"><span></span><span></span></div><span class="title">Marcar asistencia — ${formatFechaLarga(selectedDate)}</span></div>`;
   if(!trainers.length){
     html += `<div style="font-size:13px;color:${GRAY};text-align:center;padding:12px 0;">Aún no hay entrenadores registrados.</div>`;
   } else {
@@ -1338,202 +1243,42 @@ function renderTrainersTab(){
         <span style="cursor:pointer;color:${GRAY};" data-remove-trainer="${t.id}">🗑️</span>
       </div>`;
     });
-    if(trainerSaveError) html += `<div class="error-box">${escapeHtml(trainerSaveError)}</div>`;
-    html += `<button class="save-btn" id="save-trainer-att-btn">${trainerSaving? "Guardando...":"✓ Guardar asistencia"}</button>`;
-    if(trainerJustSaved) html += `<div class="info-box" style="margin-top:10px;">Asistencia guardada.</div>`;
   }
-  html += `<div style="display:flex;gap:8px;margin-top:14px;">
-      <input type="text" id="new-trainer-name" placeholder="Nombre del entrenador" value="${escapeHtml(newTrainerName)}" style="flex:1;" />
-      <button class="btn-navy" id="add-trainer-btn" style="background:${RED};">➕</button>
-    </div>`;
+
+  if(trainerSaveError) html += `<div class="error-box">${escapeHtml(trainerSaveError)}</div>`;
+  html += `<button class="save-btn" id="save-trainer-att-btn">${trainerSaving? "Guardando...":"✓ Guardar asistencia"}</button>`;
+  if(trainerJustSaved){
+    html += `<div class="info-box" style="margin-top:10px;">Asistencia guardada.</div>`;
+  }
   html += `</div>`;
 
-  // DETALLE POR ENTRENADOR
+  html += `<div class="card">
+    <div class="section-label"><div class="gate-poles"><span></span><span></span></div><span class="title">Agregar entrenador</span></div>
+    <div style="display:flex;gap:8px;">
+      <input type="text" id="new-trainer-name" placeholder="Nombre del entrenador" value="${escapeHtml(newTrainerName)}" style="flex:1;" />
+      <button class="btn-navy" id="add-trainer-btn" style="background:${RED};">➕</button>
+    </div>
+  </div>`;
+
   if(trainers.length){
     html += `<div class="card">
-      <div class="section-label"><div class="gate-poles"><span></span><span></span></div><span class="title">Asistencia por entrenador</span></div>`;
-    
+      <div class="section-label"><div class="gate-poles"><span></span><span></span></div><span class="title">% Asistencia por entrenador</span></div>`;
     trainers.forEach(t => {
-      const stats = calculateAttendanceStats(trainerAttendance.filter(ta => ta.trainerId === t.id));
-      const preStats = calculateAttendanceStats(trainerAttendance.filter(ta => ta.trainerId === t.id && ta.period === "pre_temporada"));
-      const tempStats = calculateAttendanceStats(trainerAttendance.filter(ta => ta.trainerId === t.id && ta.period === "temporada_26"));
-      
-      const alertClass = stats.percent < 80 && stats.countable > 0 ? "alert-badge" : "";
-      
-      html += `<div style="padding:12px;background:#F7FAFC;border-radius:10px;margin-bottom:10px;border-left:4px solid ${stats.percent >= 80 ? GREEN : RED};">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-          <span style="font-weight:600;color:${NAVY};">${escapeHtml(t.name)}</span>
-          <span class="${alertClass}">${stats.percent}%</span>
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:11px;">
-          <div>📍 Pre: ${preStats.percent}% (${preStats.present}/${preStats.countable})</div>
-          <div>🏁 Temp: ${tempStats.percent}% (${tempStats.present}/${tempStats.countable})</div>
-        </div>
-        <button class="btn-outline" onclick="generateExcelReport('all', 'trainer', '${t.id}')" style="width:100%;margin-top:8px;font-size:11px;">
-          📊 Exportar reporte
-        </button>
+      const st = trainerStats(t.id);
+      const pre = calculateAttendanceStats(trainerAttendance.filter(a=>a.trainerId===t.id&&a.period==="pre_temporada"));
+      const tem = calculateAttendanceStats(trainerAttendance.filter(a=>a.trainerId===t.id&&a.period==="temporada_26"));
+      html += `<div class="pctbar-row">
+        <div class="pctbar-top"><span>${escapeHtml(t.name)}</span><span style="font-family:'JetBrains Mono',monospace;font-weight:600;color:${NAVY};">${st.pct}% (${st.present}/${st.total})</span></div>
+        <div class="pctbar-track"><div class="pctbar-fill" style="width:${st.pct}%;background:${GREEN};"></div></div>
+        <div class="pct-periodos">Pre ${pre.percent}% · T26 ${tem.percent}%</div>
       </div>`;
     });
-    
     html += `</div>`;
   }
-  
-  // HISTORIAL DE CAMBIOS
-  if(attendanceAuditLog.length > 0){
-    html += `<div class="card">
-      <div class="section-label"><div class="gate-poles"><span></span><span></span></div><span class="title">📋 Historial de cambios</span></div>
-      <div class="history-list">`;
-      
-      attendanceAuditLog.slice(-20).reverse().forEach(log => {
-        const date = new Date(log.changedAt);
-        const timeStr = date.toLocaleTimeString("es-ES", { hour:"2-digit", minute:"2-digit" });
-        html += `<div class="history-item">
-          <div class="history-time">${date.toLocaleDateString()} ${timeStr}</div>
-          <div class="history-change">
-            ${log.type === "trainer" ? "Entrenador" : "Atleta"}: 
-            ${escapeHtml(log.oldStatus)} → ${getDayEditStatusLabel(log.newStatus)} · ${escapeHtml(log.date)}
-          </div>
-        </div>`;
-      });
-      
-      html += `</div></div>`;
-    }
-  
-  } else {
-    // VISTA DE ATLETAS
-    html += `<div class="card">
-      <div class="section-label"><div class="gate-poles"><span></span><span></span></div><span class="title">Asistencia de atletas (por grupo)</span></div>
-      <div style="font-size:12px;color:${GRAY};margin-bottom:16px;">Período actual: ${filterPeriod || "Todos"}</div>
-      
-      <!-- DASHBOARD KPIs PARA ATLETAS -->
-      <div class="dashboard-kpis">`;
-    
-    const athleteAllStats = calculateAttendanceStats(attendance);
-    const athletePreStats = calculateAttendanceStats(attendance.filter(a => a.period === "pre_temporada"));
-    const athleteTempStats = calculateAttendanceStats(attendance.filter(a => a.period === "temporada_26"));
-    
-    html += `
-        <div class="kpi-card">
-          <div class="kpi-label">PRE TEMPORADA</div>
-          <div class="kpi-value">${athletePreStats.percent}%</div>
-          <div class="kpi-sub">${athletePreStats.present}/${athletePreStats.countable} presentes</div>
-        </div>
-        <div class="kpi-card success-kpi">
-          <div class="kpi-label">TEMPORADA 26</div>
-          <div class="kpi-value">${athleteTempStats.percent}%</div>
-          <div class="kpi-sub">${athleteTempStats.present}/${athleteTempStats.countable} presentes</div>
-        </div>
-      </div>
-      
-      <!-- FILTROS PARA ATLETAS -->
-      <div class="filter-bar">
-        <div class="filter-title">Filtros</div>
-        <div class="filter-row">
-          <select class="filter-select" id="filter-period-select-athletes">
-            <option value="">Todos los períodos</option>
-            <option value="pre_temporada" ${filterPeriod === "pre_temporada" ? "selected" : ""}>Pre Temporada (hasta 17)</option>
-            <option value="temporada_26" ${filterPeriod === "temporada_26" ? "selected" : ""}>Temporada 26 (desde 19)</option>
-          </select>
-          <button class="filter-btn clear" onclick="filterPeriod='';render();">Limpiar</button>
-        </div>
-      </div>
-      
-      <!-- GRUPOS -->`;
-    
-    groupsSortedByCategory().forEach(group => {
-      const groupAthletes = athletes.filter(a => a.groupId === group.id);
-      const groupAttendance = attendance.filter(a => a.groupId === group.id);
-      const stats = calculateAttendanceStats(groupAttendance);
-      const preStats = calculateAttendanceStats(groupAttendance.filter(a => a.period === "pre_temporada"));
-      const tempStats = calculateAttendanceStats(groupAttendance.filter(a => a.period === "temporada_26"));
-      
-      html += `<div style="margin-top:16px;padding:12px;background:#F7FAFC;border-radius:10px;border-left:4px solid ${GOLD};">
-        <div style="font-weight:600;color:${NAVY};margin-bottom:8px;">${group.program} · ${escapeHtml(group.name)}</div>
-        <div style="font-size:11px;color:${GRAY};margin-bottom:8px;">
-          Total: ${stats.percent}% | Pre: ${preStats.percent}% | Temp: ${tempStats.percent}%
-        </div>
-        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;">`;
-      
-      groupAthletes.forEach(athlete => {
-        const athleteRecords = attendance.filter(a => a.athleteId === athlete.id);
-        const athleteStats = calculateAttendanceStats(athleteRecords);
-        html += `<button class="status-btn" onclick="openDayEditModal('athlete', '${athlete.id}', '${selectedDate}')" title="${escapeHtml(athlete.name)} - ${athleteStats.percent}%">
-          ${escapeHtml(athlete.name.substring(0,15))} ${athleteStats.percent}%
-        </button>`;
-      });
-      
-      html += `</div>
-        <button class="btn-outline" onclick="generateExcelReport('${filterPeriod || "all"}', 'athlete', '${group.id}')" style="width:100%;font-size:11px;">
-          📊 Reporte del grupo
-        </button>
-      </div>`;
-    });
-    
-    html += `</div>`;
-  }
-  
-  html += renderDayEditModal();
-  
+
   return html;
 }
 
-function renderTrainerAttendanceCalendar(period){
-  const year = 2026, month = 6; // Julio
-  const firstOfMonth = new Date(year, month, 1);
-  const startOffset = (firstOfMonth.getDay() + 6) % 7;
-  const daysInMonth = new Date(year, month+1, 0).getDate();
-  const daysInPrevMonth = new Date(year, month, 0).getDate();
-  
-  let html = `<div style="margin-bottom:16px;">
-    <div style="font-size:12px;color:${GRAY};margin-bottom:8px;text-transform:uppercase;font-weight:600;">Julio 2026</div>
-    <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:8px;">
-      ${DIAS_SEMANA.map(d => `<div style="text-align:center;font-size:11px;font-weight:600;color:${GRAY};padding:6px 0;">${d}</div>`).join("")}
-    </div>
-    <div class="calendar-grid">`;
-  
-  // Días del mes anterior
-  for(let i=0;i<startOffset;i++){
-    html += `<div class="calendar-day disabled">${daysInPrevMonth - startOffset + i + 1}</div>`;
-  }
-  
-  // Días del mes actual
-  for(let d=1; d<=daysInMonth; d++){
-    const dateStr = dstr(year, month, d);
-    const dayPeriod = classifyPeriod(dateStr);
-    
-    if((period === "pre_temporada" && dayPeriod !== "pre_temporada") || 
-       (period === "temporada_26" && dayPeriod !== "temporada_26")){
-      html += `<div class="calendar-day disabled">${d}</div>`;
-      continue;
-    }
-    
-    const dayAttendance = trainerAttendance.filter(t => t.date === dateStr);
-    const present = dayAttendance.filter(t => t.status === "present").length;
-    const total = dayAttendance.filter(t => t.status !== "free_day" && t.status !== "no_training").length;
-    const isFree = d === 18;
-    
-    let className = "calendar-day";
-    if(isFree) className += " free";
-    else if(total === 0) className += " no_training";
-    else if(present === total) className += " present";
-    else if(present === 0) className += " absent";
-    
-    html += `<div class="${className}" onclick="filterTrainer='';selectedDate='${dateStr}';render();">
-      <div style="font-size:11px;font-weight:600;">${d}</div>
-      ${total > 0 ? `<div style="font-size:9px;opacity:.7;">${present}/${total}</div>` : ""}
-    </div>`;
-  }
-  
-  // Días del mes siguiente
-  const totalCells = startOffset + daysInMonth;
-  const trailing = (7 - (totalCells % 7)) % 7;
-  for(let d=1; d<=trailing; d++){
-    html += `<div class="calendar-day disabled">${d}</div>`;
-  }
-  
-  html += `</div></div>`;
-  return html;
-}
 
 /* ============ WEEKLY CHECK-IN (per-trainer, private) ============ */
 const CHECKIN_QUESTIONS = [
@@ -3170,59 +2915,12 @@ function attachAppHandlers(){
   if(tab === "trainers") attachTrainersTabHandlers();
   if(tab === "checkins") attachCheckinsTabHandlers();
   if(tab === "transport") attachTransportTabHandlers();
+  attachExtraHandlers();
 }
 
-function attachSetupTabHandlers(){
-  document.querySelectorAll("[data-cat]").forEach(btn => {
-    if(btn.dataset.cat && btn.classList.contains("cat-btn")){
-      btn.addEventListener("click", () => selectCategory(currentProgram, btn.dataset.cat));
-    }
-  });
-  const addBtn = document.getElementById("add-athlete-btn");
-  if(addBtn){
-    addBtn.addEventListener("click", () => {
-      const nameInput = document.getElementById("new-athlete-name");
-      addAthlete(nameInput.value, selectedGroupId);
-    });
-  }
-  document.querySelectorAll("[data-toggle-ficha]").forEach(btn => {
-    btn.addEventListener("click", () => {
-      const athlete = athletes.find(a => a.id === btn.dataset.toggleFicha);
-      toggleFicha(athlete);
-    });
-  });
-  document.querySelectorAll("[data-remove-athlete]").forEach(el => {
-    el.addEventListener("click", () => {
-      const id = el.dataset.removeAthlete;
-      const athlete = athletes.find(a => a.id === id);
-      const name = athlete ? athlete.name : "este integrante";
-      if(confirm(`¿Eliminar a ${name}? Esta acción no se puede deshacer.`)){
-        removeAthlete(id);
-      }
-    });
-  });
-  const savedFichaBtn = document.getElementById("save-ficha-btn");
-  if(savedFichaBtn){
-    ["ficha-phone","ficha-enfermedades","ficha-alergias","ficha-medicamentos","ficha-otros"].forEach(id => {
-      const el = document.getElementById(id);
-      if(el) el.addEventListener("input", (e) => {
-        const field = id.replace("ficha-","");
-        fichaDraft[field] = e.target.value;
-      });
-    });
-    savedFichaBtn.addEventListener("click", () => saveFicha(savedFichaBtn.dataset.athlete));
-  }
-  
+function attachExtraHandlers(){
   // Listeners para nuevas funcionalidades de entrenadores
-  const filterPeriodSelect = document.getElementById("filter-period-select");
-  if(filterPeriodSelect) filterPeriodSelect.addEventListener("change", (e) => { filterPeriod = e.target.value; render(); });
-  
-  const filterPeriodSelectAthletes = document.getElementById("filter-period-select-athletes");
-  if(filterPeriodSelectAthletes) filterPeriodSelectAthletes.addEventListener("change", (e) => { filterPeriod = e.target.value; render(); });
-  
-  const filterTrainerSelect = document.getElementById("filter-trainer-select");
-  if(filterTrainerSelect) filterTrainerSelect.addEventListener("change", (e) => { filterTrainer = e.target.value; render(); });
-  
+
   // Modal de edición de notas
   const dayNotesInput = document.getElementById("day-notes-input");
   if(dayNotesInput) dayNotesInput.addEventListener("input", (e) => { dayEditNotes = e.target.value; });
@@ -3274,6 +2972,50 @@ function attachSetupTabHandlers(){
     ta.addEventListener("input", e => { athleteNotas[ta.dataset.notaAthlete] = e.target.value; });
     ta.addEventListener("blur",  () => saveAthleteNota(ta.dataset.notaAthlete));
   });
+}
+
+function attachSetupTabHandlers(){
+  document.querySelectorAll("[data-cat]").forEach(btn => {
+    if(btn.dataset.cat && btn.classList.contains("cat-btn")){
+      btn.addEventListener("click", () => selectCategory(currentProgram, btn.dataset.cat));
+    }
+  });
+  const addBtn = document.getElementById("add-athlete-btn");
+  if(addBtn){
+    addBtn.addEventListener("click", () => {
+      const nameInput = document.getElementById("new-athlete-name");
+      addAthlete(nameInput.value, selectedGroupId);
+    });
+  }
+  document.querySelectorAll("[data-toggle-ficha]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const athlete = athletes.find(a => a.id === btn.dataset.toggleFicha);
+      toggleFicha(athlete);
+    });
+  });
+  document.querySelectorAll("[data-remove-athlete]").forEach(el => {
+    el.addEventListener("click", () => {
+      const id = el.dataset.removeAthlete;
+      const athlete = athletes.find(a => a.id === id);
+      const name = athlete ? athlete.name : "este integrante";
+      if(confirm(`¿Eliminar a ${name}? Esta acción no se puede deshacer.`)){
+        removeAthlete(id);
+      }
+    });
+  });
+  const savedFichaBtn = document.getElementById("save-ficha-btn");
+  if(savedFichaBtn){
+    ["ficha-phone","ficha-enfermedades","ficha-alergias","ficha-medicamentos","ficha-otros"].forEach(id => {
+      const el = document.getElementById(id);
+      if(el) el.addEventListener("input", (e) => {
+        const field = id.replace("ficha-","");
+        fichaDraft[field] = e.target.value;
+      });
+    });
+    savedFichaBtn.addEventListener("click", () => saveFicha(savedFichaBtn.dataset.athlete));
+  }
+  
+
 }
 
 function initTrazadoCanvas(canvas, sessionNum){
