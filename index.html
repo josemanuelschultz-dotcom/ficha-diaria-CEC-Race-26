@@ -667,6 +667,7 @@ let alertsData = { lowAttendance: [], noTraining: [], consecutive: [] };
 let attendanceAuditLog = [];
 let transportAdminError = "";
 let prePanelOpen = false;
+let preAtletaPanelOpen = false;
 let tripsStatsOpen = false;
 const K_MIGRUPO = "cec26_jefe_migrupo";
 let jefeMiGrupo = lsGet(K_MIGRUPO, { program: "Race", category: "U12" });
@@ -703,6 +704,15 @@ function groupsSortedByCategory(){
     const cB = (PROGRAM_CATEGORIES[b.program]||[]).indexOf(b.name);
     return cA - cB;
   });
+}
+
+function athletePeriodStats(athleteId, periodo){
+  const recs = attendance.filter(a => a.athleteId === athleteId && a.period === periodo);
+  const cuentan = recs.filter(a => a.status === "present" || a.status === "absent");
+  const present = cuentan.filter(a => a.status === "present").length;
+  const excl = new Set(recs.filter(a => a.status === "no_training" || a.status === "free_day").map(a => a.date)).size;
+  return { present, total: cuentan.length, excl,
+           pct: cuentan.length ? Math.round(present/cuentan.length*100) : null };
 }
 
 function athleteStats(athleteId, groupId){
@@ -2094,13 +2104,18 @@ function exportExcel(){
     dates.forEach(d => { const rec = attendance.find(r=>r.athleteId===a.id && r.date===d); row.push(rec ? (rec.present?"Presente":"Ausente") : ""); });
     attSheet.push(row);
   });
-  const summarySheet = [["Integrante","Teléfono","% Asistencia","Sesiones acreditadas","Total curvas","Disciplina más practicada","Trabajo más practicado","Fundamento más trabajado"]];
+  const summarySheet = [["Integrante","Teléfono","% En pistas","% Pre temporada","Sesiones acreditadas","Total curvas","Disciplina más practicada","Trabajo más practicado","Fundamento más trabajado"]];
   groupAthletes().forEach(a => {
     const st = athleteStats(a.id, selectedGroupId);
     const topDisc = [...st.disciplina].sort((x,y)=>y.value-x.value)[0];
     const topTrab = [...st.trabajo].sort((x,y)=>y.value-x.value)[0];
     const topFund = [...st.fundamentos].sort((x,y)=>y.value-x.value)[0];
-    summarySheet.push([a.name, a.phone||"—", st.attendancePct+"%", st.totalSesiones, st.totalCurvas,
+    const sp = athletePeriodStats(a.id, "temporada_26");
+    const sr = athletePeriodStats(a.id, "pre_temporada");
+    summarySheet.push([a.name, a.phone||"—",
+      sp.pct===null?"—":`${sp.pct}% (${sp.present}/${sp.total})`,
+      sr.pct===null?"—":`${sr.pct}% (${sr.present}/${sr.total})`,
+      st.totalSesiones, st.totalCurvas,
       topDisc && topDisc.value>0 ? `${topDisc.name} (${topDisc.value}%)` : "—",
       topTrab && topTrab.value>0 ? `${topTrab.name} (${topTrab.value}%)` : "—",
       topFund && topFund.value>0 ? `${topFund.name} (${topFund.value}%)` : "—"]);
@@ -2121,7 +2136,8 @@ function copySummary(){
   let text = `Resumen — ${group?.name||""} (al ${todayISO()})\n\n`;
   groupAthletes().forEach(a => {
     const st = athleteStats(a.id, selectedGroupId);
-    text += `• ${a.name}: ${st.attendancePct}% asistencia, ${st.totalSesiones} sesiones, ${st.totalCurvas} curvas totales\n`;
+    const sp = athletePeriodStats(a.id, "temporada_26");
+    text += `• ${a.name}: ${sp.pct===null?"—":sp.pct+"%"} en pistas (${sp.present}/${sp.total}), ${st.totalSesiones} sesiones, ${st.totalCurvas} curvas totales\n`;
   });
   navigator.clipboard.writeText(text).then(()=>{ alert("Resumen copiado al portapapeles."); });
 }
@@ -2500,11 +2516,30 @@ function renderProfileTab(){
     ${athleteNotaFieldHTML(profileAthlete)}
   </div>`;
 
+  const pistas = athletePeriodStats(profileAthleteId, "temporada_26");
+  const pre    = athletePeriodStats(profileAthleteId, "pre_temporada");
   const cfg = configForGroup(selectedGroupId);
   html += `<div class="stat-row">
-    <div class="stat-box" style="background:#EAF7EE;"><div class="stat-val" style="color:${GREEN};">${st.attendancePct}%</div><div class="stat-lbl">Asistencia (${st.presentDays}/${st.totalDays})</div></div>
+    <div class="stat-box" style="background:#EAF7EE;"><div class="stat-val" style="color:${GREEN};">${pistas.pct===null?"—":pistas.pct+"%"}</div><div class="stat-lbl">Asistencia en pistas${pistas.pct===null?"":` (${pistas.present}/${pistas.total})`}</div></div>
     <div class="stat-box" style="background:#EEF3FA;"><div class="stat-val" style="color:${NAVY};">${st.totalSesiones}</div><div class="stat-lbl">Sesiones</div></div>
     ${cfg.hasCurvas ? `<div class="stat-box" style="background:#FFF6E0;"><div class="stat-val" style="color:#B87700;">${st.totalCurvas}</div><div class="stat-lbl">Curvas totales a la fecha</div></div>` : ""}
+  </div>`;
+
+  html += `<div class="card panel inner" style="margin-bottom:16px;">
+    <button type="button" class="panel-toggle" id="pre-atleta-toggle">
+      <span class="panel-title">Pre temporada · 30 jun al 17 jul</span>
+      <span class="panel-meta">${pre.pct===null?"sin registros":pre.pct+"%"} <span class="chev">${preAtletaPanelOpen?"▴":"▾"}</span></span>
+    </button>
+    ${preAtletaPanelOpen ? `<div class="panel-body">
+      ${pre.pct===null
+        ? `<div style="font-size:12px;color:${GRAY};">Este integrante no tiene registros de pretemporada.</div>`
+        : `<div class="pctbar-row" style="margin:0;">
+             <div class="pctbar-top"><span>Asistencia</span><span style="font-family:'JetBrains Mono',monospace;font-weight:600;color:${NAVY};">${pre.pct}% (${pre.present}/${pre.total})</span></div>
+             <div class="pctbar-track"><div class="pctbar-fill" style="width:${pre.pct}%;background:${GOLD};"></div></div>
+             ${pre.excl?`<div class="pct-excluidos">${pre.excl} día${pre.excl===1?"":"s"} sin entrenamiento, no cuentan</div>`:""}
+           </div>
+           <div style="font-size:11px;color:${GRAY};margin-top:8px;">No afecta el porcentaje en pistas.</div>`}
+    </div>` : ""}
   </div>`;
 
   if(cfg.disciplinas.length) html += variableBlockHTML("Disciplina", st.disciplina, () => NAVY);
@@ -3213,6 +3248,9 @@ function attachExtraHandlers(){
   if(prePanel) prePanel.addEventListener("click", () => { prePanelOpen = !prePanelOpen; render(); });
   const tripsPanel = document.getElementById("trips-stats-toggle");
   if(tripsPanel) tripsPanel.addEventListener("click", () => { tripsStatsOpen = !tripsStatsOpen; render(); });
+
+  const preAtleta = document.getElementById("pre-atleta-toggle");
+  if(preAtleta) preAtleta.addEventListener("click", () => { preAtletaPanelOpen = !preAtletaPanelOpen; render(); });
 
   // --- Notas por atleta ---
   document.querySelectorAll("[data-nota-athlete]").forEach(ta => {
