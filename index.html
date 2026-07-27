@@ -161,7 +161,22 @@
   .migrupo-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
   .migrupo-row .btn-navy{white-space:nowrap;}
 
-  .pct-periodos{font-size:10px;color:var(--gray);font-family:'JetBrains Mono',monospace;margin-top:3px;}
+  .periodo-tabs{display:flex;gap:6px;margin-bottom:10px;}
+  .periodo-tab{flex:1;padding:7px 8px;font-size:12px;font-weight:500;border:1px solid var(--border);border-radius:8px;background:white;color:var(--gray);cursor:pointer;}
+  .periodo-tab.active{background:var(--navy);border-color:var(--navy);color:white;}
+  .cal-day.att-full{background:#E8F5E9;color:#2E7D32;}
+  .cal-day.att-part{background:#FFF8E1;color:#8A6D00;}
+  .cal-day.att-none{background:#FDECEC;color:#B3261E;}
+  .cal-day.att-libre{background:#EEF0F3;color:var(--gray);}
+  .cal-day.fuera-periodo{opacity:.32;}
+  .cal-leyenda{display:flex;flex-wrap:wrap;gap:10px;margin:8px 0 14px;font-size:10px;color:var(--gray);}
+  .cal-leyenda span{display:inline-flex;align-items:center;gap:4px;}
+  .cal-leyenda .lg{width:9px;height:9px;border-radius:2px;display:inline-block;}
+  .cal-leyenda .lg.att-full{background:#A5D6A7;} .cal-leyenda .lg.att-part{background:#FAC775;}
+  .cal-leyenda .lg.att-none{background:#F09595;} .cal-leyenda .lg.att-libre{background:#CFD4DA;}
+  .pct-periodos{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:10px;color:var(--gray);font-family:'JetBrains Mono',monospace;margin-top:3px;}
+  .exp-btn{border:1px solid var(--border);background:white;color:var(--navy);font-size:10px;padding:2px 8px;border-radius:5px;cursor:pointer;white-space:nowrap;}
+  .exp-btn:hover{background:#F0F0F0;}
 
   /* NOTAS DE ATLETA */
   .nota-box{margin-top:10px;}
@@ -606,7 +621,7 @@ let outsideClickHandler = null;
 
 /* ============ NUEVAS VARIABLES PARA MEJORAS ============ */
 // Filtros
-let filterPeriod = "all"; // "pre_temporada", "temporada_26", "all"
+let filterPeriod = "temporada_26"; // "pre_temporada", "temporada_26", "all"
 let filterMonth = ""; // "2026-01", etc
 let filterStatus = ""; // "present", "absent", "free", "no_training", ""
 let filterTrainer = ""; // trainer code or ""
@@ -1196,6 +1211,16 @@ function trainerCalendarBodyHTML(){
     if(ds === todayStr) classes.push("today");
     if(ds === trainerAttDate) classes.push("selected");
     if(datesWithData.has(ds)) classes.push("has-data");
+    if(classifyPeriod(ds) !== filterPeriod) classes.push("fuera-periodo");
+    const delDia = trainerAttendance.filter(r => r.date === ds);
+    if(delDia.length){
+      const cuentan = delDia.filter(r => r.status === "present" || r.status === "absent");
+      const pres = delDia.filter(r => r.status === "present").length;
+      if(!cuentan.length) classes.push("att-libre");
+      else if(pres === cuentan.length) classes.push("att-full");
+      else if(pres === 0) classes.push("att-none");
+      else classes.push("att-part");
+    }
     cells += `<button type="button" class="${classes.join(" ")}" data-tdate="${ds}">${d}</button>`;
   }
   const totalCells = startOffset + daysInMonth;
@@ -1228,7 +1253,16 @@ function renderTrainersTab(){
       <button class="btn-navy" id="migrupo-ir">Abrir registro →</button>
     </div>
     </div>`;
+  html += `<div class="periodo-tabs">
+    ${["pre_temporada","temporada_26"].map(pp => `<button type="button" class="periodo-tab${filterPeriod===pp?" active":""}" data-periodo="${pp}">${periodLabel(pp)}</button>`).join("")}
+  </div>`;
   html += trainerCalendarCardHTML();
+  html += `<div class="cal-leyenda">
+    <span><i class="lg att-full"></i>Todos</span>
+    <span><i class="lg att-part"></i>Parcial</span>
+    <span><i class="lg att-none"></i>Nadie</span>
+    <span><i class="lg att-libre"></i>Libre / sin entren.</span>
+  </div>`;
   html += `<div class="card">`;
 
   if(!trainers.length){
@@ -1270,7 +1304,10 @@ function renderTrainersTab(){
       html += `<div class="pctbar-row">
         <div class="pctbar-top"><span>${escapeHtml(t.name)}</span><span style="font-family:'JetBrains Mono',monospace;font-weight:600;color:${NAVY};">${st.pct}% (${st.present}/${st.total})</span></div>
         <div class="pctbar-track"><div class="pctbar-fill" style="width:${st.pct}%;background:${GREEN};"></div></div>
-        <div class="pct-periodos">Pre ${pre.percent}% · T26 ${tem.percent}%</div>
+        <div class="pct-periodos">
+          <span>Pre ${pre.percent}% (${pre.present}/${pre.countable}) · T26 ${tem.percent}% (${tem.present}/${tem.countable})</span>
+          <button type="button" class="exp-btn" data-export-trainer="${t.id}" title="Exportar a Excel"><span>Exportar</span></button>
+        </div>
       </div>`;
     });
     html += `</div>`;
@@ -2966,6 +3003,14 @@ function attachExtraHandlers(){
     initDailyForm();
     render();
   });
+
+  // --- Pestañas de periodo ---
+  document.querySelectorAll("[data-periodo]").forEach(b =>
+    b.addEventListener("click", () => { filterPeriod = b.dataset.periodo; render(); }));
+
+  // --- Exportar por entrenador ---
+  document.querySelectorAll("[data-export-trainer]").forEach(b =>
+    b.addEventListener("click", () => generateExcelReport(filterPeriod, "trainer", b.dataset.exportTrainer)));
 
   // --- Notas por atleta ---
   document.querySelectorAll("[data-nota-athlete]").forEach(ta => {
