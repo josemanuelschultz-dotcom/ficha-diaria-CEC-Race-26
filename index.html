@@ -186,6 +186,16 @@
   .pill.mini{padding:6px 8px;font-size:11px;font-weight:600;min-width:26px;}
   .ind-leyenda{font-size:10px;color:var(--gray);margin:2px 0 10px;}
   .ind-leyenda b{color:var(--navy);}
+  .panel{padding:0;overflow:hidden;}
+  .panel.inner{border:1px solid var(--border);border-radius:10px;margin-bottom:14px;box-shadow:none;}
+  .panel-toggle{width:100%;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;background:none;border:none;cursor:pointer;text-align:left;}
+  .panel-title{font-family:'Oswald',sans-serif;text-transform:uppercase;letter-spacing:.05em;font-size:12px;color:var(--navy);}
+  .panel-meta{font-size:11px;color:var(--gray);font-family:'JetBrains Mono',monospace;display:flex;align-items:center;gap:6px;}
+  .panel-body{padding:0 14px 14px;}
+  .mini-stats{display:flex;gap:14px;flex-wrap:wrap;}
+  .mini-stats>div{flex:1;min-width:88px;}
+  .ms-val{display:block;font-size:1.25rem;font-weight:700;color:var(--navy);font-family:'JetBrains Mono',monospace;}
+  .ms-lbl{display:block;font-size:10px;color:var(--gray);}
   .pct-excluidos{font-size:10px;color:var(--gray);font-family:'JetBrains Mono',monospace;margin-top:3px;}
   .obs-box{background:#FFFDF5;border:1px solid #F0E6C8;border-radius:12px;padding:12px;margin-bottom:16px;}
   .exp-grid{display:flex;flex-wrap:wrap;gap:6px;}
@@ -656,6 +666,8 @@ let auditFilter = { type: "", id: "", date: "" };
 let alertsData = { lowAttendance: [], noTraining: [], consecutive: [] };
 let attendanceAuditLog = [];
 let transportAdminError = "";
+let prePanelOpen = false;
+let tripsStatsOpen = false;
 const K_MIGRUPO = "cec26_jefe_migrupo";
 let jefeMiGrupo = lsGet(K_MIGRUPO, { program: "Race", category: "U12" });
 let athleteNotas = {};   // athleteId -> texto
@@ -1318,10 +1330,13 @@ function renderTrainersTab(){
   </div>`;
 
   if(trainers.length){
-    const bloque = (titulo, sub, periodo, color) => {
-      let h = `<div class="card">
+    const bloque = (titulo, sub, periodo, color, desnudo) => {
+      const delPer = trainerAttendance.filter(r => r.period===periodo);
+      const dias = new Set(delPer.filter(r => r.status==="present"||r.status==="absent").map(r => r.date)).size;
+      const excl = new Set(delPer.filter(r => r.status==="no_training"||r.status==="free_day").map(r => r.date)).size;
+      let h = desnudo ? `` : `<div class="card">
         <div class="section-label"><div class="gate-poles"><span></span><span></span></div><span class="title">${titulo}</span></div>
-        <div style="font-size:11px;color:${GRAY};margin:-6px 0 12px;">${sub}</div>`;
+        <div style="font-size:11px;color:${GRAY};margin:-6px 0 12px;">${sub} · <b>${dias} día${dias===1?"":"s"} con entrenamiento</b>${excl?` <span style="color:${GRAY};">· ${excl} sin entrenamiento</span>`:""}</div>`;
       const filas = trainers.map(t => ({
         t, st: calculateAttendanceStats(trainerAttendance.filter(a => a.trainerId===t.id && a.period===periodo))
       })).sort((a,b) => b.st.percent - a.st.percent);
@@ -1336,10 +1351,20 @@ function renderTrainersTab(){
           </div>`;
         });
       }
-      return h + `</div>`;
+      return desnudo ? h : h + `</div>`;
     };
-    html += bloque("% Asistencia · Pre temporada", "30 de junio al 17 de julio", "pre_temporada", GOLD);
-    html += bloque("% Asistencia · En pistas", "Desde el 19 de julio", "temporada_26", GREEN);
+    html += bloque("% Asistencia en pistas", "Desde el 19 de julio", "temporada_26", GREEN);
+
+    const preRecs = trainerAttendance.filter(r => r.period==="pre_temporada");
+    const preDias = new Set(preRecs.filter(r => r.status==="present"||r.status==="absent").map(r => r.date)).size;
+    const preExcl = new Set(preRecs.filter(r => r.status==="no_training"||r.status==="free_day").map(r => r.date)).size;
+    html += `<div class="card panel">
+      <button type="button" class="panel-toggle" id="pre-panel-toggle">
+        <span class="panel-title">Pre temporada · 30 jun al 17 jul</span>
+        <span class="panel-meta">${preDias} día${preDias===1?"":"s"}${preExcl?` · ${preExcl} sin entren.`:""} <span class="chev">${prePanelOpen?"▴":"▾"}</span></span>
+      </button>
+      ${prePanelOpen ? `<div class="panel-body">${bloque("", "", "pre_temporada", GOLD, true)}</div>` : ""}
+    </div>`;
 
     html += `<div class="card">
       <div class="section-label"><div class="gate-poles"><span></span><span></span></div><span class="title">Exportar por entrenador</span></div>
@@ -1963,10 +1988,18 @@ function renderSharedTripsChart(){
   const totalViajes = shared.length;
   const totalPersonas = shared.reduce((s,t)=>s+t.numTrainers,0);
 
-  html += `<div class="dashboard-kpis" style="margin-bottom:18px;">
-    <div class="kpi-card"><div class="kpi-label">Viajes compartidos</div><div class="kpi-value">${totalViajes}</div></div>
-    <div class="kpi-card success-kpi"><div class="kpi-label">Personas movilizadas</div><div class="kpi-value">${totalPersonas}</div></div>
-    <div class="kpi-card"><div class="kpi-label">Promedio por auto</div><div class="kpi-value">${(totalPersonas/totalViajes).toFixed(1)}</div></div>
+  html += `<div class="panel inner">
+    <button type="button" class="panel-toggle" id="trips-stats-toggle">
+      <span class="panel-title">Resumen general</span>
+      <span class="panel-meta"><span class="chev">${tripsStatsOpen?"▴":"▾"}</span></span>
+    </button>
+    ${tripsStatsOpen ? `<div class="panel-body">
+      <div class="mini-stats">
+        <div><span class="ms-val">${totalViajes}</span><span class="ms-lbl">Viajes compartidos</span></div>
+        <div><span class="ms-val">${totalPersonas}</span><span class="ms-lbl">Personas movilizadas</span></div>
+        <div><span class="ms-val">${(totalPersonas/totalViajes).toFixed(1)}</span><span class="ms-lbl">Promedio por auto</span></div>
+      </div>
+    </div>` : ""}
   </div>`;
 
   // Barras horizontales por entrenador
@@ -2797,8 +2830,12 @@ async function marcarEntrenadorDia(trainerId, estado){
   try{
     const ex = trainerAttendance.find(r => r.trainerId === trainerId && r.date === fecha);
     if(ex){
-      await sbUpdate("trainer_attendance", { id: ex.id }, { status: estado, period: periodo });
+      const esNoCuenta = (estado === "free_day" || estado === "no_training");
+      await sbUpdate("trainer_attendance", { id: ex.id },
+        esNoCuenta ? { status: estado, period: periodo, present: false }
+                   : { status: estado, period: periodo, present: estado === "present" });
       ex.status = estado; ex.period = periodo;
+      if(esNoCuenta){ ex.present = false; trainerAttendanceState[trainerId] = false; }
     } else {
       const row = await sbInsert("trainer_attendance",
         { trainer_id: trainerId, date: fecha, present: estado === "present", status: estado, period: periodo },
@@ -2835,10 +2872,11 @@ async function marcarDia(nuevoEstado){
     if(existentes.length){
       const patch = nuevoEstado === "normal"
         ? null
-        : { status: nuevoEstado, period: periodo };
+        : { status: nuevoEstado, period: periodo, present: false };
       if(patch){
         await sbUpdate("trainer_attendance", { date: fecha }, patch);
-        existentes.forEach(r => { r.status = nuevoEstado; r.period = periodo; });
+        existentes.forEach(r => { r.status = nuevoEstado; r.period = periodo; r.present = false; });
+      trainers.forEach(t => { trainerAttendanceState[t.id] = false; });
       } else {
         for(const r of existentes){
           const st = r.present ? "present" : "absent";
@@ -3169,6 +3207,12 @@ function attachExtraHandlers(){
       const destino = actual === b.dataset.estado ? "absent" : b.dataset.estado;
       marcarEntrenadorDia(b.dataset.tlibre, destino);
     }));
+
+  // --- Paneles desplegables ---
+  const prePanel = document.getElementById("pre-panel-toggle");
+  if(prePanel) prePanel.addEventListener("click", () => { prePanelOpen = !prePanelOpen; render(); });
+  const tripsPanel = document.getElementById("trips-stats-toggle");
+  if(tripsPanel) tripsPanel.addEventListener("click", () => { tripsStatsOpen = !tripsStatsOpen; render(); });
 
   // --- Notas por atleta ---
   document.querySelectorAll("[data-nota-athlete]").forEach(ta => {
