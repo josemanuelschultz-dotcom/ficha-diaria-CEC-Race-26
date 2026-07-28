@@ -432,6 +432,7 @@ function configForGroup(groupId){
   return configFor(programOf(groupId), categoryOf(groupId));
 }
 
+const APP_VERSION = "v20260728.2";
 const K_AUTH = "ski-auth-session"; // per-device only (not synced): who is logged in on this browser
 
 /* ============ SUPABASE CONNECTION ============ */
@@ -443,9 +444,21 @@ function sbHeaders(extra){
   return Object.assign({ "apikey": SUPABASE_KEY, "Authorization": "Bearer " + SUPABASE_KEY, "Content-Type": "application/json" }, extra || {});
 }
 async function sbSelect(table, qs){
-  const res = await fetch(`${REST}/${table}?${qs || "select=*"}`, { headers: sbHeaders() });
-  if(!res.ok) throw new Error(`${table}: ${res.status} ${await res.text()}`);
-  return res.json();
+  // Supabase corta en 1000 filas por defecto: hay que paginar o los totales salen truncados
+  const PASO = 1000;
+  let desde = 0, todo = [];
+  for(;;){
+    const res = await fetch(`${REST}/${table}?${qs || "select=*"}`, {
+      headers: sbHeaders({ "Range-Unit": "items", "Range": `${desde}-${desde+PASO-1}` })
+    });
+    if(!res.ok) throw new Error(`${table}: ${res.status} ${await res.text()}`);
+    const lote = await res.json();
+    todo = todo.concat(lote);
+    if(lote.length < PASO) break;      // ultima pagina
+    desde += PASO;
+    if(desde > 100000) break;          // tope de seguridad
+  }
+  return todo;
 }
 async function sbInsert(table, rowOrRows, opts={}){
   const params = opts.onConflict ? `?on_conflict=${opts.onConflict}` : "";
@@ -1594,7 +1607,9 @@ function renderCheckinsTab(){
   html += `</div>`;
 
   if(authState.isCoordinator){
-    const inbox = weeklyCheckins.filter(c => COORDINATOR_MAP[c.trainerCode] === authState.trainerCode);
+    // Un coordinador no revisa su propio pulso (p.ej. Mamel figura como su propio coordinador)
+    const inbox = weeklyCheckins.filter(c => COORDINATOR_MAP[c.trainerCode] === authState.trainerCode
+                                          && c.trainerCode !== authState.trainerCode);
     inbox.sort((a,b) => (a.sentToJefe===b.sentToJefe) ? (b.weekStart<a.weekStart?-1:1) : (a.sentToJefe?1:-1));
     html += `<div class="card">
       <div class="section-label"><div class="gate-poles"><span></span><span></span></div><span class="title">Bandeja de coordinación</span></div>
@@ -2601,7 +2616,10 @@ function renderAccessTab(){
     <div class="backup-row">
       <button class="btn-navy" id="export-backup-btn" style="flex:1;">⬇️ Descargar copia (.json)</button>
     </div>
-  </div>`;
+  </div>
+    <div style="text-align:center;font-size:10px;color:${GRAY};margin-top:14px;font-family:'JetBrains Mono',monospace;">
+      Versión ${APP_VERSION} · ${attendance.length} registros de atletas · ${trainerAttendance.length} de entrenadores
+    </div>`;
   return html;
 }
 
