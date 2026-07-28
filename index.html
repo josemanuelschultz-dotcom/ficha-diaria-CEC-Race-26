@@ -202,6 +202,41 @@
   .exp-btn{border:1px solid var(--border);background:white;color:var(--navy);font-size:10px;padding:2px 8px;border-radius:5px;cursor:pointer;white-space:nowrap;}
   .exp-btn:hover{background:#F0F0F0;}
 
+  /* CALENDARIO DE CARRERAS */
+  .btn-carreras{width:100%;display:flex;align-items:center;justify-content:center;gap:8px;padding:13px;margin-bottom:14px;
+    background:var(--navy);color:#fff;border:none;border-radius:12px;cursor:pointer;
+    font-family:'Oswald',sans-serif;text-transform:uppercase;letter-spacing:.06em;font-size:13px;
+    box-shadow:0 2px 8px rgba(11,37,69,.18);}
+  .btn-carreras:hover{background:#0E2F58;}
+  .btn-carreras span{font-size:15px;}
+  .cat-chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:12px;}
+  .cat-chip{padding:5px 12px;font-size:11px;font-weight:600;border:1px solid var(--border);border-radius:20px;
+    background:#fff;color:var(--navy);cursor:pointer;font-family:'JetBrains Mono',monospace;}
+  .cat-chip.active{background:var(--navy);border-color:var(--navy);color:#fff;}
+  .mes-titulo{font-family:'Oswald',sans-serif;text-transform:uppercase;letter-spacing:.06em;font-size:13px;
+    color:var(--gold);border-bottom:2px solid var(--gold);padding-bottom:6px;margin-bottom:12px;}
+  .carrera{display:flex;gap:12px;padding:11px 0;border-bottom:1px solid var(--border);}
+  .carrera:last-child{border-bottom:none;padding-bottom:0;}
+  .carrera.pasada{opacity:.45;}
+  .carrera-fecha{flex:0 0 42px;text-align:center;background:#EEF3FA;border-radius:8px;padding:6px 0;height:fit-content;}
+  .cf-dia{display:block;font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:var(--gray);}
+  .cf-num{display:block;font-family:'JetBrains Mono',monospace;font-size:17px;font-weight:700;color:var(--navy);line-height:1.1;}
+  .carrera-info{flex:1;min-width:0;}
+  .carrera-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:2px;}
+  .carrera-nombre{font-family:'Oswald',sans-serif;font-weight:600;font-size:14px;color:var(--navy);}
+  .carrera-lugar{font-size:12px;color:var(--gray);margin-bottom:5px;}
+  .carrera-tags{display:flex;gap:5px;flex-wrap:wrap;}
+  .tag{font-size:10px;padding:2px 7px;border-radius:5px;background:#F0F3F7;color:var(--navy);
+    font-family:'JetBrains Mono',monospace;}
+  .tag.esp{background:#FFF4D6;color:#8A6D00;font-weight:600;}
+  .carrera-dt{font-size:11px;color:var(--gray);margin-top:5px;}
+  .carrera-nota{font-size:11px;color:var(--gray);margin-top:4px;padding-left:8px;border-left:2px solid var(--border);}
+  .estado-chip{font-size:9px;padding:2px 7px;border-radius:20px;text-transform:uppercase;letter-spacing:.04em;font-weight:700;}
+  .estado-chip.inscrita{background:#E8F5E9;color:#2E7D32;}
+  .estado-chip.cancelada{background:#FDECEC;color:#B3261E;}
+  .estado-chip.reprogramada{background:#FFF8E1;color:#8A6D00;}
+  @media (max-width:480px){ .carrera-fecha{flex:0 0 38px;} .carrera-nombre{font-size:13px;} }
+
   /* NOTAS DE ATLETA */
   .nota-box{margin-top:10px;}
   .nota-box label{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--gray);margin-bottom:5px;}
@@ -432,7 +467,10 @@ function configForGroup(groupId){
   return configFor(programOf(groupId), categoryOf(groupId));
 }
 
-const APP_VERSION = "v20260728.2";
+const CARRERAS = [{"f":"2026-07-26","d":"D","n":"COPA CLUB ANDES","l":"LA PARVA","c":"CAN","e":"GS","g":"U14- U16","x":"F&M","t":"H. Guerreros","s":"Cancelada","o":"GS U14: 2 carreras/ GS U16: 2 mangas"},{"f":"2026-07-30","d":"J","n":"COPA VOLCANES","l":"CORRALCO","c":"CORR","e":"ENTRENAMIENTO SG","g":"U10-U12-U14-U16","x":"F&M","t":"Aldo Garda","s":"Inscrita","o":"Entrenamiento"},{"f":"2026-07-31","d":"V","n":"COPA VOLCANES","l":"CORRALCO","c":"CORR","e":"SG/ KR-T","g":"U10-U12-U14-U16","x":"F&M","t":"Aldo Garda","s":"Inscrita","o":"SG: 1 manga/ KR-T: 1 manga"},{"f":"2026-08-01","d":"S","n":"COPA VOLCANES","l":"CORRALCO","c":"CORR","e":"GS/ SL","g":"U14-U16/ U10-U12","x":"F&M","t":"Aldo Garda","s":"Inscrita","o":"GS: 2 mangas/ SL: 1 manga"},{"f":"2026-08-01","d":"S","n":"COPA ART","l":"VALLE NEVADO","c":"ART","e":"GS","g":"U10","x":"F&M","t":"S. Parot","s":"Reprogramada","o":"2 carreras 1 manga c/u · Pendiente confirmación"},{"f":"2026-08-02","d":"D","n":"COPA VOLCANES","l":"CORRALCO","c":"CORR","e":"SL/ GS","g":"U14-U16/ U10-U12","x":"F&M","t":"Aldo Garda","s":"Inscrita","o":"SL: 2 mangas/ GS: 1 manga"},{"f":"2026-08-02","d":"D","n":"COPA MEDS","l":"VALLE NEVADO","c":"CVN","e":"SL","g":"U12","x":"F&M","t":"S. Molina","s":"Reprogramada","o":""},{"f":"2026-08-09","d":"D","n":"COPA ART","l":"VALLE NEVADO","c":"ART","e":"GS","g":"U14/U16","x":"F&M","t":"TBD","s":"Inscrita","o":"2 mangas, 1 sola carrera"},{"f":"2026-08-10","d":"L","n":"INTERSUR","l":"CHILLAN","c":"CEC","e":"LLEGADA","g":"U8-U10-U12-U14-U16","x":"F&M","t":"J.P. Mandru/A. Wiedemann","s":"Inscrita","o":""},{"f":"2026-08-11","d":"MA","n":"INTERSUR","l":"CHILLAN","c":"CEC","e":"ENTRENAMIENTO KR-V/ SG","g":"U10-U12/ U14-U16","x":"F&M","t":"J.P. Mandru/A. Wiedemann","s":"Inscrita","o":"KR: 1 carrera 1 Manga/ SG: 2 carreras 1 manga · Este día es Entrenamiento?"},{"f":"2026-08-12","d":"MI","n":"INTERSUR","l":"CHILLAN","c":"CEC","e":"KR-V/ SG","g":"U10-U12/ U14-U16","x":"F&M","t":"J.P. Mandru/A. Wiedemann","s":"Inscrita","o":"KR: 1 carrera 1 Manga/ SG: 2 carreras 1 manga"},{"f":"2026-08-13","d":"J","n":"INTERSUR","l":"CHILLAN","c":"CEC","e":"SL/ GS","g":"U10-U12/ U14-U16","x":"F&M","t":"J.P. Mandru/A. Wiedemann","s":"Inscrita","o":"SL: 1 carrera 1 manga/ GS: 1 carrera 2 mangas"},{"f":"2026-08-14","d":"V","n":"INTERSUR","l":"CHILLAN","c":"CEC","e":"GS/ SL","g":"U10-U12/ U14-U16","x":"F&M","t":"J.P. Mandru/A. Wiedemann","s":"Inscrita","o":"GS U10: 1 carrera 1 manga - GSU12: 2 carreras 1 manga · SL: 1 carrera 2 mangas"},{"f":"2026-08-15","d":"S","n":"COPA ARAUCARIAS I - II","l":"VOLCAN LLAIMA","c":"CAR","e":"SL","g":"U14-U16","x":"F&M","t":"P.Mehr","s":"Cancelada","o":""},{"f":"2026-08-16","d":"D","n":"COPA CHILEXPRESS","l":"LA PARVA","c":"CLP","e":"SL","g":"U14-U16","x":"F&M","t":"M. Rivera","s":"Inscrita","o":""},{"f":"2026-08-22","d":"S","n":"AVIANCA WEEK","l":"EL COLORADO","c":"UC","e":"GS","g":"U12","x":"F&M","t":"P.P. Rodriguez","s":"Reprogramada","o":"1 carrera 2 mangas"},{"f":"2026-08-22","d":"S","n":"COPA VILLARICA","l":"PUCÓN","c":"LV","e":"SL/ GS","g":"U10-U12/ U14-U16","x":"F&M","t":"P.Mehr","s":"Inscrita","o":"GS: 2 mangas"},{"f":"2026-08-23","d":"D","n":"AVIANCA WEEK","l":"EL COLORADO","c":"UC","e":"SL","g":"U14-U16","x":"F&M","t":"J.Campos","s":"Reprogramada","o":"2 carreras de 1 manga cada una"},{"f":"2026-08-23","d":"D","n":"COPA VILLARICA","l":"PUCÓN","c":"LV","e":"KR-V/ SL","g":"U10-U12/ U14-U16","x":"F&M","t":"P.Mehr","s":"Inscrita","o":"SL: 2 mangas"},{"f":"2026-08-26","d":"MI","n":"COPA COLUN (INGRESO)","l":"ANTILLANCA","c":"CAO","e":"GS-SL-SG","g":"U12-U14-U16-U18","x":"F&M","t":"J.P. Mandru","s":"Inscrita","o":""},{"f":"2026-08-27","d":"J","n":"COPA COLUN","l":"ANTILLANCA","c":"CAO","e":"GS*2","g":"U12-U14-U16-U18","x":"F&M","t":"J.P. Mandru","s":"Inscrita","o":""},{"f":"2026-08-28","d":"V","n":"COPA COLUN","l":"ANTILLANCA","c":"CAO","e":"GS U14*2 y GS*1","g":"U12-U14-U16-U18","x":"F&M","t":"J.P. Mandru","s":"Inscrita","o":""},{"f":"2026-08-29","d":"S","n":"COPA COLUN","l":"ANTILLANCA","c":"CAO","e":"SL","g":"U12-U14-U16-U18","x":"F&M","t":"J.P. Mandru","s":"Inscrita","o":""},{"f":"2026-08-29","d":"S","n":"COPA STANLEY","l":"LA PARVA","c":"CLP","e":"FUNRACE","g":"U10","x":"F&M","t":"J.Campos","s":"Inscrita","o":""},{"f":"2026-08-31","d":"L","n":"PATAGONICO (ESQUEL-ARG)","l":"ESQUEL ARGENTINA","c":"","e":"","g":"","x":"","t":"","s":"Inscrita","o":""},{"f":"2026-09-01","d":"MA","n":"PATAGONICO (ESQUEL-ARG)","l":"ESQUEL ARGENTINA","c":"","e":"","g":"","x":"","t":"","s":"Inscrita","o":""},{"f":"2026-09-02","d":"MI","n":"PATAGONICO (ESQUEL-ARG)","l":"ESQUEL ARGENTINA","c":"","e":"","g":"","x":"","t":"","s":"Inscrita","o":""},{"f":"2026-09-03","d":"J","n":"PATAGONICO (ESQUEL-ARG)","l":"ESQUEL ARGENTINA","c":"","e":"","g":"","x":"","t":"","s":"Inscrita","o":""},{"f":"2026-09-04","d":"V","n":"PATAGONICO (ESQUEL-ARG)","l":"ESQUEL ARGENTINA","c":"","e":"","g":"","x":"","t":"","s":"Inscrita","o":""},{"f":"2026-09-05","d":"S","n":"COPA PORTILLO","l":"PORTILLO","c":"POR","e":"GS","g":"U14-U16","x":"F&M","t":"G. Barros","s":"Inscrita","o":""},{"f":"2026-09-06","d":"D","n":"COPA PORTILLO","l":"PORTILLO","c":"POR","e":"GS","g":"U10-U12","x":"F&M","t":"G. Barros","s":"Inscrita","o":""},{"f":"2026-09-11","d":"V","n":"COPA LA LEÑERA SUPER G","l":"VALLE NEVADO","c":"CVN","e":"SG","g":"U14-U16","x":"F&M","t":"P.P. Rodriguez","s":"Inscrita","o":""},{"f":"2026-09-11","d":"V","n":"COPA PUYEHUE","l":"ANTILLANCA","c":"PAT","e":"GS-SG-KR","g":"U10-U12-U14-U16","x":"F&M","t":"J.P. Mandru","s":"Reprogramada","o":""},{"f":"2026-09-12","d":"S","n":"COPA CLUB ANDES","l":"LA PARVA","c":"CAN","e":"KR","g":"U10-U12","x":"F&M","t":"S.Molina","s":"Inscrita","o":"KR U10-U12: 2 carreras"},{"f":"2026-09-12","d":"S","n":"COPA ARAUCARIAS I - II","l":"VOLCÁN LLAIMA","c":"CAR","e":"SG","g":"U14-U16","x":"F&M","t":"A. Wiedemann","s":"Inscrita","o":""},{"f":"2026-09-12","d":"S","n":"COPA PUYEHUE","l":"ANTILLANCA","c":"PAT","e":"GS-SG-KR","g":"U10-U12-U14-U16","x":"F&M","t":"J.P. Mandru","s":"Reprogramada","o":""},{"f":"2026-09-13","d":"D","n":"COPA CLUB LA PARVA","l":"LA PARVA","c":"CLP","e":"GS","g":"U14-U16","x":"F&M","t":"H. Guerrero","s":"Inscrita","o":""},{"f":"2026-09-13","d":"D","n":"COPA ARAUCARIAS I - II","l":"VOLCÁN LLAIMA","c":"CAR","e":"SL","g":"U10-U12-U14-U16","x":"F&M","t":"A. Wiedemann","s":"Inscrita","o":"SL U14-U16: 2 mangas"},{"f":"2026-09-13","d":"D","n":"COPA PUYEHUE","l":"ANTILLANCA","c":"PAT","e":"GS-SG-KR","g":"U10-U12-U14-U16","x":"F&M","t":"J.P. Mandru","s":"Reprogramada","o":""},{"f":"2026-09-14","d":"L","n":"COPA ARAUCARIAS I - II","l":"VOLCÁN LLAIMA","c":"CAR","e":"GS","g":"U10-U12-U14-U16","x":"F&M","t":"A. Wiedemann","s":"Inscrita","o":""},{"f":"2026-09-21","d":"L","n":"CNI (INGRESO)","l":"ANTILLANCA","c":"CAO","e":"GS-SL-SG-KR","g":"U12-U14-U16","x":"F&M","t":"TBD","s":"Inscrita","o":""},{"f":"2026-09-22","d":"MA","n":"CNI","l":"ANTILLANCA","c":"CAO","e":"SG TRA","g":"U12-U14-U16","x":"F&M","t":"TBD","s":"Inscrita","o":""},{"f":"2026-09-23","d":"MI","n":"CNI","l":"ANTILLANCA","c":"CAO","e":"SG","g":"U12-U14-U16","x":"F&M","t":"TBD","s":"Inscrita","o":""},{"f":"2026-09-24","d":"J","n":"CNI","l":"ANTILLANCA","c":"CAO","e":"GS","g":"U12-U14-U16","x":"F&M","t":"TBD","s":"Inscrita","o":""},{"f":"2026-09-25","d":"V","n":"CNI","l":"ANTILLANCA","c":"CAO","e":"SL","g":"U12-U14-U16","x":"F&M","t":"TBD","s":"Inscrita","o":""},{"f":"2026-09-26","d":"S","n":"CNI","l":"ANTILLANCA","c":"CAO","e":"GS-SL-SG-KR","g":"U12-U14-U16","x":"F&M","t":"TBD","s":"Inscrita","o":""}];
+let showCarreras = false;
+let filtroCatCarrera = "";
+const APP_VERSION = "v20260728.3";
 const K_AUTH = "ski-auth-session"; // per-device only (not synced): who is logged in on this browser
 
 /* ============ SUPABASE CONNECTION ============ */
@@ -1296,7 +1334,8 @@ function trainerCalendarBodyHTML(){
 }
 
 function renderTrainersTab(){
-  let html = `<div class="card">
+  let html = `<button class="btn-carreras" id="ir-carreras"><span>🏁</span> Calendario de carreras</button>`;
+  html += `<div class="card">
     <div class="section-label"><div class="gate-poles"><span></span><span></span></div><span class="title">Asistencia de entrenadores</span></div>
     <div style="font-size:12px;color:${GRAY};margin-bottom:10px;">Solo visible para el jefe de entrenadores.</div>
     <div class="migrupo-row">
@@ -3056,6 +3095,68 @@ function athleteNotaFieldHTML(at){
   </div>`;
 }
 
+
+/* ============ CALENDARIO DE CARRERAS (FEDESKI 2026) ============ */
+const CAT_CARRERAS = ["U10","U12","U14","U16","U18"];
+
+function renderCarrerasTab(){
+  const hoy = todayISO();
+  let lista = CARRERAS.slice();
+  if(filtroCatCarrera) lista = lista.filter(c => (c.g||"").includes(filtroCatCarrera));
+
+  let html = `<div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+      <div class="section-label" style="margin:0;"><div class="gate-poles"><span></span><span></span></div><span class="title">Calendario de carreras</span></div>
+      <button class="btn-outline" id="carreras-volver" style="font-size:12px;padding:6px 12px;">← Volver</button>
+    </div>
+    <div style="font-size:11px;color:${GRAY};margin-top:6px;">FEDESKI · Calendario Alpino 2026, actualizado al 21.07.26</div>
+    <div class="cat-chips">
+      <button type="button" class="cat-chip${filtroCatCarrera===""?" active":""}" data-catcarrera="">Todas</button>
+      ${CAT_CARRERAS.map(c => `<button type="button" class="cat-chip${filtroCatCarrera===c?" active":""}" data-catcarrera="${c}">${c}</button>`).join("")}
+    </div>
+  </div>`;
+
+  if(!lista.length){
+    return html + `<div class="card"><div style="font-size:13px;color:${GRAY};text-align:center;padding:16px 0;">No hay carreras para esa categoría.</div></div>`;
+  }
+
+  const meses = {};
+  lista.forEach(c => { const m = c.f.slice(0,7); (meses[m] = meses[m] || []).push(c); });
+
+  Object.keys(meses).sort().forEach(m => {
+    const [y, mm] = m.split("-");
+    html += `<div class="card">
+      <div class="mes-titulo">${MESES[+mm-1]} ${y}</div>`;
+    meses[m].forEach(c => {
+      const pasada = c.f < hoy;
+      const est = (c.s||"").toLowerCase();
+      const clase = est.startsWith("cancel") ? "cancelada" : est.startsWith("reprog") ? "reprogramada" : "inscrita";
+      html += `<div class="carrera${pasada?" pasada":""}">
+        <div class="carrera-fecha">
+          <span class="cf-dia">${escapeHtml(c.d)}</span>
+          <span class="cf-num">${c.f.slice(8)}</span>
+        </div>
+        <div class="carrera-info">
+          <div class="carrera-top">
+            <span class="carrera-nombre">${escapeHtml(c.n)}</span>
+            ${c.s ? `<span class="estado-chip ${clase}">${escapeHtml(c.s)}</span>` : ""}
+          </div>
+          <div class="carrera-lugar">${escapeHtml(c.l)}${c.c?` · ${escapeHtml(c.c)}`:""}</div>
+          <div class="carrera-tags">
+            ${c.e ? `<span class="tag esp">${escapeHtml(c.e)}</span>` : ""}
+            ${c.g ? `<span class="tag">${escapeHtml(c.g)}</span>` : ""}
+            ${c.x ? `<span class="tag">${escapeHtml(c.x)}</span>` : ""}
+          </div>
+          ${c.t ? `<div class="carrera-dt">DT: ${escapeHtml(c.t)}</div>` : ""}
+          ${c.o ? `<div class="carrera-nota">${escapeHtml(c.o)}</div>` : ""}
+        </div>
+      </div>`;
+    });
+    html += `</div>`;
+  });
+  return html;
+}
+
 /* ============ MAIN RENDER DISPATCHER ============ */
 function render(){
   const app = document.getElementById("app");
@@ -3082,7 +3183,7 @@ function render(){
   else if(tab === "daily") body = renderDailyTab();
   else if(tab === "profile") body = renderProfileTab();
   else if(tab === "access" && authState.level === "master") body = renderAccessTab();
-  else if(tab === "trainers" && authState.level === "master") body = renderTrainersTab();
+  else if(tab === "trainers" && authState.level === "master") body = showCarreras ? renderCarrerasTab() : renderTrainersTab();
   else if(tab === "checkins") body = renderCheckinsTab();
   else if(tab === "transport") body = renderTransportTab();
   else { tab = "daily"; body = renderDailyTab(); }
@@ -3270,6 +3371,14 @@ function attachExtraHandlers(){
 
   const preAtleta = document.getElementById("pre-atleta-toggle");
   if(preAtleta) preAtleta.addEventListener("click", () => { preAtletaPanelOpen = !preAtletaPanelOpen; render(); });
+
+  // --- Calendario de carreras ---
+  const irCarreras = document.getElementById("ir-carreras");
+  if(irCarreras) irCarreras.addEventListener("click", () => { showCarreras = true; window.scrollTo(0,0); render(); });
+  const volverCarreras = document.getElementById("carreras-volver");
+  if(volverCarreras) volverCarreras.addEventListener("click", () => { showCarreras = false; render(); });
+  document.querySelectorAll("[data-catcarrera]").forEach(b =>
+    b.addEventListener("click", () => { filtroCatCarrera = b.dataset.catcarrera; render(); }));
 
   // --- Notas por atleta ---
   document.querySelectorAll("[data-nota-athlete]").forEach(ta => {
