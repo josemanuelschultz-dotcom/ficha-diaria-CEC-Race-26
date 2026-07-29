@@ -237,6 +237,22 @@
   .estado-chip.reprogramada{background:#FFF8E1;color:#8A6D00;}
   @media (max-width:480px){ .carrera-fecha{flex:0 0 38px;} .carrera-nombre{font-size:13px;} }
 
+  .ro-banner{background:#EEF3FA;border-bottom:1px solid var(--border);color:var(--navy);
+    font-size:12px;padding:9px 16px;text-align:center;}
+  body.solo-lectura .save-btn,
+  body.solo-lectura #add-trainer-btn, body.solo-lectura #new-trainer-name,
+  body.solo-lectura [data-remove-trainer], body.solo-lectura [data-tatt],
+  body.solo-lectura [data-dia-estado], body.solo-lectura [data-dia-borrar],
+  body.solo-lectura [data-tlibre], body.solo-lectura .dia-estado,
+  body.solo-lectura [data-tt-inc], body.solo-lectura [data-tt-dec],
+  body.solo-lectura [data-tt-del], body.solo-lectura .tr-add-box,
+  body.solo-lectura #migrupo-ir, body.solo-lectura #export-backup-full,
+  body.solo-lectura #export-backup-btn, body.solo-lectura .modal-save,
+  body.solo-lectura .modal-delete, body.solo-lectura #import-file,
+  body.solo-lectura .file-input-label{ display:none !important; }
+  body.solo-lectura textarea, body.solo-lectura input[type=text]{
+    pointer-events:none; opacity:.6; background:#F5F5F5; }
+
   /* NOTAS DE ATLETA */
   .nota-box{margin-top:10px;}
   .nota-box label{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--gray);margin-bottom:5px;}
@@ -470,7 +486,7 @@ function configForGroup(groupId){
 const CARRERAS = [{"f":"2026-07-26","d":"D","n":"COPA CLUB ANDES","l":"LA PARVA","c":"CAN","e":"GS","g":"U14- U16","x":"F&M","t":"H. Guerreros","s":"Cancelada","o":"GS U14: 2 carreras/ GS U16: 2 mangas"},{"f":"2026-07-30","d":"J","n":"COPA VOLCANES","l":"CORRALCO","c":"CORR","e":"ENTRENAMIENTO SG","g":"U10-U12-U14-U16","x":"F&M","t":"Aldo Garda","s":"Inscrita","o":"Entrenamiento"},{"f":"2026-07-31","d":"V","n":"COPA VOLCANES","l":"CORRALCO","c":"CORR","e":"SG/ KR-T","g":"U10-U12-U14-U16","x":"F&M","t":"Aldo Garda","s":"Inscrita","o":"SG: 1 manga/ KR-T: 1 manga"},{"f":"2026-08-01","d":"S","n":"COPA VOLCANES","l":"CORRALCO","c":"CORR","e":"GS/ SL","g":"U14-U16/ U10-U12","x":"F&M","t":"Aldo Garda","s":"Inscrita","o":"GS: 2 mangas/ SL: 1 manga"},{"f":"2026-08-01","d":"S","n":"COPA ART","l":"VALLE NEVADO","c":"ART","e":"GS","g":"U10","x":"F&M","t":"S. Parot","s":"Reprogramada","o":"2 carreras 1 manga c/u · Pendiente confirmación"},{"f":"2026-08-02","d":"D","n":"COPA VOLCANES","l":"CORRALCO","c":"CORR","e":"SL/ GS","g":"U14-U16/ U10-U12","x":"F&M","t":"Aldo Garda","s":"Inscrita","o":"SL: 2 mangas/ GS: 1 manga"},{"f":"2026-08-02","d":"D","n":"COPA MEDS","l":"VALLE NEVADO","c":"CVN","e":"SL","g":"U12","x":"F&M","t":"S. Molina","s":"Reprogramada","o":""},{"f":"2026-08-09","d":"D","n":"COPA ART","l":"VALLE NEVADO","c":"ART","e":"GS","g":"U14/U16","x":"F&M","t":"TBD","s":"Inscrita","o":"2 mangas, 1 sola carrera"},{"f":"2026-08-10","d":"L","n":"INTERSUR","l":"CHILLAN","c":"CEC","e":"LLEGADA","g":"U8-U10-U12-U14-U16","x":"F&M","t":"J.P. Mandru/A. Wiedemann","s":"Inscrita","o":""},{"f":"2026-08-11","d":"MA","n":"INTERSUR","l":"CHILLAN","c":"CEC","e":"ENTRENAMIENTO KR-V/ SG","g":"U10-U12/ U14-U16","x":"F&M","t":"J.P. Mandru/A. Wiedemann","s":"Inscrita","o":"KR: 1 carrera 1 Manga/ SG: 2 carreras 1 manga · Este día es Entrenamiento?"},{"f":"2026-08-12","d":"MI","n":"INTERSUR","l":"CHILLAN","c":"CEC","e":"KR-V/ SG","g":"U10-U12/ U14-U16","x":"F&M","t":"J.P. Mandru/A. Wiedemann","s":"Inscrita","o":"KR: 1 carrera 1 Manga/ SG: 2 carreras 1 manga"},{"f":"2026-08-13","d":"J","n":"INTERSUR","l":"CHILLAN","c":"CEC","e":"SL/ GS","g":"U10-U12/ U14-U16","x":"F&M","t":"J.P. Mandru/A. Wiedemann","s":"Inscrita","o":"SL: 1 carrera 1 manga/ GS: 1 carrera 2 mangas"},{"f":"2026-08-14","d":"V","n":"INTERSUR","l":"CHILLAN","c":"CEC","e":"GS/ SL","g":"U10-U12/ U14-U16","x":"F&M","t":"J.P. Mandru/A. Wiedemann","s":"Inscrita","o":"GS U10: 1 carrera 1 manga - GSU12: 2 carreras 1 manga · SL: 1 carrera 2 mangas"},{"f":"2026-08-15","d":"S","n":"COPA ARAUCARIAS I - II","l":"VOLCAN LLAIMA","c":"CAR","e":"SL","g":"U14-U16","x":"F&M","t":"P.Mehr","s":"Cancelada","o":""},{"f":"2026-08-16","d":"D","n":"COPA CHILEXPRESS","l":"LA PARVA","c":"CLP","e":"SL","g":"U14-U16","x":"F&M","t":"M. Rivera","s":"Inscrita","o":""},{"f":"2026-08-22","d":"S","n":"AVIANCA WEEK","l":"EL COLORADO","c":"UC","e":"GS","g":"U12","x":"F&M","t":"P.P. Rodriguez","s":"Reprogramada","o":"1 carrera 2 mangas"},{"f":"2026-08-22","d":"S","n":"COPA VILLARICA","l":"PUCÓN","c":"LV","e":"SL/ GS","g":"U10-U12/ U14-U16","x":"F&M","t":"P.Mehr","s":"Inscrita","o":"GS: 2 mangas"},{"f":"2026-08-23","d":"D","n":"AVIANCA WEEK","l":"EL COLORADO","c":"UC","e":"SL","g":"U14-U16","x":"F&M","t":"J.Campos","s":"Reprogramada","o":"2 carreras de 1 manga cada una"},{"f":"2026-08-23","d":"D","n":"COPA VILLARICA","l":"PUCÓN","c":"LV","e":"KR-V/ SL","g":"U10-U12/ U14-U16","x":"F&M","t":"P.Mehr","s":"Inscrita","o":"SL: 2 mangas"},{"f":"2026-08-26","d":"MI","n":"COPA COLUN (INGRESO)","l":"ANTILLANCA","c":"CAO","e":"GS-SL-SG","g":"U12-U14-U16-U18","x":"F&M","t":"J.P. Mandru","s":"Inscrita","o":""},{"f":"2026-08-27","d":"J","n":"COPA COLUN","l":"ANTILLANCA","c":"CAO","e":"GS*2","g":"U12-U14-U16-U18","x":"F&M","t":"J.P. Mandru","s":"Inscrita","o":""},{"f":"2026-08-28","d":"V","n":"COPA COLUN","l":"ANTILLANCA","c":"CAO","e":"GS U14*2 y GS*1","g":"U12-U14-U16-U18","x":"F&M","t":"J.P. Mandru","s":"Inscrita","o":""},{"f":"2026-08-29","d":"S","n":"COPA COLUN","l":"ANTILLANCA","c":"CAO","e":"SL","g":"U12-U14-U16-U18","x":"F&M","t":"J.P. Mandru","s":"Inscrita","o":""},{"f":"2026-08-29","d":"S","n":"COPA STANLEY","l":"LA PARVA","c":"CLP","e":"FUNRACE","g":"U10","x":"F&M","t":"J.Campos","s":"Inscrita","o":""},{"f":"2026-08-31","d":"L","n":"PATAGONICO (ESQUEL-ARG)","l":"ESQUEL ARGENTINA","c":"","e":"","g":"","x":"","t":"","s":"Inscrita","o":""},{"f":"2026-09-01","d":"MA","n":"PATAGONICO (ESQUEL-ARG)","l":"ESQUEL ARGENTINA","c":"","e":"","g":"","x":"","t":"","s":"Inscrita","o":""},{"f":"2026-09-02","d":"MI","n":"PATAGONICO (ESQUEL-ARG)","l":"ESQUEL ARGENTINA","c":"","e":"","g":"","x":"","t":"","s":"Inscrita","o":""},{"f":"2026-09-03","d":"J","n":"PATAGONICO (ESQUEL-ARG)","l":"ESQUEL ARGENTINA","c":"","e":"","g":"","x":"","t":"","s":"Inscrita","o":""},{"f":"2026-09-04","d":"V","n":"PATAGONICO (ESQUEL-ARG)","l":"ESQUEL ARGENTINA","c":"","e":"","g":"","x":"","t":"","s":"Inscrita","o":""},{"f":"2026-09-05","d":"S","n":"COPA PORTILLO","l":"PORTILLO","c":"POR","e":"GS","g":"U14-U16","x":"F&M","t":"G. Barros","s":"Inscrita","o":""},{"f":"2026-09-06","d":"D","n":"COPA PORTILLO","l":"PORTILLO","c":"POR","e":"GS","g":"U10-U12","x":"F&M","t":"G. Barros","s":"Inscrita","o":""},{"f":"2026-09-11","d":"V","n":"COPA LA LEÑERA SUPER G","l":"VALLE NEVADO","c":"CVN","e":"SG","g":"U14-U16","x":"F&M","t":"P.P. Rodriguez","s":"Inscrita","o":""},{"f":"2026-09-11","d":"V","n":"COPA PUYEHUE","l":"ANTILLANCA","c":"PAT","e":"GS-SG-KR","g":"U10-U12-U14-U16","x":"F&M","t":"J.P. Mandru","s":"Reprogramada","o":""},{"f":"2026-09-12","d":"S","n":"COPA CLUB ANDES","l":"LA PARVA","c":"CAN","e":"KR","g":"U10-U12","x":"F&M","t":"S.Molina","s":"Inscrita","o":"KR U10-U12: 2 carreras"},{"f":"2026-09-12","d":"S","n":"COPA ARAUCARIAS I - II","l":"VOLCÁN LLAIMA","c":"CAR","e":"SG","g":"U14-U16","x":"F&M","t":"A. Wiedemann","s":"Inscrita","o":""},{"f":"2026-09-12","d":"S","n":"COPA PUYEHUE","l":"ANTILLANCA","c":"PAT","e":"GS-SG-KR","g":"U10-U12-U14-U16","x":"F&M","t":"J.P. Mandru","s":"Reprogramada","o":""},{"f":"2026-09-13","d":"D","n":"COPA CLUB LA PARVA","l":"LA PARVA","c":"CLP","e":"GS","g":"U14-U16","x":"F&M","t":"H. Guerrero","s":"Inscrita","o":""},{"f":"2026-09-13","d":"D","n":"COPA ARAUCARIAS I - II","l":"VOLCÁN LLAIMA","c":"CAR","e":"SL","g":"U10-U12-U14-U16","x":"F&M","t":"A. Wiedemann","s":"Inscrita","o":"SL U14-U16: 2 mangas"},{"f":"2026-09-13","d":"D","n":"COPA PUYEHUE","l":"ANTILLANCA","c":"PAT","e":"GS-SG-KR","g":"U10-U12-U14-U16","x":"F&M","t":"J.P. Mandru","s":"Reprogramada","o":""},{"f":"2026-09-14","d":"L","n":"COPA ARAUCARIAS I - II","l":"VOLCÁN LLAIMA","c":"CAR","e":"GS","g":"U10-U12-U14-U16","x":"F&M","t":"A. Wiedemann","s":"Inscrita","o":""},{"f":"2026-09-21","d":"L","n":"CNI (INGRESO)","l":"ANTILLANCA","c":"CAO","e":"GS-SL-SG-KR","g":"U12-U14-U16","x":"F&M","t":"TBD","s":"Inscrita","o":""},{"f":"2026-09-22","d":"MA","n":"CNI","l":"ANTILLANCA","c":"CAO","e":"SG TRA","g":"U12-U14-U16","x":"F&M","t":"TBD","s":"Inscrita","o":""},{"f":"2026-09-23","d":"MI","n":"CNI","l":"ANTILLANCA","c":"CAO","e":"SG","g":"U12-U14-U16","x":"F&M","t":"TBD","s":"Inscrita","o":""},{"f":"2026-09-24","d":"J","n":"CNI","l":"ANTILLANCA","c":"CAO","e":"GS","g":"U12-U14-U16","x":"F&M","t":"TBD","s":"Inscrita","o":""},{"f":"2026-09-25","d":"V","n":"CNI","l":"ANTILLANCA","c":"CAO","e":"SL","g":"U12-U14-U16","x":"F&M","t":"TBD","s":"Inscrita","o":""},{"f":"2026-09-26","d":"S","n":"CNI","l":"ANTILLANCA","c":"CAO","e":"GS-SL-SG-KR","g":"U12-U14-U16","x":"F&M","t":"TBD","s":"Inscrita","o":""}];
 const CODIGOS_CARRERAS = ["Mamel","Keko","Cata","Riccardo","Chiqui"];
 let filtroCatCarrera = "";
-const APP_VERSION = "v20260728.5";
+const APP_VERSION = "v20260729.2";
 const K_AUTH = "ski-auth-session"; // per-device only (not synced): who is logged in on this browser
 
 /* ============ SUPABASE CONNECTION ============ */
@@ -499,6 +515,7 @@ async function sbSelect(table, qs){
   return todo;
 }
 async function sbInsert(table, rowOrRows, opts={}){
+  if(soloLectura()) throw new Error("El perfil Directorio es de solo lectura: no puede guardar cambios.");
   const params = opts.onConflict ? `?on_conflict=${opts.onConflict}` : "";
   const res = await fetch(`${REST}/${table}${params}`, {
     method: "POST",
@@ -510,6 +527,7 @@ async function sbInsert(table, rowOrRows, opts={}){
   return Array.isArray(rowOrRows) ? data : data[0];
 }
 async function sbUpdate(table, match, patch){
+  if(soloLectura()) throw new Error("El perfil Directorio es de solo lectura: no puede guardar cambios.");
   const qs = Object.entries(match).map(([k,v]) => `${k}=eq.${encodeURIComponent(v)}`).join("&");
   const res = await fetch(`${REST}/${table}?${qs}`, { method: "PATCH", headers: sbHeaders({ "Prefer": "return=representation" }), body: JSON.stringify(patch) });
   if(!res.ok) throw new Error(`${table} update: ${res.status} ${await res.text()}`);
@@ -517,6 +535,7 @@ async function sbUpdate(table, match, patch){
   return data[0];
 }
 async function sbDelete(table, match){
+  if(soloLectura()) throw new Error("El perfil Directorio es de solo lectura: no puede guardar cambios.");
   const qs = Object.entries(match).map(([k,v]) => `${k}=eq.${encodeURIComponent(v)}`).join("&");
   const res = await fetch(`${REST}/${table}?${qs}`, { method: "DELETE", headers: sbHeaders() });
   if(!res.ok) throw new Error(`${table} delete: ${res.status} ${await res.text()}`);
@@ -716,6 +735,8 @@ let auditFilter = { type: "", id: "", date: "" };
 // Alertas calculadas
 let alertsData = { lowAttendance: [], noTraining: [], consecutive: [] };
 let attendanceAuditLog = [];
+const K_RESPALDO = "cec26_ultimo_respaldo";
+let ultimoRespaldo = lsGet(K_RESPALDO, null);
 let transportAdminError = "";
 let prePanelOpen = false;
 let preAtletaPanelOpen = false;
@@ -808,7 +829,7 @@ async function handleFirstTimeSetup(){
   authError = "";
   try{
     const row = await sbUpdate("access_config", {id:1}, {master_code: setupDraft.masterCode, category_codes: setupDraft.categoryCodes});
-    accessConfig = { masterCode: row.master_code, categoryCodes: row.category_codes };
+    accessConfig = { masterCode: row.master_code, categoryCodes: row.category_codes, directorioCode: row.directorio_code || "" };
   }catch(e){ authError = "No se pudo guardar: " + e.message; render(); return; }
   authState = {level:"master"};
   persistAuth();
@@ -817,6 +838,11 @@ async function handleFirstTimeSetup(){
 function handleLogin(){
   const code = pinInput.trim();
   if(!code){ authError = "Ingresa tu código de acceso."; render(); return; }
+  if(accessConfig.directorioCode && code === accessConfig.directorioCode){
+    authState = {level:"directorio"}; persistAuth(); pinInput=""; authError="";
+    if(tab === "daily") initDailyForm();
+    render(); return;
+  }
   if(code === accessConfig.masterCode){
     authState = {level:"master"}; persistAuth(); pinInput=""; authError="";
     if(tab === "daily") initDailyForm();
@@ -885,7 +911,7 @@ async function changeMyCode(newCodeRaw){
     });
 
     const savedConfig = await sbUpdate("access_config", {id:1}, { master_code: newMasterCode, category_codes: newCategoryCodes, coordinator_map: newCoordinatorMap });
-    accessConfig = { masterCode: savedConfig.master_code, categoryCodes: savedConfig.category_codes };
+    accessConfig = { masterCode: savedConfig.master_code, categoryCodes: savedConfig.category_codes, directorioCode: savedConfig.directorio_code || "" };
     COORDINATOR_MAP = savedConfig.coordinator_map;
     COORDINATOR_CODES = Array.from(new Set(Object.values(COORDINATOR_MAP).filter(v => v !== "JEFE")));
 
@@ -912,7 +938,7 @@ function openAdmin(){ adminDraft = JSON.parse(JSON.stringify({ masterCode: acces
 async function saveAdminCodes(){
   try{
     const row = await sbUpdate("access_config", {id:1}, {master_code: adminDraft.masterCode, category_codes: adminDraft.categoryCodes});
-    accessConfig = { masterCode: row.master_code, categoryCodes: row.category_codes };
+    accessConfig = { masterCode: row.master_code, categoryCodes: row.category_codes, directorioCode: row.directorio_code || "" };
   }catch(e){ alert("No se pudo guardar los códigos: " + e.message); }
   adminDraft = null;
   render();
@@ -2195,6 +2221,70 @@ function copySummary(){
   });
   navigator.clipboard.writeText(text).then(()=>{ alert("Resumen copiado al portapapeles."); });
 }
+
+/* ============ RESPALDO COMPLETO (todas las tablas) ============ */
+function esJefeODirectorio(){ return !!authState && (authState.level === "master" || authState.level === "directorio"); }
+
+function soloLectura(){ return !!authState && authState.level === "directorio"; }
+
+function respaldoAntiguo(){
+  if(!ultimoRespaldo) return false;
+  return (Date.now() - new Date(ultimoRespaldo).getTime()) > 7*24*60*60*1000;
+}
+
+function exportBackupCompleto(){
+  const XLSX = window.XLSX;
+  if(!XLSX){ alert("No se pudo cargar el generador de Excel. Revisa tu conexión."); return; }
+  const wb = XLSX.utils.book_new();
+  const hoja = (nombre, filas) => XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(filas), nombre);
+  const gDe = id => { const g = groups.find(x => x.id === id); return g ? `${g.program} · ${g.name}` : ""; };
+  const nDe = id => { const a = athletes.find(x => x.id === id); return a ? a.name : ""; };
+  const tDe = id => { const t = trainers.find(x => x.id === id); return t ? t.name : ""; };
+  const ETIQ = {present:"Presente", absent:"Ausente", no_training:"Sin entrenamiento", free_day:"Día libre"};
+  const PER  = {pre_temporada:"Pre temporada", temporada_26:"En pistas"};
+
+  hoja("Integrantes", [["Programa","Grupo","Integrante","Teléfono","Enfermedades","Alergias","Medicamentos","Otros","Notas adicionales"]]
+    .concat(athletes.map(a => { const m = a.medical || {}; const g = groups.find(x => x.id === a.groupId) || {};
+      return [g.program||"", g.name||"", a.name, a.phone||"", m.enfermedades||"", m.alergias||"", m.medicamentos||"", m.otros||"", a.notas||""]; })));
+
+  hoja("Asistencia atletas", [["Integrante","Grupo","Fecha","Período","Estado","Notas"]]
+    .concat(attendance.map(r => [nDe(r.athleteId), gDe(r.groupId), r.date, PER[r.period]||r.period, ETIQ[r.status]||r.status, r.notes||""])));
+
+  hoja("Asistencia entrenadores", [["Entrenador","Fecha","Período","Estado","Notas"]]
+    .concat(trainerAttendance.map(r => [tDe(r.trainerId), r.date, PER[r.period]||r.period, ETIQ[r.status]||r.status, r.notes||""])));
+
+  hoja("Sesiones", [["Grupo","Fecha","Disciplina","Trabajo","Fundamentos","Nieve","Clima","Total curvas"]]
+    .concat(sessions.map(x => [gDe(x.groupId), x.date, x.disciplina||"", x.trabajo||"",
+      Array.isArray(x.fundamentos)? x.fundamentos.join(", ") : (x.fundamentos||""), x.nieve||"", x.clima||"", x.totalCurvas||0])));
+
+  hoja("Transporte", [["Fecha","Entrenador","Personas en el auto","¿Compartido?"]]
+    .concat(trainerTransport.slice().sort((a,b)=> a.date<b.date?-1:1)
+      .map(t => [t.date, t.trainerCode, t.numTrainers, (t.numTrainers>=2?"Sí":"No")])));
+
+  hoja("Pulso semanal", [["Semana","Entrenador","Grupo","Progreso técnico","Obstáculos","Qué funcionó","Motivación","Material","Comunicación","Enviado al jefe"]]
+    .concat(weeklyCheckins.map(c => [c.weekStart, c.trainerCode, gDe(c.groupId),
+      c.q1||"", c.q2||"", c.q3||"", c.q4||"", c.q5||"", c.q6||"", c.sentToJefe?"Sí":"No"])));
+
+  hoja("Entrenadores", [["Entrenador"]].concat(trainers.map(t => [t.name])));
+  hoja("Grupos", [["Programa","Grupo","Integrantes"]]
+    .concat(groups.map(g => [g.program, g.name, athletes.filter(a => a.groupId===g.id).length])));
+
+  hoja("Resumen", [
+    ["Respaldo generado", new Date().toLocaleString("es-CL")],
+    ["Versión de la app", APP_VERSION], [],
+    ["Tabla","Registros"],
+    ["Integrantes", athletes.length], ["Asistencia atletas", attendance.length],
+    ["Asistencia entrenadores", trainerAttendance.length], ["Sesiones", sessions.length],
+    ["Transporte", trainerTransport.length], ["Pulso semanal", weeklyCheckins.length],
+    ["Entrenadores", trainers.length], ["Grupos", groups.length],
+  ]);
+
+  XLSX.writeFile(wb, `CEC26_respaldo_completo_${todayISO()}.xlsx`);
+  ultimoRespaldo = new Date().toISOString();
+  lsSet(K_RESPALDO, ultimoRespaldo);
+  render();
+}
+
 function exportBackupJSON(){
   const backup = {groups, athletes, sessions, attendance, accessConfig, exportedAt: new Date().toISOString()};
   const blob = new Blob([JSON.stringify(backup, null, 2)], {type:"application/json"});
@@ -2292,12 +2382,13 @@ function renderChangeCodePanel(){
 }
 
 function renderHeader(){
-  const veCarreras = authState.level === "master" || CODIGOS_CARRERAS.includes(authState.trainerCode);
-  const visibleTabs = authState.level === "master"
+  const esJefeODir = authState.level === "master" || authState.level === "directorio";
+  const veCarreras = esJefeODir || CODIGOS_CARRERAS.includes(authState.trainerCode);
+  const visibleTabs = esJefeODir
     ? [["setup","Grupos"],["daily","Registro diario"],["profile","Estadísticas"],["trainers","Entrenadores"],["checkins","Pulso semanal"],["transport","Transporte"],["carreras","🏁 Carreras"],["access","Accesos"]]
     : [["setup","Grupos"],["daily","Registro diario"],["profile","Estadísticas"],["checkins","Pulso semanal"],["transport","Transporte"]]
         .concat(veCarreras ? [["carreras","🏁 Carreras"]] : []);
-  const roleLabel = authState.level==="master" ? "Jefe de entrenadores" : `${authState.program} · ${authState.category}`;
+  const roleLabel = authState.level==="directorio" ? "Directorio · solo lectura" : authState.level==="master" ? "Jefe de entrenadores" : `${authState.program} · ${authState.category}`;
   return `
   <div class="hero">
     <div class="gates"><div style="background:${RED}"></div><div style="background:${NAVY}"></div><div style="background:${RED}"></div></div>
@@ -2654,7 +2745,16 @@ function renderAccessTab(){
     <div class="section-label"><div class="gate-poles"><span></span><span></span></div><span class="title">Respaldo de datos</span></div>
     <div style="font-size:12px;color:${GRAY};margin-bottom:14px;">Este respaldo es solo una copia extra por si acaso.</div>
     <div class="backup-row">
-      <button class="btn-navy" id="export-backup-btn" style="flex:1;">⬇️ Descargar copia (.json)</button>
+      <button class="btn-navy" id="export-backup-full" style="flex:1;">💾 Guardar todos los datos (.xlsx)</button>
+    </div>
+    <div style="font-size:11px;color:${GRAY};margin-top:8px;">
+      Nueve hojas con todo lo registrado. ${ultimoRespaldo
+        ? `Último respaldo: <b>${new Date(ultimoRespaldo).toLocaleString("es-CL")}</b>.`
+        : "Aún no has guardado ninguno."}
+      ${respaldoAntiguo() ? `<div style="color:${RED};margin-top:5px;">Han pasado más de 7 días desde el último respaldo.</div>` : ""}
+    </div>
+    <div class="backup-row" style="margin-top:12px;">
+      <button class="btn-outline" id="export-backup-btn" style="flex:1;font-size:12px;">Copia parcial (.json)</button>
     </div>
   </div>
     <div style="text-align:center;font-size:10px;color:${GRAY};margin-top:14px;font-family:'JetBrains Mono',monospace;">
@@ -3160,6 +3260,7 @@ function renderCarrerasTab(){
 /* ============ MAIN RENDER DISPATCHER ============ */
 function render(){
   const app = document.getElementById("app");
+  document.body.classList.toggle("solo-lectura", soloLectura());
   if(accessConfig === null){
     app.innerHTML = renderFirstTimeSetup();
     attachSetupScreenHandlers();
@@ -3183,13 +3284,13 @@ function render(){
   else if(tab === "daily") body = renderDailyTab();
   else if(tab === "profile") body = renderProfileTab();
   else if(tab === "access" && authState.level === "master") body = renderAccessTab();
-  else if(tab === "trainers" && authState.level === "master") body = renderTrainersTab();
-  else if(tab === "carreras" && (authState.level === "master" || CODIGOS_CARRERAS.includes(authState.trainerCode))) body = renderCarrerasTab();
+  else if(tab === "trainers" && esJefeODirectorio()) body = renderTrainersTab();
+  else if(tab === "carreras" && (esJefeODirectorio() || CODIGOS_CARRERAS.includes(authState.trainerCode))) body = renderCarrerasTab();
   else if(tab === "checkins") body = renderCheckinsTab();
   else if(tab === "transport") body = renderTransportTab();
   else { tab = "daily"; body = renderDailyTab(); }
 
-  app.innerHTML = renderHeader() + (shouldShowMondayReminder() ? renderMondayBanner() : "") + `<div class="wrap">${body}</div>
+  app.innerHTML = renderHeader() + (soloLectura() ? `<div class="ro-banner">👁️ Perfil Directorio · solo lectura. Puedes revisar todo, pero no modificar.</div>` : "") + (shouldShowMondayReminder() ? renderMondayBanner() : "") + `<div class="wrap">${body}</div>
     <div class="footer-note">Los datos se sincronizan automáticamente entre todos los dispositivos.</div>`;
   attachAppHandlers();
 }
@@ -3733,6 +3834,8 @@ function attachAccessTabHandlers(){
   const cancelBtn = document.getElementById("cancel-admin-btn");
   if(cancelBtn) cancelBtn.addEventListener("click", () => { adminDraft = null; render(); });
 
+  const exportFullBtn = document.getElementById("export-backup-full");
+  if(exportFullBtn) exportFullBtn.addEventListener("click", exportBackupCompleto);
   const exportBackupBtn = document.getElementById("export-backup-btn");
   if(exportBackupBtn) exportBackupBtn.addEventListener("click", exportBackupJSON);
 }
