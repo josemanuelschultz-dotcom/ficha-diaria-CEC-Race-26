@@ -639,14 +639,16 @@ function getGroupTrainingDays(groupId, periodFilter){
 
 function getGroupAthleteStats(groupId, periodFilter){
   // Obtener estadísticas de todos los atletas de un grupo
-  // IMPORTANTE: Usa los DIAS DE SESIONES del grupo (no attendance)
+  // COMPLETAR registros faltantes: si un atleta no tiene registro en un día
+  // donde el grupo entrenó, se cuenta como ausente
   
-  // Calcular días únicos del grupo basado en SESIONES (no attendance)
-  // Porque las sesiones representan los días reales de entrenamiento del grupo
-  const groupSessions = sessions.filter(s => s.groupId === groupId);
-  const sessionFiltered = periodFilter ? groupSessions.filter(s => s.period === periodFilter) : groupSessions;
-  const sessionDates = new Set(sessionFiltered.map(s => s.date));
-  const totalDaysOfGroup = sessionDates.size;  // Usa días de sesiones (11)
+  // Paso 1: Obtener TODAS las sesiones del grupo
+  const allGroupSessions = sessions.filter(s => s.groupId === groupId);
+  const sessionsByDate = {};
+  allGroupSessions.forEach(s => {
+    if(!sessionsByDate[s.date]) sessionsByDate[s.date] = [];
+    sessionsByDate[s.date].push(s);
+  });
   
   const groupAthletesList = groupAthletes().filter(a => {
     const athl = athletes.find(aa => aa.id === a.id);
@@ -654,14 +656,53 @@ function getGroupAthleteStats(groupId, periodFilter){
   });
   
   return groupAthletesList.map(a => {
-    // Contar presencias del atleta en el período filtrado
-    const records = attendance.filter(at => at.athleteId === a.id && at.groupId === groupId);
-    const filtered = periodFilter ? records.filter(r => r.period === periodFilter) : records;
-    const present = filtered.filter(r => r.status === "present").length;
-    const absent = filtered.filter(r => r.status === "absent").length;
+    // Paso 2: Para este atleta, contar presencias en TODOS los días del grupo
+    let present = 0;
+    let absent = 0;
     
-    // El total SIEMPRE es el total de SESIONES del grupo (11)
-    const total = totalDaysOfGroup;
+    // Recorrer TODAS las sesiones del grupo
+    allGroupSessions.forEach(session => {
+      // Verificar si el atleta tiene registro en esta sesión
+      const hasRecord = attendance.some(att => 
+        att.athleteId === a.id && 
+        att.groupId === groupId && 
+        att.date === session.date
+      );
+      
+      if(hasRecord) {
+        // Si tiene registro, verificar si es presencia o ausencia
+        const record = attendance.find(att => 
+          att.athleteId === a.id && 
+          att.groupId === groupId && 
+          att.date === session.date
+        );
+        
+        // Aplicar filtro de período si existe
+        if(periodFilter) {
+          if(record.period === periodFilter) {
+            if(record.status === "present") present++;
+            else if(record.status === "absent") absent++;
+          }
+        } else {
+          if(record.status === "present") present++;
+          else if(record.status === "absent") absent++;
+        }
+      } else {
+        // Si NO tiene registro, contar como AUSENTE (pero solo si aplica el período)
+        if(!periodFilter) {
+          // Sin filtro, cuenta toda ausencia no registrada
+          absent++;
+        } else {
+          // Con filtro, solo si la sesión es del período filtrado
+          if(session.period === periodFilter) {
+            absent++;
+          }
+        }
+      }
+    });
+    
+    // Paso 3: Calcular total y porcentaje
+    const total = present + absent;
     const percent = total > 0 ? Math.round((present / total) * 100) : 0;
     
     return {
@@ -669,7 +710,7 @@ function getGroupAthleteStats(groupId, periodFilter){
       name: a.name,
       present,
       absent,
-      total,  // Total de SESIONES del grupo
+      total,
       percent
     };
   }).sort((a, b) => b.percent - a.percent);
