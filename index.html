@@ -639,13 +639,12 @@ function getGroupTrainingDays(groupId, periodFilter){
 
 function getGroupAthleteStats(groupId, periodFilter){
   // Obtener estadísticas de todos los atletas de un grupo
-  // IMPORTANTE: Usa el total de días entrenados del grupo como denominador
+  // IMPORTANTE: Usa el TOTAL REAL de días entrenados del grupo (sin filtro)
   
-  // Primero, calcular días únicos entrenados del grupo
-  const groupRecords = attendance.filter(a => a.groupId === groupId);
-  const filtered = periodFilter ? groupRecords.filter(r => r.period === periodFilter) : groupRecords;
-  const uniqueDates = new Set(filtered.map(r => r.date));
-  const trainingDaysOfGroup = uniqueDates.size;
+  // Calcular días únicos del grupo SIN FILTRO (todos los días reales)
+  const allGroupRecords = attendance.filter(a => a.groupId === groupId);
+  const allUniqueDates = new Set(allGroupRecords.map(r => r.date));
+  const totalDaysOfGroup = allUniqueDates.size;  // Máximo real del grupo
   
   const groupAthletesList = groupAthletes().filter(a => {
     const athl = athletes.find(aa => aa.id === a.id);
@@ -658,8 +657,8 @@ function getGroupAthleteStats(groupId, periodFilter){
     const present = filtered.filter(r => r.status === "present").length;
     const absent = filtered.filter(r => r.status === "absent").length;
     
-    // CORRECCIÓN: El total es el máximo de días del grupo, no solo present + absent
-    const total = trainingDaysOfGroup;
+    // CORRECCIÓN FINAL: Siempre usa el TOTAL REAL del grupo (11, no 5)
+    const total = totalDaysOfGroup;
     const percent = total > 0 ? Math.round((present / total) * 100) : 0;
     
     return {
@@ -667,7 +666,7 @@ function getGroupAthleteStats(groupId, periodFilter){
       name: a.name,
       present,
       absent,
-      total,  // Ahora es el total de días del grupo
+      total,  // Siempre es el máximo real del grupo
       percent
     };
   }).sort((a, b) => b.percent - a.percent);
