@@ -628,6 +628,72 @@ function getDayEditStatusColor(status){
   return colors[status] || "#999";
 }
 
+/* ========== FUNCIONES DE RESUMEN GENERAL ========== */
+function getGroupTrainingDays(groupId, periodFilter){
+  // Obtener días únicos entrenados del grupo
+  const records = attendance.filter(a => a.groupId === groupId);
+  const filtered = periodFilter ? records.filter(r => r.period === periodFilter) : records;
+  const uniqueDates = new Set(filtered.map(r => r.date));
+  return uniqueDates.size;
+}
+
+function getGroupAthleteStats(groupId, periodFilter){
+  // Obtener estadísticas de todos los atletas de un grupo
+  // IMPORTANTE: Usa el total de días entrenados del grupo como denominador
+  
+  // Primero, calcular días únicos entrenados del grupo
+  const groupRecords = attendance.filter(a => a.groupId === groupId);
+  const filtered = periodFilter ? groupRecords.filter(r => r.period === periodFilter) : groupRecords;
+  const uniqueDates = new Set(filtered.map(r => r.date));
+  const trainingDaysOfGroup = uniqueDates.size;
+  
+  const groupAthletesList = groupAthletes().filter(a => {
+    const athl = athletes.find(aa => aa.id === a.id);
+    return athl && athl.groupId === groupId;
+  });
+  
+  return groupAthletesList.map(a => {
+    const records = attendance.filter(at => at.athleteId === a.id && at.groupId === groupId);
+    const filtered = periodFilter ? records.filter(r => r.period === periodFilter) : records;
+    const present = filtered.filter(r => r.status === "present").length;
+    const absent = filtered.filter(r => r.status === "absent").length;
+    
+    // CORRECCIÓN: El total es el máximo de días del grupo, no solo present + absent
+    const total = trainingDaysOfGroup;
+    const percent = total > 0 ? Math.round((present / total) * 100) : 0;
+    
+    return {
+      id: a.id,
+      name: a.name,
+      present,
+      absent,
+      total,  // Ahora es el total de días del grupo
+      percent
+    };
+  }).sort((a, b) => b.percent - a.percent);
+}
+
+function getGroupSummary(groupId, periodFilter){
+  // Resumen completo de un grupo
+  const stats = groupAthletes().filter(a => {
+    const athl = athletes.find(aa => aa.id === a.id);
+    return athl && athl.groupId === groupId;
+  });
+  
+  const records = attendance.filter(a => a.groupId === groupId);
+  const filtered = periodFilter ? records.filter(r => r.period === periodFilter) : records;
+  
+  const uniqueDates = new Set(filtered.map(r => r.date)).size;
+  const presenceStats = calculateAttendanceStats(filtered);
+  
+  return {
+    groupId,
+    trainingDays: uniqueDates,
+    athleteCount: stats.length,
+    attendance: presenceStats
+  };
+}
+
 function blankFicha(){ return {phone:"", enfermedades:"", alergias:"", medicamentos:"", otros:""}; }
 function blankAccessConfig(){
   const categoryCodes = {};
@@ -677,6 +743,10 @@ let changeCodeSaving = false;
 let changeCodeSuccess = false;
 
 let tab = "daily";
+
+/* ========== RESUMEN GENERAL ========== */
+let summaryPeriodFilter = "temporada_26";  // Filtro de período
+let summaryExpandedGroups = {};  // Qué grupos están expandidos
 let selectedGroupId = null;
 let selectedDate = todayISO();
 let attendanceState = {};
@@ -1133,14 +1203,19 @@ async function saveDay(){
   // Si no asistió nadie, no hubo sesión que describir: se guarda sin detalles
   const delGrupo = groupAthletes();
   const nadiePresente = delGrupo.length > 0 && delGrupo.every(a => !attendanceState[a.id]);
-  if(!nadiePresente) for(let i=1;i<=sessionCount;i++){
-    const s = sessionState[i];
-    const needsDisciplina = cfgForValidation.disciplinas.length > 0;
-    if(!s || (needsDisciplina && !s.disciplina) || !s.nieve || !s.clima || !s.trabajo){
-      saveDayError = needsDisciplina
-        ? `Completa disciplina, nieve, clima y trabajo realizado en la Sesión ${i} (o reduce el número de sesiones).`
-        : `Completa tipo de nieve, clima y trabajo realizado en la Sesión ${i} (o reduce el número de sesiones).`;
-      render(); return;
+  
+  // PERMITIR: si nadie está presente, se guarda sin validar sesiones
+  // VALIDAR: solo si hay al menos un atleta presente
+  if(!nadiePresente) {
+    for(let i=1;i<=sessionCount;i++){
+      const s = sessionState[i];
+      const needsDisciplina = cfgForValidation.disciplinas.length > 0;
+      if(!s || (needsDisciplina && !s.disciplina) || !s.nieve || !s.clima || !s.trabajo){
+        saveDayError = needsDisciplina
+          ? `Completa disciplina, nieve, clima y trabajo realizado en la Sesión ${i} (o reduce el número de sesiones).`
+          : `Completa tipo de nieve, clima y trabajo realizado en la Sesión ${i} (o reduce el número de sesiones).`;
+        render(); return;
+      }
     }
   }
   saving = true; render();
@@ -2390,7 +2465,7 @@ function renderHeader(){
   const esJefeODir = authState.level === "master" || authState.level === "directorio";
   const veCarreras = esJefeODir || CODIGOS_CARRERAS.includes(authState.trainerCode);
   const visibleTabs = esJefeODir
-    ? [["setup","Grupos"],["daily","Registro diario"],["profile","Estadísticas"],["trainers","Entrenadores"],["checkins","Pulso semanal"],["transport","Transporte"],["carreras","🏁 Carreras"],["access","Accesos"]]
+    ? [["setup","Grupos"],["daily","Registro diario"],["profile","Estadísticas"],["summary","📊 Resumen"],["trainers","Entrenadores"],["checkins","Pulso semanal"],["transport","Transporte"],["carreras","🏁 Carreras"],["access","Accesos"]]
     : [["setup","Grupos"],["daily","Registro diario"],["profile","Estadísticas"],["checkins","Pulso semanal"],["transport","Transporte"]]
         .concat(veCarreras ? [["carreras","🏁 Carreras"]] : []);
   const roleLabel = authState.level==="directorio" ? "Directorio · solo lectura" : authState.level==="master" ? "Jefe de entrenadores" : `${authState.program} · ${authState.category}`;
@@ -2533,9 +2608,10 @@ function renderDailyTab(){
   html += `</div>`;
 
   if(gAthletes.length){
-    html += `<div class="card">
+    const nadieVino = gAthletes.every(a => !attendanceState[a.id]);
+    html += `<div class="card" style="${nadieVino ? `opacity:0.6;background:#F5F5F5;` : ""}">
       <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;row-gap:8px;margin-bottom:12px;">
-        <div class="section-label" style="margin:0;"><div class="gate-poles"><span></span><span></span></div><span class="title">Sesiones de entrenamiento</span></div>
+        <div class="section-label" style="margin:0;"><div class="gate-poles"><span></span><span></span></div><span class="title">Sesiones de entrenamiento${nadieVino ? ` · <span style="font-weight:normal;opacity:0.7;font-size:12px;">(opcional)</span>` : ""}</span></div>
         <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
           <button class="stepper button" id="dec-session-btn" style="border:1px solid var(--border);border-radius:8px;width:28px;height:28px;flex-shrink:0;">−</button>
           <span style="font-family:'JetBrains Mono',monospace;font-weight:700;font-size:13px;color:${NAVY};">${sessionCount}</span>
@@ -2608,7 +2684,7 @@ function renderDailyTab(){
     const hasDayMenuOptions = justSaved || dayHasSavedData();
     const delGrupoUI = groupAthletes();
     if(delGrupoUI.length && delGrupoUI.every(a => !attendanceState[a.id])){
-      html += `<div class="info-box" style="margin-bottom:10px;">Nadie asistió: puedes guardar sin completar los detalles de la sesión.</div>`;
+      html += `<div class="info-box" style="margin-bottom:10px;background:#E3F2FD;border-left-color:#3E92CC;"><strong>✓ Todos ausentes:</strong> puedes guardar sin completar los detalles de sesión. Solo se registrará la asistencia.</div>`;
     }
     html += `<div style="display:flex;gap:8px;align-items:stretch;">
       <button class="save-btn" id="save-day-btn" style="flex:1;">${saving? "Guardando...":"✓ Guardar día"}</button>`;
@@ -2711,6 +2787,109 @@ function renderProfileTab(){
   html += `<div style="font-size:11px;color:${GRAY};">Los porcentajes se calculan solo con los días en que este integrante estuvo presente.</div>`;
   html += `</div>`;
   return html;
+}
+
+/* ========== RENDER RESUMEN GENERAL ========== */
+function renderSummaryTab(){
+  const groupsList = groupsForProgram(currentProgram);
+  let html = `<div class="card">
+    <div class="section-label"><div class="gate-poles"><span></span><span></span></div><span class="title">📊 Resumen General de Entrenamiento</span></div>
+    
+    <div style="margin-bottom:16px;">
+      <label style="display:block;font-size:12px;font-weight:600;color:${NAVY};margin-bottom:8px;">Período:</label>
+      <select id="summary-period-filter" style="padding:8px;border:1px solid ${BORDER};border-radius:6px;width:100%;max-width:300px;font-size:13px;">
+        <option value="pre_temporada" ${summaryPeriodFilter==="pre_temporada"?"selected":""}>Pre-temporada (hasta 17 jul)</option>
+        <option value="temporada_26" ${summaryPeriodFilter==="temporada_26"?"selected":""}>Temporada 26 (desde 19 jul)</option>
+        <option value="" ${summaryPeriodFilter===""?"selected":""}>Todos los períodos</option>
+      </select>
+    </div>
+
+    <div class="card" style="background:#F5F5F5;margin-bottom:16px;">
+      <div class="section-label"><span class="title">Información General</span></div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;">
+        <div style="padding:12px;background:white;border-radius:8px;">
+          <div style="font-size:11px;color:${GRAY};text-transform:uppercase;">Total de Grupos</div>
+          <div style="font-size:1.8rem;font-weight:700;color:${NAVY};">${groupsList.length}</div>
+        </div>
+        <div style="padding:12px;background:white;border-radius:8px;">
+          <div style="font-size:11px;color:${GRAY};text-transform:uppercase;">Total de Atletas</div>
+          <div style="font-size:1.8rem;font-weight:700;color:${NAVY};">${groupAthletes().length}</div>
+        </div>
+        <div style="padding:12px;background:white;border-radius:8px;">
+          <div style="font-size:11px;color:${GRAY};text-transform:uppercase;">Asistencia Promedio</div>
+          <div style="font-size:1.8rem;font-weight:700;color:${GREEN};">
+            ${(() => {
+              const allRecs = summaryPeriodFilter ? attendance.filter(a => a.period === summaryPeriodFilter) : attendance;
+              const stats = calculateAttendanceStats(allRecs);
+              return stats.percent || "—";
+            })()}%
+          </div>
+        </div>
+      </div>
+    </div>`;
+
+    // Resumen por grupo
+    groupsList.forEach((group, idx) => {
+      const summary = getGroupSummary(group.id, summaryPeriodFilter);
+      const isExpanded = summaryExpandedGroups[group.id];
+      const athletes = getGroupAthleteStats(group.id, summaryPeriodFilter);
+      
+      html += `<div class="card" style="margin-bottom:12px;">
+        <button type="button" style="width:100%;text-align:left;background:none;border:none;padding:12px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:8px;" data-toggle-group="${group.id}">
+          <div>
+            <div style="font-family:'Oswald',sans-serif;font-weight:600;font-size:14px;color:${NAVY};">${escapeHtml(group.program)} · ${escapeHtml(group.name)}</div>
+            <div style="font-size:12px;color:${GRAY};margin-top:4px;">
+              ${summary.trainingDays} días entrenados · ${summary.athleteCount} atletas
+            </div>
+          </div>
+          <span style="font-size:18px;transition:transform 0.2s;">${isExpanded?"▼":"▶"}</span>
+        </button>
+        
+        ${isExpanded ? `
+        <div style="padding:12px;border-top:1px solid ${BORDER};">
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:12px;">
+            <div>
+              <div style="font-size:11px;color:${GRAY};">Días entrenados</div>
+              <div style="font-size:1.4rem;font-weight:700;color:${NAVY};">${summary.trainingDays}</div>
+            </div>
+            <div>
+              <div style="font-size:11px;color:${GRAY};">Atletas</div>
+              <div style="font-size:1.4rem;font-weight:700;color:${NAVY};">${summary.athleteCount}</div>
+            </div>
+            <div>
+              <div style="font-size:11px;color:${GRAY};">Asistencia Prom.</div>
+              <div style="font-size:1.4rem;font-weight:700;color:${GREEN};">${summary.attendance.percent || "—"}%</div>
+            </div>
+          </div>
+          
+          <div style="border-top:1px solid ${BORDER};padding-top:12px;">
+            <div style="font-size:12px;font-weight:600;color:${NAVY};margin-bottom:8px;">Asistencia por Atleta</div>
+            ${athletes.map(a => {
+              const pct = a.total > 0 ? Math.round((a.present / a.total) * 100) : 0;
+              const barWidth = pct;
+              return `<div style="margin-bottom:8px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+                  <span style="font-size:12px;color:${NAVY};">${escapeHtml(a.name)}</span>
+                  <span style="font-size:11px;color:${GRAY};">${a.present}/${a.total} <strong>${pct}%</strong></span>
+                </div>
+                <div style="height:6px;background:${BORDER};border-radius:3px;overflow:hidden;">
+                  <div style="height:100%;width:${barWidth}%;background:${GREEN};"></div>
+                </div>
+              </div>`;
+            }).join("")}
+          </div>
+        </div>
+        ` : ""}
+      </div>`;
+    });
+
+    html += `<div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <button class="save-btn" id="summary-export-excel" style="flex:1;min-width:200px;">⬇️ Descargar Excel</button>
+      <button class="btn-outline" id="summary-copy" style="flex:1;min-width:200px;">📋 Copiar resumen</button>
+    </div>`;
+    
+    html += `</div>`;
+    return html;
 }
 
 function renderAccessTab(){
@@ -3292,6 +3471,7 @@ function render(){
   if(tab === "setup") body = renderSetupTab();
   else if(tab === "daily") body = renderDailyTab();
   else if(tab === "profile") body = renderProfileTab();
+  else if(tab === "summary" && authState.level === "master") body = renderSummaryTab();
   else if(tab === "access" && authState.level === "master") body = renderAccessTab();
   else if(tab === "trainers" && esJefeODirectorio()) body = renderTrainersTab();
   else if(tab === "carreras" && (esJefeODirectorio() || CODIGOS_CARRERAS.includes(authState.trainerCode))) body = renderCarrerasTab();
@@ -3318,6 +3498,130 @@ function attachLoginScreenHandlers(){
   pin.addEventListener("keydown", (e) => { if(e.key === "Enter") handleLogin(); });
   document.getElementById("show-pin-check").addEventListener("change", (e) => { showPin = e.target.checked; render(); pin.focus(); });
   document.getElementById("login-btn").addEventListener("click", handleLogin);
+}
+
+/* ========== HANDLERS DEL RESUMEN ========== */
+function attachSummaryHandlers(){
+  // Filtro de período
+  const periodFilter = document.getElementById("summary-period-filter");
+  if(periodFilter) {
+    periodFilter.addEventListener("change", (e) => {
+      summaryPeriodFilter = e.target.value;
+      render();
+    });
+  }
+  
+  // Toggle grupos expandidos
+  document.querySelectorAll("[data-toggle-group]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const groupId = btn.dataset.toggleGroup;
+      summaryExpandedGroups[groupId] = !summaryExpandedGroups[groupId];
+      render();
+    });
+  });
+  
+  // Descargar Excel
+  const exportBtn = document.getElementById("summary-export-excel");
+  if(exportBtn) {
+    exportBtn.addEventListener("click", () => {
+      exportSummaryToExcel();
+    });
+  }
+  
+  // Copiar al clipboard
+  const copyBtn = document.getElementById("summary-copy");
+  if(copyBtn) {
+    copyBtn.addEventListener("click", () => {
+      copySummaryToClipboard();
+    });
+  }
+}
+
+function exportSummaryToExcel(){
+  const XLSX = window.XLSX;
+  if(!XLSX) { alert("Excel no disponible"); return; }
+  
+  const wb = XLSX.utils.book_new();
+  const groupsList = groupsForProgram(currentProgram);
+  
+  // Hoja: Resumen General
+  const summaryData = [
+    ["RESUMEN GENERAL DE ENTRENAMIENTO"],
+    ["Periodo", summaryPeriodFilter === "pre_temporada" ? "Pre-temporada" : summaryPeriodFilter === "temporada_26" ? "Temporada 26" : "Todos"],
+    ["Fecha de generación", new Date().toLocaleString("es-CL")],
+    [],
+    ["Total de grupos", groupsList.length],
+    ["Total de atletas", groupAthletes().length],
+  ];
+  
+  // Agregar datos por grupo
+  summaryData.push([]);
+  summaryData.push(["RESUMEN POR GRUPO"]);
+  summaryData.push(["Grupo", "Días Entrenados", "Total Atletas", "Asistencia %"]);
+  
+  groupsList.forEach(group => {
+    const summary = getGroupSummary(group.id, summaryPeriodFilter);
+    summaryData.push([
+      `${group.program} - ${group.name}`,
+      summary.trainingDays,
+      summary.athleteCount,
+      summary.attendance.percent || 0
+    ]);
+  });
+  
+  // Agregar hoja de resumen
+  const ws1 = XLSX.utils.aoa_to_sheet(summaryData);
+  XLSX.utils.book_append_sheet(wb, ws1, "Resumen");
+  
+  // Hoja: Asistencia por Grupo
+  groupsList.forEach((group, idx) => {
+    const athletes = getGroupAthleteStats(group.id, summaryPeriodFilter);
+    const groupData = [
+      [`ASISTENCIA: ${group.program} - ${group.name}`],
+      [],
+      ["Atleta", "Presente", "Ausente", "Total", "Porcentaje %"]
+    ];
+    
+    athletes.forEach(a => {
+      groupData.push([a.name, a.present, a.absent, a.total, a.percent]);
+    });
+    
+    const wsGroup = XLSX.utils.aoa_to_sheet(groupData);
+    XLSX.utils.book_append_sheet(wb, wsGroup, `${group.program}`);
+  });
+  
+  XLSX.writeFile(wb, `Resumen_Entrenamiento_${new Date().toISOString().slice(0,10)}.xlsx`);
+}
+
+function copySummaryToClipboard(){
+  let text = "RESUMEN GENERAL DE ENTRENAMIENTO\n";
+  text += "=".repeat(50) + "\n\n";
+  text += `Período: ${summaryPeriodFilter === "pre_temporada" ? "Pre-temporada" : summaryPeriodFilter === "temporada_26" ? "Temporada 26" : "Todos"}\n`;
+  text += `Fecha: ${new Date().toLocaleString("es-CL")}\n\n`;
+  
+  const groupsList = groupsForProgram(currentProgram);
+  
+  text += "RESUMEN POR GRUPO\n";
+  text += "-".repeat(50) + "\n";
+  groupsList.forEach(group => {
+    const summary = getGroupSummary(group.id, summaryPeriodFilter);
+    text += `\n${group.program} - ${group.name}\n`;
+    text += `  Días entrenados: ${summary.trainingDays}\n`;
+    text += `  Atletas: ${summary.athleteCount}\n`;
+    text += `  Asistencia: ${summary.attendance.percent || "—"}%\n`;
+    
+    const athletes = getGroupAthleteStats(group.id, summaryPeriodFilter);
+    text += `  Asistencia por atleta:\n`;
+    athletes.forEach(a => {
+      text += `    - ${a.name}: ${a.present}/${a.total} (${a.percent}%)\n`;
+    });
+  });
+  
+  navigator.clipboard.writeText(text).then(() => {
+    alert("Resumen copiado al clipboard");
+  }).catch(() => {
+    alert("No se pudo copiar al clipboard");
+  });
 }
 
 function attachAppHandlers(){
@@ -3396,6 +3700,7 @@ function attachAppHandlers(){
   if(tab === "setup") attachSetupTabHandlers();
   if(tab === "daily") attachDailyTabHandlers();
   if(tab === "profile") attachProfileTabHandlers();
+  if(tab === "summary") attachSummaryHandlers();
   if(tab === "access") attachAccessTabHandlers();
   if(tab === "trainers") attachTrainersTabHandlers();
   if(tab === "checkins") attachCheckinsTabHandlers();
