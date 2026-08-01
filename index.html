@@ -1725,7 +1725,7 @@ async function saveCheckin(){
       updated_at: new Date().toISOString(),
     };
     const saved = await sbInsert("weekly_checkins", row, {onConflict:"trainer_code,week_start", merge:true});
-    const mapped = {id:saved.id, groupId:saved.group_id, trainerCode:saved.trainer_code, weekStart:saved.week_start, q1:saved.q1, q2:saved.q2, q3:saved.q3, q4:saved.q4, q5:saved.q5, q6:saved.q6, sentToJefe:!!saved.sent_to_jefe, sentAt:saved.sent_at, reviewedByJefe:!!saved.reviewed_by_jefe, reviewedAt:saved.reviewed_at};
+    const mapped = {id:saved.id, groupId:saved.group_id, trainerCode:saved.trainer_code, weekStart:saved.week_start, q1:saved.q1, q2:saved.q2, q3:saved.q3, q4:saved.q4, q5:saved.q5, q6:saved.q6, sentToJefe:!!saved.sent_to_jefe, sentAt:saved.sent_at};
     const idx = weeklyCheckins.findIndex(c => c.trainerCode===mapped.trainerCode && c.weekStart===mapped.weekStart);
     if(idx>=0) weeklyCheckins[idx]=mapped; else weeklyCheckins.push(mapped);
     checkinJustSaved = true;
@@ -1748,21 +1748,18 @@ async function sendCheckinToJefe(checkinId){
 }
 
 async function confirmCheckinReview(checkinId){
-  // Marca como revisado por el jefe AND envía automáticamente al JEFE
+  // Marca el pulso como revisado por el jefe.
+  // Reutiliza la columna existente sent_to_jefe (no requiere migración en Supabase).
   try{
     const now = new Date().toISOString();
-    const row = await sbUpdate("weekly_checkins", {id: checkinId}, { 
-      reviewed_by_jefe: true, 
-      reviewed_at: now,
+    const row = await sbUpdate("weekly_checkins", {id: checkinId}, {
       sent_to_jefe: true,
       sent_at: now
     });
     const idx = weeklyCheckins.findIndex(c => c.id === checkinId);
-    if(idx>=0){ 
-      weeklyCheckins[idx].reviewedByJefe = true; 
-      weeklyCheckins[idx].reviewedAt = row.reviewed_at;
+    if(idx>=0){
       weeklyCheckins[idx].sentToJefe = true;
-      weeklyCheckins[idx].sentAt = row.sent_at;
+      weeklyCheckins[idx].sentAt = (row && row.sent_at) ? row.sent_at : now;
     }
     render();
   }catch(e){
@@ -1848,8 +1845,8 @@ function renderCheckinsAdminView(){
   if(authState.trainerCode === "Mamel"){
     // Pulsos pendientes: todos los que NO han sido revisados aún
     // Esto incluye: entrenadores nuevos sin coordinador, pulsos viejos sin revisar, y todo pendiente
-    const pulsosDelEquipo = weeklyCheckins.filter(c => !c.reviewedByJefe);
-    const pulsosRevisados = weeklyCheckins.filter(c => c.reviewedByJefe);
+    const pulsosDelEquipo = weeklyCheckins.filter(c => !c.sentToJefe);
+    const pulsosRevisados = weeklyCheckins.filter(c => c.sentToJefe);
     
     if(pulsosDelEquipo.length){
       html += `<div style="margin-bottom:16px;">
@@ -1884,7 +1881,7 @@ function renderCheckinsAdminView(){
             <div style="font-size:11px;color:${NAVY};">
               <b>${escapeHtml(trainerName)}</b> — Semana ${c.weekStart}
             </div>
-            <span style="font-size:10px;color:${GRAY};">Revisado ${c.reviewedAt ? c.reviewedAt.slice(0,10) : ''}</span>
+            <span style="font-size:10px;color:${GRAY};">Revisado ${c.sentAt ? c.sentAt.slice(0,10) : ''}</span>
           </div>`;
         }).join("")}
       </div>`;
