@@ -784,6 +784,7 @@ let outsideClickHandler = null;
 // Filtros
 let filterPeriod = "temporada_26"; // "pre_temporada", "temporada_26", "all"
 let summaryExpandedGroups = {}; // acordeón del resumen: {groupId: true/false}
+let trainerDiasListOpen = false; // lista de fechas contadas en % entrenadores
 let filterMonth = ""; // "2026-01", etc
 let filterStatus = ""; // "present", "absent", "free", "no_training", ""
 let filterTrainer = ""; // trainer code or ""
@@ -1520,11 +1521,18 @@ function renderTrainersTab(){
   if(trainers.length){
     const bloque = (titulo, sub, periodo, color, desnudo) => {
       const delPer = trainerAttendance.filter(r => r.period===periodo);
-      const dias = new Set(delPer.filter(r => r.status==="present"||r.status==="absent").map(r => r.date)).size;
+      const fechasDias = Array.from(new Set(delPer.filter(r => r.status==="present"||r.status==="absent").map(r => r.date))).sort();
+      const dias = fechasDias.length;
       const excl = new Set(delPer.filter(r => r.status==="no_training"||r.status==="free_day").map(r => r.date)).size;
       let h = desnudo ? `` : `<div class="card">
         <div class="section-label"><div class="gate-poles"><span></span><span></span></div><span class="title">${titulo}</span></div>
-        <div style="font-size:11px;color:${GRAY};margin:-6px 0 12px;">${sub} · <b>${dias} día${dias===1?"":"s"} con entrenamiento</b>${excl?` <span style="color:${GRAY};">· ${excl} sin entrenamiento</span>`:""}</div>`;
+        <div style="font-size:11px;color:${GRAY};margin:-6px 0 12px;">${sub} · <b data-toggle-dias="1" style="cursor:pointer;border-bottom:1px dotted ${GRAY};">${dias} día${dias===1?"":"s"} con entrenamiento ${trainerDiasListOpen?"▴":"▾"}</b>${excl?` <span style="color:${GRAY};">· ${excl} sin entrenamiento</span>`:""}</div>
+        ${trainerDiasListOpen && fechasDias.length ? `<div style="background:#F7FAFC;border:1px solid #E7ECF2;border-radius:10px;padding:10px;margin:-4px 0 12px;">
+          <div style="font-size:11px;color:${GRAY};margin-bottom:6px;">Fechas contadas en el total. Si una NO debería contar (era día libre o sin entrenamiento), tócala y márcala con el botón correspondiente en "Estado del día".</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;">
+            ${fechasDias.map(d => `<button type="button" class="pill mini" data-goto-dia="${d}" style="font-family:'JetBrains Mono',monospace;font-size:11px;">${d.slice(8,10)}-${d.slice(5,7)}</button>`).join("")}
+          </div>
+        </div>` : ""}`;
       // Denominador fijo para todos: días de entrenamiento del equipo en el período ("dias").
       // Los días libres y sin entrenamiento NO forman parte del total.
       // Un entrenador que se incorporó tarde igual se mide contra el total de días.
@@ -3970,6 +3978,12 @@ function attachProfileTabHandlers(){
 }
 
 function attachTrainersTabHandlers(){
+  document.querySelectorAll("[data-toggle-dias]").forEach(el => {
+    el.addEventListener("click", () => { trainerDiasListOpen = !trainerDiasListOpen; render(); });
+  });
+  document.querySelectorAll("[data-goto-dia]").forEach(el => {
+    el.addEventListener("click", () => selectTrainerCalendarDay(el.dataset.gotoDia));
+  });
   const calToggleBtn = document.getElementById("trainer-cal-toggle-btn");
   if(calToggleBtn) calToggleBtn.addEventListener("click", () => { trainerCalOpen = !trainerCalOpen; render(); });
   const todayQuickBtn = document.getElementById("trainer-cal-today-quick");
