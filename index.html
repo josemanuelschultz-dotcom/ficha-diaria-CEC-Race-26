@@ -1916,7 +1916,10 @@ function renderCheckinsAdminView(){
               <span style="font-family:'Oswald',sans-serif;font-weight:600;color:${NAVY};">${escapeHtml(c.trainerCode)}</span>
               <span style="font-size:12px;color:${GRAY};"> · ${escapeHtml(group?.program||"")} ${escapeHtml(group?.name||"")}</span>
             </div>
-            <span style="font-size:11px;padding:3px 8px;border-radius:20px;background:${c.sentToJefe?"#EAF7EE":"#FFF6E0"};color:${c.sentToJefe?GREEN:"#B87700"};">${c.sentToJefe?"✅ Revisado por coordinador":"⏳ Pendiente de revisión"}</span>
+            <span style="display:flex;align-items:center;gap:6px;">
+              <span style="font-size:11px;padding:3px 8px;border-radius:20px;background:${c.sentToJefe?"#EAF7EE":"#FFF6E0"};color:${c.sentToJefe?GREEN:"#B87700"};">${c.sentToJefe?"✅ Revisado":"⏳ Pendiente de revisión"}</span>
+              ${!c.sentToJefe ? `<button type="button" class="pill" data-confirm-review="${c.id}" style="background:${GREEN};color:white;border-color:${GREEN};padding:3px 8px;font-size:11px;cursor:pointer;">✓ Revisar</button>` : ""}
+            </span>
           </div>
           ${renderCheckinAnswersHTML(c)}
           <button class="btn-outline" data-delete-checkin-admin="${c.id}" style="width:100%;justify-content:center;margin-top:8px;border-color:${RED};color:${RED};">🗑️ Borrar este registro</button>
