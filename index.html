@@ -2806,9 +2806,9 @@ function renderProfileTab(){
   html += `<div style="font-size:11px;color:${GRAY};">Los porcentajes se calculan solo con los días en que este integrante estuvo presente.</div>`;
   html += `</div>`;
 
-  // ===== Asistencia del grupo (días en pista) =====
-  const grpSummary = getGroupSummary(selectedGroupId, null);
-  const grpAthStats = getGroupAthleteStats(selectedGroupId, null);
+  // ===== Asistencia del grupo (días en pista: solo temporada, sin pretemporada) =====
+  const grpSummary = getGroupSummary(selectedGroupId, "temporada_26");
+  const grpAthStats = getGroupAthleteStats(selectedGroupId, "temporada_26");
   const grpIndAvg = getGroupIndividualAverage(grpAthStats);
   const grpPct = grpSummary.attendance.countable > 0 ? grpSummary.attendance.percent : null;
 
@@ -2838,7 +2838,7 @@ function renderProfileTab(){
         <div style="height:100%;width:${a.percent}%;background:${a.percent >= 80 ? GREEN : a.percent >= 50 ? GOLD : RED};"></div>
       </div>
     </div>`).join("")}` : `<div style="font-size:13px;color:${GRAY};text-align:center;padding:12px 0;">Aún no hay integrantes en este grupo.</div>`}
-    <div style="font-size:11px;color:${GRAY};margin-top:8px;">Días en pista: fechas con registro presente/ausente. Se excluyen días libres y sin entrenamiento. Cada integrante se mide contra el total de días del grupo.</div>
+    <div style="font-size:11px;color:${GRAY};margin-top:8px;">Días en pista: fechas de la temporada (desde el 19 de julio) con registro presente/ausente. Se excluyen la pretemporada, los días libres y los días sin entrenamiento. Cada integrante se mide contra el total de días del grupo.</div>
   </div>`;
   return html;
 }
@@ -2854,7 +2854,8 @@ function renderSummaryTab(){
 
   const groupIds = groupsList.map(g => g.id);
   const totalAthletes = athletes.filter(a => groupIds.includes(a.groupId)).length;
-  const globalRecords = attendance.filter(r => groupIds.includes(r.groupId));
+  // Solo temporada en pistas (excluye pretemporada)
+  const globalRecords = attendance.filter(r => groupIds.includes(r.groupId) && r.period === "temporada_26");
   const globalStats = calculateAttendanceStats(globalRecords);
 
   let html = `<div class="card">
@@ -2881,8 +2882,8 @@ function renderSummaryTab(){
     html += `<div style="font-size:13px;color:${GRAY};text-align:center;padding:20px 0;">Aún no hay grupos creados.</div>`;
   } else {
     groupsList.forEach(g => {
-      const s = getGroupSummary(g.id, null);
-      const athStats = getGroupAthleteStats(g.id, null);
+      const s = getGroupSummary(g.id, "temporada_26");
+      const athStats = getGroupAthleteStats(g.id, "temporada_26");
       const indAvg = getGroupIndividualAverage(athStats);
       const pct = s.attendance.countable > 0 ? s.attendance.percent : null;
       html += `<div style="background:#F7FAFC;border:1px solid #E7ECF2;border-radius:12px;padding:12px 14px;margin-bottom:10px;">
