@@ -1329,14 +1329,18 @@ async function saveTrainerAttendance(){
   try{
     // Preservar estados "día libre" y "sin entrenamiento" (individuales o del día completo):
     // esos registros NO deben convertirse en presente/ausente, para que no cuenten en el total del %.
+    // Si el día completo está marcado libre/sin entrenamiento, los entrenadores sin registro previo
+    // heredan ese estado (en vez de crear un presente/ausente que haría contar el día).
+    const diaEstado = estadoDelDia(trainerAttDate);
+    const diaNoCuenta = diaEstado === "free_day" || diaEstado === "no_training";
     const rows = trainers.map(t => {
       const est = estadoEntrenador(t.id);
-      const mantieneEstado = est === "free_day" || est === "no_training";
+      const estadoFijo = (est === "free_day" || est === "no_training") ? est : (diaNoCuenta ? diaEstado : null);
       return {
         trainer_id: t.id,
         date: trainerAttDate,
-        present: mantieneEstado ? false : !!trainerAttendanceState[t.id],
-        status: mantieneEstado ? est : (trainerAttendanceState[t.id] ? "present" : "absent"),
+        present: estadoFijo ? false : !!trainerAttendanceState[t.id],
+        status: estadoFijo ? estadoFijo : (trainerAttendanceState[t.id] ? "present" : "absent"),
         period: classifyPeriod(trainerAttDate)
       };
     });
