@@ -638,36 +638,37 @@ function getGroupTrainingDays(groupId, periodFilter){
 }
 
 function getGroupAthleteStats(groupId, periodFilter){
-  // Obtener estadísticas de todos los atletas de un grupo
-  const groupAthletesList = groupAthletes().filter(a => {
-    const athl = athletes.find(aa => aa.id === a.id);
-    return athl && athl.groupId === groupId;
-  });
-  
-  // CORRECCIÓN: Contar sesiones del grupo como máximo
-  const groupSessions = sessions.filter(s => s.groupId === groupId);
-  const sessionsToUse = periodFilter ? groupSessions.filter(s => s.period === periodFilter) : groupSessions;
-  const maxTotal = sessionsToUse.length > 0 ? sessionsToUse.length : null;
-  
+  // Estadísticas por atleta de un grupo.
+  // Denominador: días en pista del GRUPO (fechas con presente/ausente).
+  // Un integrante que se incorporó tarde igual se mide contra el total del grupo.
+  const groupAthletesList = athletes.filter(a => a.groupId === groupId);
+
+  const records = attendance.filter(a => a.groupId === groupId);
+  const filtered = periodFilter ? records.filter(r => r.period === periodFilter) : records;
+  const pista = filtered.filter(r => r.status === "present" || r.status === "absent");
+  const groupDays = new Set(pista.map(r => r.date)).size;
+
   return groupAthletesList.map(a => {
-    const records = attendance.filter(at => at.athleteId === a.id && at.groupId === groupId);
-    const filtered = periodFilter ? records.filter(r => r.period === periodFilter) : records;
-    const present = filtered.filter(r => r.status === "present").length;
-    const absent = filtered.filter(r => r.status === "absent").length;
-    
-    // IMPORTANTE: usar el máximo de sesiones, no solo registros
-    const total = maxTotal !== null ? maxTotal : (present + absent);
+    const mine = pista.filter(r => r.athleteId === a.id);
+    const present = new Set(mine.filter(r => r.status === "present").map(r => r.date)).size;
+    const total = groupDays;
     const percent = total > 0 ? Math.round((present / total) * 100) : 0;
-    
+
     return {
       id: a.id,
       name: a.name,
       present,
-      absent,
       total,
       percent
     };
   }).sort((a, b) => b.percent - a.percent);
+}
+
+function getGroupIndividualAverage(athleteStatsList){
+  // Promedio de los porcentajes individuales de los integrantes del grupo
+  if(!athleteStatsList.length) return null;
+  const sum = athleteStatsList.reduce((s, a) => s + a.percent, 0);
+  return Math.round(sum / athleteStatsList.length);
 }
 
 function getGroupSummary(groupId, periodFilter){
@@ -677,7 +678,10 @@ function getGroupSummary(groupId, periodFilter){
   const records = attendance.filter(a => a.groupId === groupId);
   const filtered = periodFilter ? records.filter(r => r.period === periodFilter) : records;
 
-  const uniqueDates = new Set(filtered.map(r => r.date)).size;
+  // Días en pista: solo fechas con registros presente/ausente
+  // (excluye días libres y días sin entrenamiento)
+  const pista = filtered.filter(r => r.status === "present" || r.status === "absent");
+  const uniqueDates = new Set(pista.map(r => r.date)).size;
   const presenceStats = calculateAttendanceStats(filtered);
 
   return {
@@ -2801,6 +2805,41 @@ function renderProfileTab(){
 
   html += `<div style="font-size:11px;color:${GRAY};">Los porcentajes se calculan solo con los días en que este integrante estuvo presente.</div>`;
   html += `</div>`;
+
+  // ===== Asistencia del grupo (días en pista) =====
+  const grpSummary = getGroupSummary(selectedGroupId, null);
+  const grpAthStats = getGroupAthleteStats(selectedGroupId, null);
+  const grpIndAvg = getGroupIndividualAverage(grpAthStats);
+  const grpPct = grpSummary.attendance.countable > 0 ? grpSummary.attendance.percent : null;
+
+  html += `<div class="card">
+    <div class="section-label"><div class="gate-poles"><span></span><span></span></div><span class="title">Asistencia del grupo</span></div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:14px;">
+      <div style="background:${SNOW};border-radius:12px;padding:12px;">
+        <div style="font-size:11px;color:${GRAY};text-transform:uppercase;letter-spacing:.04em;">Días en pista</div>
+        <div style="font-family:'Oswald',sans-serif;font-size:1.5rem;font-weight:700;color:${NAVY};">${grpSummary.trainingDays}</div>
+      </div>
+      <div style="background:${SNOW};border-radius:12px;padding:12px;">
+        <div style="font-size:11px;color:${GRAY};text-transform:uppercase;letter-spacing:.04em;">Asistencia del grupo</div>
+        <div style="font-family:'Oswald',sans-serif;font-size:1.5rem;font-weight:700;color:${grpPct === null ? GRAY : GREEN};">${grpPct === null ? "—" : grpPct + "%"}</div>
+      </div>
+      <div style="background:${SNOW};border-radius:12px;padding:12px;">
+        <div style="font-size:11px;color:${GRAY};text-transform:uppercase;letter-spacing:.04em;">Promedio individual</div>
+        <div style="font-family:'Oswald',sans-serif;font-size:1.5rem;font-weight:700;color:${grpIndAvg === null ? GRAY : GREEN};">${grpIndAvg === null ? "—" : grpIndAvg + "%"}</div>
+      </div>
+    </div>
+    ${grpAthStats.length ? `<div style="font-size:11px;color:${NAVY};font-weight:600;text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px;">Asistencia por integrante</div>
+    ${grpAthStats.map(a => `<div style="margin-bottom:8px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;">
+        <span style="font-size:12px;color:${NAVY};">${escapeHtml(a.name)}</span>
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:${GRAY};">${a.present}/${a.total} · <b style="color:${a.percent >= 80 ? GREEN : a.percent >= 50 ? "#B87700" : RED};">${a.percent}%</b></span>
+      </div>
+      <div style="height:6px;background:#E7ECF2;border-radius:3px;overflow:hidden;">
+        <div style="height:100%;width:${a.percent}%;background:${a.percent >= 80 ? GREEN : a.percent >= 50 ? GOLD : RED};"></div>
+      </div>
+    </div>`).join("")}` : `<div style="font-size:13px;color:${GRAY};text-align:center;padding:12px 0;">Aún no hay integrantes en este grupo.</div>`}
+    <div style="font-size:11px;color:${GRAY};margin-top:8px;">Días en pista: fechas con registro presente/ausente. Se excluyen días libres y sin entrenamiento. Cada integrante se mide contra el total de días del grupo.</div>
+  </div>`;
   return html;
 }
 
@@ -2843,22 +2882,40 @@ function renderSummaryTab(){
   } else {
     groupsList.forEach(g => {
       const s = getGroupSummary(g.id, null);
+      const athStats = getGroupAthleteStats(g.id, null);
+      const indAvg = getGroupIndividualAverage(athStats);
       const pct = s.attendance.countable > 0 ? s.attendance.percent : null;
       html += `<div style="background:#F7FAFC;border:1px solid #E7ECF2;border-radius:12px;padding:12px 14px;margin-bottom:10px;">
         <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;margin-bottom:8px;">
           <span style="font-family:'Oswald',sans-serif;font-weight:600;font-size:14px;color:${NAVY};">${escapeHtml(g.program)} · ${escapeHtml(g.name)}</span>
           <span style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;color:${pct === null ? GRAY : GREEN};">${pct === null ? "Sin registros" : pct + "% asistencia"}</span>
         </div>
-        <div style="display:flex;gap:18px;flex-wrap:wrap;">
+        <div style="display:flex;gap:18px;flex-wrap:wrap;margin-bottom:${athStats.length ? "10px" : "0"};">
           <div>
-            <span style="font-size:11px;color:${GRAY};">Días entrenados</span>
+            <span style="font-size:11px;color:${GRAY};">Días en pista</span>
             <div style="font-family:'Oswald',sans-serif;font-size:1.2rem;font-weight:700;color:${NAVY};">${s.trainingDays}</div>
           </div>
           <div>
             <span style="font-size:11px;color:${GRAY};">Integrantes</span>
             <div style="font-family:'Oswald',sans-serif;font-size:1.2rem;font-weight:700;color:${NAVY};">${s.athleteCount}</div>
           </div>
+          <div>
+            <span style="font-size:11px;color:${GRAY};">Promedio individual</span>
+            <div style="font-family:'Oswald',sans-serif;font-size:1.2rem;font-weight:700;color:${indAvg === null ? GRAY : GREEN};">${indAvg === null ? "—" : indAvg + "%"}</div>
+          </div>
         </div>
+        ${athStats.length ? `<div style="border-top:1px solid #E7ECF2;padding-top:10px;">
+          <div style="font-size:11px;color:${NAVY};font-weight:600;text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px;">Asistencia por integrante</div>
+          ${athStats.map(a => `<div style="margin-bottom:8px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;">
+              <span style="font-size:12px;color:${NAVY};">${escapeHtml(a.name)}</span>
+              <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:${GRAY};">${a.present}/${a.total} · <b style="color:${a.percent >= 80 ? GREEN : a.percent >= 50 ? "#B87700" : RED};">${a.percent}%</b></span>
+            </div>
+            <div style="height:6px;background:#E7ECF2;border-radius:3px;overflow:hidden;">
+              <div style="height:100%;width:${a.percent}%;background:${a.percent >= 80 ? GREEN : a.percent >= 50 ? GOLD : RED};"></div>
+            </div>
+          </div>`).join("")}
+        </div>` : ""}
       </div>`;
     });
   }
