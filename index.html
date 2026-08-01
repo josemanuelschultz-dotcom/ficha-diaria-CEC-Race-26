@@ -1525,9 +1525,18 @@ function renderTrainersTab(){
       let h = desnudo ? `` : `<div class="card">
         <div class="section-label"><div class="gate-poles"><span></span><span></span></div><span class="title">${titulo}</span></div>
         <div style="font-size:11px;color:${GRAY};margin:-6px 0 12px;">${sub} · <b>${dias} día${dias===1?"":"s"} con entrenamiento</b>${excl?` <span style="color:${GRAY};">· ${excl} sin entrenamiento</span>`:""}</div>`;
-      const filas = trainers.map(t => ({
-        t, st: calculateAttendanceStats(trainerAttendance.filter(a => a.trainerId===t.id && a.period===periodo))
-      })).sort((a,b) => b.st.percent - a.st.percent);
+      // Denominador fijo para todos: días de entrenamiento del equipo en el período ("dias").
+      // Los días libres y sin entrenamiento NO forman parte del total.
+      // Un entrenador que se incorporó tarde igual se mide contra el total de días.
+      const filas = trainers.map(t => {
+        const recs = trainerAttendance.filter(a => a.trainerId===t.id && a.period===periodo);
+        const present = new Set(recs.filter(r => r.status==="present").map(r => r.date)).size;
+        const free = recs.filter(r => r.status==="free_day").length;
+        const noTrain = recs.filter(r => r.status==="no_training").length;
+        const countable = dias;
+        const percent = countable > 0 ? Math.round((present/countable)*100) : 0;
+        return { t, st: { present, free, noTrain, countable, percent } };
+      }).sort((a,b) => b.st.percent - a.st.percent);
       if(!filas.some(f => f.st.countable)){
         h += `<div style="font-size:12px;color:${GRAY};text-align:center;padding:10px 0;">Sin registros en este período.</div>`;
       } else {
