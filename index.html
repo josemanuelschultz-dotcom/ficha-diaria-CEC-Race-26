@@ -632,7 +632,7 @@ function getDayEditStatusColor(status){
 function getGroupTrainingDays(groupId, periodFilter){
   // Obtener días únicos entrenados del grupo
   const records = attendance.filter(a => a.groupId === groupId);
-  const filtered = periodFilter ? records.filter(r => r.period === periodFilter) : records;
+  const filtered = periodFilter ? records.filter(r => classifyPeriod(r.date) === periodFilter) : records;
   const uniqueDates = new Set(filtered.map(r => r.date));
   return uniqueDates.size;
 }
@@ -644,7 +644,7 @@ function getGroupAthleteStats(groupId, periodFilter){
   const groupAthletesList = athletes.filter(a => a.groupId === groupId);
 
   const records = attendance.filter(a => a.groupId === groupId);
-  const filtered = periodFilter ? records.filter(r => r.period === periodFilter) : records;
+  const filtered = periodFilter ? records.filter(r => classifyPeriod(r.date) === periodFilter) : records;
   const pista = filtered.filter(r => r.status === "present" || r.status === "absent");
   const groupDays = new Set(pista.map(r => r.date)).size;
 
@@ -676,7 +676,7 @@ function getGroupSummary(groupId, periodFilter){
   const groupAthletesList = athletes.filter(a => a.groupId === groupId);
 
   const records = attendance.filter(a => a.groupId === groupId);
-  const filtered = periodFilter ? records.filter(r => r.period === periodFilter) : records;
+  const filtered = periodFilter ? records.filter(r => classifyPeriod(r.date) === periodFilter) : records;
 
   // Días en pista: solo fechas con registros presente/ausente
   // (excluye días libres y días sin entrenamiento)
@@ -854,7 +854,7 @@ function groupsSortedByCategory(){
 }
 
 function athletePeriodStats(athleteId, periodo){
-  const recs = attendance.filter(a => a.athleteId === athleteId && a.period === periodo);
+  const recs = attendance.filter(a => a.athleteId === athleteId && classifyPeriod(a.date) === periodo);
   const cuentan = recs.filter(a => a.status === "present" || a.status === "absent");
   const present = cuentan.filter(a => a.status === "present").length;
   const excl = new Set(recs.filter(a => a.status === "no_training" || a.status === "free_day").map(a => a.date)).size;
@@ -1520,7 +1520,7 @@ function renderTrainersTab(){
 
   if(trainers.length){
     const bloque = (titulo, sub, periodo, color, desnudo) => {
-      const delPer = trainerAttendance.filter(r => r.period===periodo);
+      const delPer = trainerAttendance.filter(r => classifyPeriod(r.date)===periodo);
       const fechasDias = Array.from(new Set(delPer.filter(r => r.status==="present"||r.status==="absent").map(r => r.date))).sort();
       const dias = fechasDias.length;
       const excl = new Set(delPer.filter(r => r.status==="no_training"||r.status==="free_day").map(r => r.date)).size;
@@ -1537,7 +1537,7 @@ function renderTrainersTab(){
       // Los días libres y sin entrenamiento NO forman parte del total.
       // Un entrenador que se incorporó tarde igual se mide contra el total de días.
       const filas = trainers.map(t => {
-        const recs = trainerAttendance.filter(a => a.trainerId===t.id && a.period===periodo);
+        const recs = trainerAttendance.filter(a => a.trainerId===t.id && classifyPeriod(a.date)===periodo);
         const present = new Set(recs.filter(r => r.status==="present").map(r => r.date)).size;
         const free = recs.filter(r => r.status==="free_day").length;
         const noTrain = recs.filter(r => r.status==="no_training").length;
@@ -1560,7 +1560,7 @@ function renderTrainersTab(){
     };
     html += bloque("% Asistencia en pistas", "Desde el 19 de julio", "temporada_26", GREEN);
 
-    const preRecs = trainerAttendance.filter(r => r.period==="pre_temporada");
+    const preRecs = trainerAttendance.filter(r => classifyPeriod(r.date)==="pre_temporada");
     const preDias = new Set(preRecs.filter(r => r.status==="present"||r.status==="absent").map(r => r.date)).size;
     const preExcl = new Set(preRecs.filter(r => r.status==="no_training"||r.status==="free_day").map(r => r.date)).size;
     html += `<div class="card panel">
@@ -2889,7 +2889,7 @@ function renderSummaryTab(){
   const groupIds = groupsList.map(g => g.id);
   const totalAthletes = athletes.filter(a => groupIds.includes(a.groupId)).length;
   // Solo temporada en pistas (excluye pretemporada)
-  const globalRecords = attendance.filter(r => groupIds.includes(r.groupId) && r.period === "temporada_26");
+  const globalRecords = attendance.filter(r => groupIds.includes(r.groupId) && classifyPeriod(r.date) === "temporada_26");
   const globalStats = calculateAttendanceStats(globalRecords);
 
   let html = `<div class="card">
@@ -3978,6 +3978,11 @@ function attachProfileTabHandlers(){
 }
 
 function attachTrainersTabHandlers(){
+  // Panel de pretemporada (desplegable)
+  const prePanel = document.getElementById("pre-panel-toggle");
+  if(prePanel) prePanel.addEventListener("click", () => { prePanelOpen = !prePanelOpen; render(); });
+  
+  // Lista de fechas del período (entrenadores)
   document.querySelectorAll("[data-toggle-dias]").forEach(el => {
     el.addEventListener("click", () => { trainerDiasListOpen = !trainerDiasListOpen; render(); });
   });
