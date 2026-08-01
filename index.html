@@ -785,6 +785,7 @@ let outsideClickHandler = null;
 let filterPeriod = "temporada_26"; // "pre_temporada", "temporada_26", "all"
 let summaryExpandedGroups = {}; // acordeón del resumen: {groupId: true/false}
 let trainerDiasListOpen = false; // lista de fechas contadas en % entrenadores
+let checkinExpandedTrainers = {}; // acordeón de pulsos por entrenador
 let filterMonth = ""; // "2026-01", etc
 let filterStatus = ""; // "present", "absent", "free", "no_training", ""
 let filterTrainer = ""; // trainer code or ""
@@ -1903,29 +1904,48 @@ function renderCheckinsAdminView(){
   if(!list.length){
     html += `<div style="font-size:13px;color:${GRAY};text-align:center;padding:20px 0;">Aún no hay respuestas registradas.</div>`;
   } else {
-    const weeks = Array.from(new Set(list.map(c => c.weekStart))).sort((a,b) => b<a?-1:1);
-    weeks.forEach(week => {
-      const weekItems = list.filter(c => c.weekStart === week);
-      html += `<div style="margin-bottom:18px;">
-        <div style="font-family:'Oswald',sans-serif;text-transform:uppercase;font-size:12px;color:${NAVY};letter-spacing:.05em;background:#EEF3FA;border-radius:8px;padding:8px 12px;margin-bottom:10px;">📁 Semana ${weekRangeLabel(week)} — ${weekItems.length} respuesta${weekItems.length===1?"":"s"}</div>`;
-      weekItems.forEach(c => {
-        const group = groups.find(g => g.id === c.groupId);
-        html += `<div style="background:#F7FAFC;border:1px solid #E7ECF2;border-radius:12px;padding:14px;margin-bottom:10px;">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:6px;">
-            <div>
-              <span style="font-family:'Oswald',sans-serif;font-weight:600;color:${NAVY};">${escapeHtml(c.trainerCode)}</span>
-              <span style="font-size:12px;color:${GRAY};"> · ${escapeHtml(group?.program||"")} ${escapeHtml(group?.name||"")}</span>
-            </div>
-            <span style="display:flex;align-items:center;gap:6px;">
-              <span style="font-size:11px;padding:3px 8px;border-radius:20px;background:${c.sentToJefe?"#EAF7EE":"#FFF6E0"};color:${c.sentToJefe?GREEN:"#B87700"};">${c.sentToJefe?"✅ Revisado":"⏳ Pendiente de revisión"}</span>
-              ${!c.sentToJefe ? `<button type="button" class="pill" data-confirm-review="${c.id}" style="background:${GREEN};color:white;border-color:${GREEN};padding:3px 8px;font-size:11px;cursor:pointer;">✓ Revisar</button>` : ""}
-            </span>
-          </div>
-          ${renderCheckinAnswersHTML(c)}
-          <button class="btn-outline" data-delete-checkin-admin="${c.id}" style="width:100%;justify-content:center;margin-top:8px;border-color:${RED};color:${RED};">🗑️ Borrar este registro</button>
-        </div>`;
-      });
-      html += `</div>`;
+    // Agrupado por entrenador (acordeón), con el período de cada pulso
+    const codigos = Array.from(new Set(list.map(c => c.trainerCode))).sort((a,b) => a.localeCompare(b));
+    codigos.forEach(code => {
+      const items = list.filter(c => c.trainerCode === code).sort((a,b) => b.weekStart < a.weekStart ? -1 : 1);
+      const pendientes = items.filter(c => !c.sentToJefe).length;
+      const isOpen = !!checkinExpandedTrainers[code];
+      const trainer = trainers.find(t => t.code === code);
+      const nombre = trainer ? trainer.name : code;
+
+      html += `<div style="background:#F7FAFC;border:1px solid #E7ECF2;border-radius:12px;margin-bottom:10px;overflow:hidden;">
+        <button type="button" data-toggle-checkin-trainer="${escapeHtml(code)}" style="width:100%;background:none;border:none;cursor:pointer;padding:12px 14px;display:flex;justify-content:space-between;align-items:center;gap:8px;text-align:left;">
+          <span style="font-family:'Oswald',sans-serif;font-weight:600;font-size:14px;color:${NAVY};">${escapeHtml(nombre)}</span>
+          <span style="display:flex;align-items:center;gap:8px;">
+            <span style="font-size:11px;color:${GRAY};">${items.length} pulso${items.length===1?"":"s"}</span>
+            ${pendientes ? `<span style="font-size:10px;padding:2px 7px;border-radius:20px;background:#FFF6E0;color:#B87700;">${pendientes} pendiente${pendientes===1?"":"s"}</span>` : `<span style="font-size:10px;padding:2px 7px;border-radius:20px;background:#EAF7EE;color:${GREEN};">Al día</span>`}
+            <span style="font-size:13px;color:${GRAY};">${isOpen ? "▼" : "▶"}</span>
+          </span>
+        </button>
+        ${isOpen ? `<div style="padding:0 14px 12px;">
+          ${items.map(c => {
+            const group = groups.find(g => g.id === c.groupId);
+            const per = classifyPeriod(c.weekStart);
+            return `<div style="background:white;border:1px solid #E7ECF2;border-radius:10px;padding:12px;margin-bottom:10px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:6px;">
+                <div>
+                  <div style="font-size:12px;color:${NAVY};font-weight:600;">Semana ${weekRangeLabel(c.weekStart)}</div>
+                  <div style="font-size:11px;color:${GRAY};margin-top:2px;">
+                    <span style="padding:2px 7px;border-radius:20px;background:${per==="pre_temporada"?"#FFF4DE":"#E8F4FF"};color:${per==="pre_temporada"?"#B87700":BLUE};">${periodLabel(per)}</span>
+                    ${group ? ` · ${escapeHtml(group.program)} ${escapeHtml(group.name)}` : ""}
+                  </div>
+                </div>
+                <span style="display:flex;align-items:center;gap:6px;">
+                  <span style="font-size:11px;padding:3px 8px;border-radius:20px;background:${c.sentToJefe?"#EAF7EE":"#FFF6E0"};color:${c.sentToJefe?GREEN:"#B87700"};">${c.sentToJefe?"✅ Revisado":"⏳ Pendiente"}</span>
+                  ${!c.sentToJefe ? `<button type="button" class="pill" data-confirm-review="${c.id}" style="background:${GREEN};color:white;border-color:${GREEN};padding:3px 8px;font-size:11px;cursor:pointer;">✓ Revisar</button>` : ""}
+                </span>
+              </div>
+              ${renderCheckinAnswersHTML(c)}
+              <button class="btn-outline" data-delete-checkin-admin="${c.id}" style="width:100%;justify-content:center;margin-top:8px;border-color:${RED};color:${RED};">🗑️ Borrar este registro</button>
+            </div>`;
+          }).join("")}
+        </div>` : ""}
+      </div>`;
     });
   }
   html += `</div>`;
@@ -4089,6 +4109,14 @@ function attachCheckinsTabHandlers(){
     // Botón para confirmar revisión de pulso
     document.querySelectorAll("[data-confirm-review]").forEach(btn => {
       btn.addEventListener("click", () => confirmCheckinReview(btn.dataset.confirmReview));
+    });
+    // Acordeón por entrenador
+    document.querySelectorAll("[data-toggle-checkin-trainer]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const code = btn.dataset.toggleCheckinTrainer;
+        checkinExpandedTrainers[code] = !checkinExpandedTrainers[code];
+        render();
+      });
     });
     document.querySelectorAll("[data-delete-checkin-admin]").forEach(btn => {
       btn.addEventListener("click", () => deleteCheckinAsAdmin(btn.dataset.deleteCheckinAdmin));
