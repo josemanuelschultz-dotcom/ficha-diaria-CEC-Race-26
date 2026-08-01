@@ -783,6 +783,7 @@ let outsideClickHandler = null;
 /* ============ NUEVAS VARIABLES PARA MEJORAS ============ */
 // Filtros
 let filterPeriod = "temporada_26"; // "pre_temporada", "temporada_26", "all"
+let summaryExpandedGroups = {}; // acordeón del resumen: {groupId: true/false}
 let filterMonth = ""; // "2026-01", etc
 let filterStatus = ""; // "present", "absent", "free", "no_training", ""
 let filterTrainer = ""; // trainer code or ""
@@ -2886,11 +2887,16 @@ function renderSummaryTab(){
       const athStats = getGroupAthleteStats(g.id, "temporada_26");
       const indAvg = getGroupIndividualAverage(athStats);
       const pct = s.attendance.countable > 0 ? s.attendance.percent : null;
-      html += `<div style="background:#F7FAFC;border:1px solid #E7ECF2;border-radius:12px;padding:12px 14px;margin-bottom:10px;">
-        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;margin-bottom:8px;">
+      const isOpen = !!summaryExpandedGroups[g.id];
+      html += `<div style="background:#F7FAFC;border:1px solid #E7ECF2;border-radius:12px;margin-bottom:10px;overflow:hidden;">
+        <button type="button" data-toggle-group="${g.id}" style="width:100%;background:none;border:none;cursor:pointer;padding:12px 14px;display:flex;justify-content:space-between;align-items:center;gap:8px;text-align:left;">
           <span style="font-family:'Oswald',sans-serif;font-weight:600;font-size:14px;color:${NAVY};">${escapeHtml(g.program)} · ${escapeHtml(g.name)}</span>
-          <span style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;color:${pct === null ? GRAY : GREEN};">${pct === null ? "Sin registros" : pct + "% asistencia"}</span>
-        </div>
+          <span style="display:flex;align-items:center;gap:10px;">
+            <span style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;color:${pct === null ? GRAY : GREEN};">${pct === null ? "Sin registros" : pct + "%"}</span>
+            <span style="font-size:13px;color:${GRAY};">${isOpen ? "▼" : "▶"}</span>
+          </span>
+        </button>
+        ${isOpen ? `<div style="padding:0 14px 12px;">
         <div style="display:flex;gap:18px;flex-wrap:wrap;margin-bottom:${athStats.length ? "10px" : "0"};">
           <div>
             <span style="font-size:11px;color:${GRAY};">Días en pista</span>
@@ -2916,6 +2922,7 @@ function renderSummaryTab(){
               <div style="height:100%;width:${a.percent}%;background:${a.percent >= 80 ? GREEN : a.percent >= 50 ? GOLD : RED};"></div>
             </div>
           </div>`).join("")}
+        </div>` : ""}
         </div>` : ""}
       </div>`;
     });
@@ -3611,6 +3618,15 @@ function attachAppHandlers(){
   if(tab === "setup") attachSetupTabHandlers();
   if(tab === "daily") attachDailyTabHandlers();
   if(tab === "profile") attachProfileTabHandlers();
+  if(tab === "summary"){
+    document.querySelectorAll("[data-toggle-group]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const gid = btn.dataset.toggleGroup;
+        summaryExpandedGroups[gid] = !summaryExpandedGroups[gid];
+        render();
+      });
+    });
+  }
   if(tab === "access") attachAccessTabHandlers();
   if(tab === "trainers") attachTrainersTabHandlers();
   if(tab === "checkins") attachCheckinsTabHandlers();
