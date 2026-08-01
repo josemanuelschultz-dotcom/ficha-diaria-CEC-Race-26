@@ -1844,14 +1844,16 @@ function renderCheckinsAdminView(){
   let html = `<div class="card">
     <div class="section-label"><div class="gate-poles"><span></span><span></span></div><span class="title">Pulso semanal</span></div>`;
 
-  // Si es jefe de entrenadores (Mamel), mostrar sección de "Pulsos de tu equipo para revisar"
+  // Si es jefe de entrenadores (Mamel), mostrar sección de "Pulsos pendientes de revisión"
   if(authState.trainerCode === "Mamel"){
-    const suEquipo = ["Xavi", "Riccardo", "Cata", "Francesco", "Felipe", "Ivana", "Chiqui", "PATO", "Enzo"];
-    const pulsosDelEquipo = weeklyCheckins.filter(c => suEquipo.includes(c.trainerCode) && !c.reviewedByJefe);
+    // Pulsos pendientes: todos los que NO han sido revisados aún
+    // Esto incluye: entrenadores nuevos sin coordinador, pulsos viejos sin revisar, y todo pendiente
+    const pulsosDelEquipo = weeklyCheckins.filter(c => !c.reviewedByJefe);
+    const pulsosRevisados = weeklyCheckins.filter(c => c.reviewedByJefe);
     
     if(pulsosDelEquipo.length){
       html += `<div style="margin-bottom:16px;">
-        <div style="font-size:12px;color:${GRAY};font-weight:600;text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px;">📋 Pulsos pendientes de revisión</div>
+        <div style="font-size:12px;color:${GRAY};font-weight:600;text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px;">📋 Pulsos pendientes de revisión (${pulsosDelEquipo.length})</div>
         ${pulsosDelEquipo.map(c => {
           const trainer = trainers.find(t => t.code === c.trainerCode);
           const trainerName = trainer ? trainer.name : c.trainerCode;
@@ -1868,9 +1870,27 @@ function renderCheckinsAdminView(){
             </div>
           </div>`;
         }).join("")}
-      </div>
-      <hr style="border:none;border-top:1px solid #E7ECF2;margin:16px 0;">`;
+      </div>`;
     }
+
+    if(pulsosRevisados.length){
+      html += `<div style="margin-bottom:16px;">
+        <div style="font-size:12px;color:${GRAY};font-weight:600;text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px;">✓ Revisados (${pulsosRevisados.length})</div>
+        <div style="font-size:11px;color:${GRAY};margin-bottom:8px;">Historial de pulsos que ya confirmaste</div>
+        ${pulsosRevisados.map(c => {
+          const trainer = trainers.find(t => t.code === c.trainerCode);
+          const trainerName = trainer ? trainer.name : c.trainerCode;
+          return `<div style="background:#EAFBF0;border:1px solid ${GREEN};border-radius:8px;padding:8px 10px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;">
+            <div style="font-size:11px;color:${NAVY};">
+              <b>${escapeHtml(trainerName)}</b> — Semana ${c.weekStart}
+            </div>
+            <span style="font-size:10px;color:${GRAY};">Revisado ${c.reviewedAt ? c.reviewedAt.slice(0,10) : ''}</span>
+          </div>`;
+        }).join("")}
+      </div>`;
+    }
+
+    html += `<hr style="border:none;border-top:1px solid #E7ECF2;margin:16px 0;">`;
   }
 
   html += `<div style="font-size:12px;color:${GRAY};margin-bottom:14px;">Todos los pulsos semanales del club.</div>
