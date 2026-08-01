@@ -671,22 +671,19 @@ function getGroupAthleteStats(groupId, periodFilter){
 }
 
 function getGroupSummary(groupId, periodFilter){
-  // Resumen completo de un grupo
-  const stats = groupAthletes().filter(a => {
-    const athl = athletes.find(aa => aa.id === a.id);
-    return athl && athl.groupId === groupId;
-  });
-  
+  // Resumen completo de un grupo (cuenta atletas del grupo indicado, no del seleccionado)
+  const groupAthletesList = athletes.filter(a => a.groupId === groupId);
+
   const records = attendance.filter(a => a.groupId === groupId);
   const filtered = periodFilter ? records.filter(r => r.period === periodFilter) : records;
-  
+
   const uniqueDates = new Set(filtered.map(r => r.date)).size;
   const presenceStats = calculateAttendanceStats(filtered);
-  
+
   return {
     groupId,
     trainingDays: uniqueDates,
-    athleteCount: stats.length,
+    athleteCount: groupAthletesList.length,
     attendance: presenceStats
   };
 }
@@ -2483,7 +2480,7 @@ function renderHeader(){
   const esJefeODir = authState.level === "master" || authState.level === "directorio";
   const veCarreras = esJefeODir || CODIGOS_CARRERAS.includes(authState.trainerCode);
   const visibleTabs = esJefeODir
-    ? [["setup","Grupos"],["daily","Registro diario"],["profile","Estadísticas"],["trainers","Entrenadores"],["checkins","Pulso semanal"],["transport","Transporte"],["carreras","🏁 Carreras"],["access","Accesos"]]
+    ? [["setup","Grupos"],["daily","Registro diario"],["profile","Estadísticas"],["summary","📊 Resumen"],["trainers","Entrenadores"],["checkins","Pulso semanal"],["transport","Transporte"],["carreras","🏁 Carreras"],["access","Accesos"]]
     : [["setup","Grupos"],["daily","Registro diario"],["profile","Estadísticas"],["checkins","Pulso semanal"],["transport","Transporte"]]
         .concat(veCarreras ? [["carreras","🏁 Carreras"]] : []);
   const roleLabel = authState.level==="directorio" ? "Directorio · solo lectura" : authState.level==="master" ? "Jefe de entrenadores" : `${authState.program} · ${authState.category}`;
@@ -2808,6 +2805,67 @@ function renderProfileTab(){
 }
 
 /* ========== RENDER RESUMEN GENERAL ========== */
+
+function renderSummaryTab(){
+  // Lista de grupos: todos ordenados por categoría (si es Mamel, solo U12)
+  let groupsList = groupsSortedByCategory();
+  if(isMamelCoordinator()){
+    groupsList = groupsList.filter(g => g.name && g.name.includes("U12"));
+  }
+
+  const groupIds = groupsList.map(g => g.id);
+  const totalAthletes = athletes.filter(a => groupIds.includes(a.groupId)).length;
+  const globalRecords = attendance.filter(r => groupIds.includes(r.groupId));
+  const globalStats = calculateAttendanceStats(globalRecords);
+
+  let html = `<div class="card">
+    <div class="section-label"><div class="gate-poles"><span></span><span></span></div><span class="title">📊 Resumen general</span></div>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:16px;">
+      <div style="background:${SNOW};border-radius:12px;padding:12px;">
+        <div style="font-size:11px;color:${GRAY};text-transform:uppercase;letter-spacing:.04em;">Total de grupos</div>
+        <div style="font-family:'Oswald',sans-serif;font-size:1.8rem;font-weight:700;color:${NAVY};">${groupsList.length}</div>
+      </div>
+      <div style="background:${SNOW};border-radius:12px;padding:12px;">
+        <div style="font-size:11px;color:${GRAY};text-transform:uppercase;letter-spacing:.04em;">Total de atletas</div>
+        <div style="font-family:'Oswald',sans-serif;font-size:1.8rem;font-weight:700;color:${NAVY};">${totalAthletes}</div>
+      </div>
+      <div style="background:${SNOW};border-radius:12px;padding:12px;">
+        <div style="font-size:11px;color:${GRAY};text-transform:uppercase;letter-spacing:.04em;">Asistencia promedio</div>
+        <div style="font-family:'Oswald',sans-serif;font-size:1.8rem;font-weight:700;color:${GREEN};">${globalStats.countable > 0 ? globalStats.percent + "%" : "—"}</div>
+      </div>
+    </div>
+
+    <div class="section-label"><div class="gate-poles"><span></span><span></span></div><span class="title">Detalle por grupo</span></div>`;
+
+  if(!groupsList.length){
+    html += `<div style="font-size:13px;color:${GRAY};text-align:center;padding:20px 0;">Aún no hay grupos creados.</div>`;
+  } else {
+    groupsList.forEach(g => {
+      const s = getGroupSummary(g.id, null);
+      const pct = s.attendance.countable > 0 ? s.attendance.percent : null;
+      html += `<div style="background:#F7FAFC;border:1px solid #E7ECF2;border-radius:12px;padding:12px 14px;margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;margin-bottom:8px;">
+          <span style="font-family:'Oswald',sans-serif;font-weight:600;font-size:14px;color:${NAVY};">${escapeHtml(g.program)} · ${escapeHtml(g.name)}</span>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;color:${pct === null ? GRAY : GREEN};">${pct === null ? "Sin registros" : pct + "% asistencia"}</span>
+        </div>
+        <div style="display:flex;gap:18px;flex-wrap:wrap;">
+          <div>
+            <span style="font-size:11px;color:${GRAY};">Días entrenados</span>
+            <div style="font-family:'Oswald',sans-serif;font-size:1.2rem;font-weight:700;color:${NAVY};">${s.trainingDays}</div>
+          </div>
+          <div>
+            <span style="font-size:11px;color:${GRAY};">Integrantes</span>
+            <div style="font-family:'Oswald',sans-serif;font-size:1.2rem;font-weight:700;color:${NAVY};">${s.athleteCount}</div>
+          </div>
+        </div>
+      </div>`;
+    });
+  }
+
+  html += `</div>`;
+  return html;
+}
 
 function renderAccessTab(){
   let html = `<div class="card">
@@ -3388,6 +3446,7 @@ function render(){
   if(tab === "setup") body = renderSetupTab();
   else if(tab === "daily") body = renderDailyTab();
   else if(tab === "profile") body = renderProfileTab();
+  else if(tab === "summary" && esJefeODirectorio()) body = renderSummaryTab();
   else if(tab === "access" && authState.level === "master") body = renderAccessTab();
   else if(tab === "trainers" && esJefeODirectorio()) body = renderTrainersTab();
   else if(tab === "carreras" && (esJefeODirectorio() || CODIGOS_CARRERAS.includes(authState.trainerCode))) body = renderCarrerasTab();
