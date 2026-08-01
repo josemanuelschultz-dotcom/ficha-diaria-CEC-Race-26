@@ -639,16 +639,11 @@ function getGroupTrainingDays(groupId, periodFilter){
 
 function getGroupAthleteStats(groupId, periodFilter){
   // Obtener estadísticas de todos los atletas de un grupo
-  // COMPLETAR registros faltantes: si un atleta no tiene registro en un día
-  // donde el grupo entrenó, se cuenta como ausente
+  // INCLUYE registros retroactivos: si un atleta no tiene registro en una sesión, se cuenta como ausente
   
-  // Paso 1: Obtener TODAS las sesiones del grupo
-  const allGroupSessions = sessions.filter(s => s.groupId === groupId);
-  const sessionsByDate = {};
-  allGroupSessions.forEach(s => {
-    if(!sessionsByDate[s.date]) sessionsByDate[s.date] = [];
-    sessionsByDate[s.date].push(s);
-  });
+  // Obtener TODAS las sesiones del grupo (o filtradas por período)
+  const allSessions = sessions.filter(s => s.groupId === groupId);
+  const sessionsToUse = periodFilter ? allSessions.filter(s => s.period === periodFilter) : allSessions;
   
   const groupAthletesList = groupAthletes().filter(a => {
     const athl = athletes.find(aa => aa.id === a.id);
@@ -656,52 +651,26 @@ function getGroupAthleteStats(groupId, periodFilter){
   });
   
   return groupAthletesList.map(a => {
-    // Paso 2: Para este atleta, contar presencias en TODOS los días del grupo
     let present = 0;
     let absent = 0;
     
-    // Recorrer TODAS las sesiones del grupo
-    allGroupSessions.forEach(session => {
-      // Verificar si el atleta tiene registro en esta sesión
-      const hasRecord = attendance.some(att => 
+    // Contar para CADA sesión
+    sessionsToUse.forEach(session => {
+      const record = attendance.find(att => 
         att.athleteId === a.id && 
         att.groupId === groupId && 
         att.date === session.date
       );
       
-      if(hasRecord) {
-        // Si tiene registro, verificar si es presencia o ausencia
-        const record = attendance.find(att => 
-          att.athleteId === a.id && 
-          att.groupId === groupId && 
-          att.date === session.date
-        );
-        
-        // Aplicar filtro de período si existe
-        if(periodFilter) {
-          if(record.period === periodFilter) {
-            if(record.status === "present") present++;
-            else if(record.status === "absent") absent++;
-          }
-        } else {
-          if(record.status === "present") present++;
-          else if(record.status === "absent") absent++;
-        }
+      if(record) {
+        if(record.status === "present") present++;
+        else if(record.status === "absent") absent++;
       } else {
-        // Si NO tiene registro, contar como AUSENTE (pero solo si aplica el período)
-        if(!periodFilter) {
-          // Sin filtro, cuenta toda ausencia no registrada
-          absent++;
-        } else {
-          // Con filtro, solo si la sesión es del período filtrado
-          if(session.period === periodFilter) {
-            absent++;
-          }
-        }
+        // No tiene registro = se cuenta como ausente
+        absent++;
       }
     });
     
-    // Paso 3: Calcular total y porcentaje
     const total = present + absent;
     const percent = total > 0 ? Math.round((present / total) * 100) : 0;
     
