@@ -1327,7 +1327,19 @@ async function saveTrainerAttendance(){
   trainerSaveError = "";
   trainerSaving = true; render();
   try{
-    const rows = trainers.map(t => ({ trainer_id: t.id, date: trainerAttDate, present: !!trainerAttendanceState[t.id], status: trainerAttendanceState[t.id] ? "present" : "absent", period: classifyPeriod(trainerAttDate) }));
+    // Preservar estados "día libre" y "sin entrenamiento" (individuales o del día completo):
+    // esos registros NO deben convertirse en presente/ausente, para que no cuenten en el total del %.
+    const rows = trainers.map(t => {
+      const est = estadoEntrenador(t.id);
+      const mantieneEstado = est === "free_day" || est === "no_training";
+      return {
+        trainer_id: t.id,
+        date: trainerAttDate,
+        present: mantieneEstado ? false : !!trainerAttendanceState[t.id],
+        status: mantieneEstado ? est : (trainerAttendanceState[t.id] ? "present" : "absent"),
+        period: classifyPeriod(trainerAttDate)
+      };
+    });
     if(rows.length){
       const saved = await sbInsert("trainer_attendance", rows, {onConflict:"trainer_id,date", merge:true});
       const savedArr = Array.isArray(saved) ? saved : [saved];
