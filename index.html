@@ -1787,14 +1787,21 @@ function renderCheckinsTab(){
 
 function renderCheckinsAdminView(){
   let html = `<div class="card">
-    <div class="section-label"><div class="gate-poles"><span></span><span></span></div><span class="title">Pulso semanal — todos los entrenadores</span></div>
-    <div style="font-size:12px;color:${GRAY};margin-bottom:14px;">Se muestran todas las respuestas, hayan sido revisadas por el coordinador o no.</div>
+    <div class="section-label"><div class="gate-poles"><span></span><span></span></div><span class="title">Pulso semanal — ${isMamelCoordinator() ? "U12" : "todos los entrenadores"}</span></div>
+    <div style="font-size:12px;color:${GRAY};margin-bottom:14px;">${isMamelCoordinator() ? "Respuestas del equipo U12" : "Se muestran todas las respuestas, hayan sido revisadas por el coordinador o no."}</div>
     <select id="admin-checkin-group-filter" style="margin-bottom:14px;">
-      <option value="">Todos los grupos</option>
-      ${groupsSortedByCategory().map(g => `<option value="${g.id}" ${adminCheckinGroupFilter===g.id?"selected":""}>${escapeHtml(g.program)} · ${escapeHtml(g.name)}</option>`).join("")}
+      <option value="">Todos los grupos${isMamelCoordinator() ? " de U12" : ""}</option>
+      ${(isMamelCoordinator() ? groupsSortedByCategory().filter(g => g.name.includes("U12")) : groupsSortedByCategory()).map(g => `<option value="${g.id}" ${adminCheckinGroupFilter===g.id?"selected":""}>${escapeHtml(g.program)} · ${escapeHtml(g.name)}</option>`).join("")}
     </select>`;
 
   let list = [...weeklyCheckins];
+  
+  // Si es Mamel, filtrar solo datos de U12
+  if(isMamelCoordinator()) {
+    const u12GroupIds = groups.filter(g => g.name.includes("U12")).map(g => g.id);
+    list = list.filter(c => u12GroupIds.includes(c.groupId));
+  }
+  
   if(adminCheckinGroupFilter) list = list.filter(c => c.groupId === adminCheckinGroupFilter);
 
   if(!list.length){
