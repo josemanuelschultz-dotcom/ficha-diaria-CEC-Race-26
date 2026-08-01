@@ -1594,11 +1594,11 @@ const CHECKIN_QUESTIONS = [
 // Each trainer code reports to a coordinator code, or directly to "JEFE" (jefe de entrenadores).
 // Coordinators also report their OWN check-in directly to "JEFE".
 let COORDINATOR_MAP = {
-  "Vale": "Chiqui", "Laura": "Chiqui", "Chiqui": "JEFE",
+  "Vale": "Chiqui", "Laura": "Chiqui", "Chiqui": "Mamel",
   "Riccardo": "Mamel", "Cata": "Mamel", "Keko": "Mamel", "Xavi": "Mamel", "Francesco": "Mamel", "Mamel": "JEFE",
-  "Coni": "PATO", "BENJA": "PATO", "TUTO": "PATO", "PATO": "JEFE",
-  "Irene": "Enzo", "Rene": "Enzo", "Tom": "Enzo", "Enzo": "JEFE",
-  "Felipe": "JEFE", "Ivana": "JEFE",
+  "Coni": "PATO", "BENJA": "PATO", "TUTO": "PATO", "PATO": "Mamel",
+  "Irene": "Enzo", "Rene": "Enzo", "Tom": "Enzo", "Enzo": "Mamel",
+  "Felipe": "Mamel", "Ivana": "Mamel",
 };
 let COORDINATOR_CODES = ["Chiqui", "Mamel", "PATO", "Enzo"];
 
@@ -1725,7 +1725,7 @@ async function saveCheckin(){
       updated_at: new Date().toISOString(),
     };
     const saved = await sbInsert("weekly_checkins", row, {onConflict:"trainer_code,week_start", merge:true});
-    const mapped = {id:saved.id, groupId:saved.group_id, trainerCode:saved.trainer_code, weekStart:saved.week_start, q1:saved.q1, q2:saved.q2, q3:saved.q3, q4:saved.q4, q5:saved.q5, q6:saved.q6, sentToJefe:!!saved.sent_to_jefe, sentAt:saved.sent_at};
+    const mapped = {id:saved.id, groupId:saved.group_id, trainerCode:saved.trainer_code, weekStart:saved.week_start, q1:saved.q1, q2:saved.q2, q3:saved.q3, q4:saved.q4, q5:saved.q5, q6:saved.q6, sentToJefe:!!saved.sent_to_jefe, sentAt:saved.sent_at, reviewedByJefe:!!saved.reviewed_by_jefe, reviewedAt:saved.reviewed_at};
     const idx = weeklyCheckins.findIndex(c => c.trainerCode===mapped.trainerCode && c.weekStart===mapped.weekStart);
     if(idx>=0) weeklyCheckins[idx]=mapped; else weeklyCheckins.push(mapped);
     checkinJustSaved = true;
@@ -1744,6 +1744,29 @@ async function sendCheckinToJefe(checkinId){
     render();
   }catch(e){
     alert("No se pudo enviar al jefe: " + e.message);
+  }
+}
+
+async function confirmCheckinReview(checkinId){
+  // Marca como revisado por el jefe AND envía automáticamente al JEFE
+  try{
+    const now = new Date().toISOString();
+    const row = await sbUpdate("weekly_checkins", {id: checkinId}, { 
+      reviewed_by_jefe: true, 
+      reviewed_at: now,
+      sent_to_jefe: true,
+      sent_at: now
+    });
+    const idx = weeklyCheckins.findIndex(c => c.id === checkinId);
+    if(idx>=0){ 
+      weeklyCheckins[idx].reviewedByJefe = true; 
+      weeklyCheckins[idx].reviewedAt = row.reviewed_at;
+      weeklyCheckins[idx].sentToJefe = true;
+      weeklyCheckins[idx].sentAt = row.sent_at;
+    }
+    render();
+  }catch(e){
+    alert("No se pudo confirmar la revisión: " + e.message);
   }
 }
 
@@ -1823,23 +1846,26 @@ function renderCheckinsAdminView(){
 
   // Si es jefe de entrenadores (Mamel), mostrar sección de "Pulsos de tu equipo para revisar"
   if(authState.trainerCode === "Mamel"){
-    const suEquipo = ["Xavi", "Riccardo", "Cata", "Francesco", "Felipe", "Ivana"];
-    const pulsosDelEquipo = weeklyCheckins.filter(c => suEquipo.includes(c.trainerCode));
+    const suEquipo = ["Xavi", "Riccardo", "Cata", "Francesco", "Felipe", "Ivana", "Chiqui", "PATO", "Enzo"];
+    const pulsosDelEquipo = weeklyCheckins.filter(c => suEquipo.includes(c.trainerCode) && !c.reviewedByJefe);
     
     if(pulsosDelEquipo.length){
       html += `<div style="margin-bottom:16px;">
-        <div style="font-size:12px;color:${GRAY};font-weight:600;text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px;">📋 Pulsos de tu equipo para revisar</div>
+        <div style="font-size:12px;color:${GRAY};font-weight:600;text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px;">📋 Pulsos pendientes de revisión</div>
         ${pulsosDelEquipo.map(c => {
           const trainer = trainers.find(t => t.code === c.trainerCode);
           const trainerName = trainer ? trainer.name : c.trainerCode;
           const respuestas = [c.q1, c.q2, c.q3, c.q4, c.q5, c.q6].filter(x => x).length;
-          const completo = respuestas === 6 ? "✓" : `${respuestas}/6`;
+          const completo = respuestas === 6 ? "✓ Completo" : `${respuestas}/6`;
           return `<div style="background:#F7FAFC;border:1px solid #E7ECF2;border-radius:8px;padding:10px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;">
             <div>
               <div style="font-size:12px;color:${NAVY};font-weight:500;">${escapeHtml(trainerName)}</div>
               <div style="font-size:11px;color:${GRAY};">Semana del ${c.weekStart}</div>
             </div>
-            <span style="font-size:12px;font-weight:600;color:${respuestas === 6 ? GREEN : "#B87700"};">${completo}</span>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span style="font-size:12px;font-weight:600;color:${respuestas === 6 ? GREEN : "#B87700"};">${completo}</span>
+              <button type="button" class="pill" data-confirm-review="${c.id}" style="background:${GREEN};color:white;border-color:${GREEN};padding:4px 8px;font-size:11px;cursor:pointer;">✓ Revisar</button>
+            </div>
           </div>`;
         }).join("")}
       </div>
@@ -4040,6 +4066,10 @@ function attachCheckinsTabHandlers(){
   if(authState.level === "master"){
     const filterSel = document.getElementById("admin-checkin-group-filter");
     if(filterSel) filterSel.addEventListener("change", (e) => { adminCheckinGroupFilter = e.target.value; render(); });
+    // Botón para confirmar revisión de pulso
+    document.querySelectorAll("[data-confirm-review]").forEach(btn => {
+      btn.addEventListener("click", () => confirmCheckinReview(btn.dataset.confirmReview));
+    });
     document.querySelectorAll("[data-delete-checkin-admin]").forEach(btn => {
       btn.addEventListener("click", () => deleteCheckinAsAdmin(btn.dataset.deleteCheckinAdmin));
     });
