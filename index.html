@@ -1471,9 +1471,6 @@ function renderTrainersTab(){
       <button class="btn-navy" id="migrupo-ir">Abrir registro →</button>
     </div>
     </div>`;
-  html += `<div class="periodo-tabs">
-    ${["pre_temporada","temporada_26"].map(pp => `<button type="button" class="periodo-tab${filterPeriod===pp?" active":""}" data-periodo="${pp}">${periodLabel(pp)}</button>`).join("")}
-  </div>`;
   html += trainerCalendarCardHTML();
   html += `<div class="cal-leyenda">
     <span><i class="lg att-full"></i>Todos</span>
@@ -1598,9 +1595,9 @@ const CHECKIN_QUESTIONS = [
 // Coordinators also report their OWN check-in directly to "JEFE".
 let COORDINATOR_MAP = {
   "Vale": "Chiqui", "Laura": "Chiqui", "Chiqui": "JEFE",
-  "Riccardo": "Mamel", "Cata": "Mamel", "Keko": "Mamel", "Tom": "Mamel", "Mamel": "Mamel",
+  "Riccardo": "Mamel", "Cata": "Mamel", "Keko": "Mamel", "Xavi": "Mamel", "Francesco": "Mamel", "Mamel": "JEFE",
   "Coni": "PATO", "BENJA": "PATO", "TUTO": "PATO", "PATO": "JEFE",
-  "Irene": "Enzo", "Rene": "Enzo", "Xavi": "Enzo", "Enzo": "JEFE",
+  "Irene": "Enzo", "Rene": "Enzo", "Tom": "Enzo", "Enzo": "JEFE",
   "Felipe": "JEFE", "Ivana": "JEFE",
 };
 let COORDINATOR_CODES = ["Chiqui", "Mamel", "PATO", "Enzo"];
@@ -1822,20 +1819,41 @@ function renderCheckinsTab(){
 
 function renderCheckinsAdminView(){
   let html = `<div class="card">
-    <div class="section-label"><div class="gate-poles"><span></span><span></span></div><span class="title">Pulso semanal — ${isMamelCoordinator() ? "U12" : "todos los entrenadores"}</span></div>
-    <div style="font-size:12px;color:${GRAY};margin-bottom:14px;">${isMamelCoordinator() ? "Respuestas del equipo U12" : "Se muestran todas las respuestas, hayan sido revisadas por el coordinador o no."}</div>
+    <div class="section-label"><div class="gate-poles"><span></span><span></span></div><span class="title">Pulso semanal</span></div>`;
+
+  // Si es jefe de entrenadores (Mamel), mostrar sección de "Pulsos de tu equipo para revisar"
+  if(authState.trainerCode === "Mamel"){
+    const suEquipo = ["Xavi", "Riccardo", "Cata", "Francesco", "Felipe", "Ivana"];
+    const pulsosDelEquipo = weeklyCheckins.filter(c => suEquipo.includes(c.trainerCode));
+    
+    if(pulsosDelEquipo.length){
+      html += `<div style="margin-bottom:16px;">
+        <div style="font-size:12px;color:${GRAY};font-weight:600;text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px;">📋 Pulsos de tu equipo para revisar</div>
+        ${pulsosDelEquipo.map(c => {
+          const trainer = trainers.find(t => t.code === c.trainerCode);
+          const trainerName = trainer ? trainer.name : c.trainerCode;
+          const respuestas = [c.q1, c.q2, c.q3, c.q4, c.q5, c.q6].filter(x => x).length;
+          const completo = respuestas === 6 ? "✓" : `${respuestas}/6`;
+          return `<div style="background:#F7FAFC;border:1px solid #E7ECF2;border-radius:8px;padding:10px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;">
+            <div>
+              <div style="font-size:12px;color:${NAVY};font-weight:500;">${escapeHtml(trainerName)}</div>
+              <div style="font-size:11px;color:${GRAY};">Semana del ${c.weekStart}</div>
+            </div>
+            <span style="font-size:12px;font-weight:600;color:${respuestas === 6 ? GREEN : "#B87700"};">${completo}</span>
+          </div>`;
+        }).join("")}
+      </div>
+      <hr style="border:none;border-top:1px solid #E7ECF2;margin:16px 0;">`;
+    }
+  }
+
+  html += `<div style="font-size:12px;color:${GRAY};margin-bottom:14px;">Todos los pulsos semanales del club.</div>
     <select id="admin-checkin-group-filter" style="margin-bottom:14px;">
-      <option value="">Todos los grupos${isMamelCoordinator() ? " de U12" : ""}</option>
-      ${(isMamelCoordinator() ? groupsSortedByCategory().filter(g => g.name.includes("U12")) : groupsSortedByCategory()).map(g => `<option value="${g.id}" ${adminCheckinGroupFilter===g.id?"selected":""}>${escapeHtml(g.program)} · ${escapeHtml(g.name)}</option>`).join("")}
+      <option value="">Todos los grupos</option>
+      ${groupsSortedByCategory().map(g => `<option value="${g.id}" ${adminCheckinGroupFilter===g.id?"selected":""}>${escapeHtml(g.program)} · ${escapeHtml(g.name)}</option>`).join("")}
     </select>`;
 
   let list = [...weeklyCheckins];
-  
-  // Si es Mamel, filtrar solo datos de U12
-  if(isMamelCoordinator()) {
-    const u12GroupIds = groups.filter(g => g.name.includes("U12")).map(g => g.id);
-    list = list.filter(c => u12GroupIds.includes(c.groupId));
-  }
   
   if(adminCheckinGroupFilter) list = list.filter(c => c.groupId === adminCheckinGroupFilter);
 
@@ -3717,8 +3735,6 @@ function attachExtraHandlers(){
   });
 
   // --- Pestañas de periodo ---
-  document.querySelectorAll("[data-periodo]").forEach(b =>
-    b.addEventListener("click", () => { filterPeriod = b.dataset.periodo; render(); }));
 
   // --- Exportar por entrenador ---
   document.querySelectorAll("[data-export-trainer]").forEach(b =>
