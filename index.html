@@ -544,6 +544,7 @@ async function sbDelete(table, match){
 /* ============ MAPPERS (DB snake_case -> app camelCase) ============ */
 function mapAthlete(row){
   return { id: row.id, groupId: row.group_id, name: row.name, phone: row.phone || "",
+    notas: row.notas || "",
     medical: { enfermedades: row.enfermedades || "", alergias: row.alergias || "", medicamentos: row.medicamentos || "", otros: row.otros || "", notas: row.notas || "" } };
 }
 function mapSession(row){
@@ -3522,9 +3523,11 @@ async function saveAthleteNota(athleteId){
   const texto = (athleteNotas[athleteId] !== undefined ? athleteNotas[athleteId] : at.notas) || "";
   if(texto === (at.notas || "")) return;   // sin cambios
   notasSaving[athleteId] = true;
+  render();
   try{
     await sbUpdate("athletes", { id: athleteId }, { notas: texto });
     at.notas = texto;
+    if(at.medical) at.medical.notas = texto;   // mantener ambas rutas sincronizadas
     delete athleteNotas[athleteId];
   }catch(e){
     alert("No se pudo guardar la nota: " + e.message);
@@ -3534,9 +3537,13 @@ async function saveAthleteNota(athleteId){
 }
 
 function athleteNotaFieldHTML(at){
+  const pendiente = athleteNotas[at.id] !== undefined && athleteNotas[at.id] !== (at.notas || "");
   const valor = athleteNotas[at.id] !== undefined ? athleteNotas[at.id] : (at.notas || "");
+  const estado = notasSaving[at.id] ? ` · <span style="color:${BLUE};">guardando…</span>`
+    : pendiente ? ` · <span style="color:#B87700;">sin guardar</span>`
+    : (at.notas || "").trim() ? ` · <span style="color:${GREEN};">guardado ✓</span>` : "";
   return `<div class="nota-box">
-    <label>Notas adicionales${notasSaving[at.id] ? " · guardando…" : ""}</label>
+    <label>Notas adicionales${estado}</label>
     <textarea data-nota-athlete="${at.id}" placeholder="Observaciones del entrenador sobre ${escapeHtml(at.name)}…">${escapeHtml(valor)}</textarea>
   </div>`;
 }
@@ -3719,6 +3726,7 @@ function attachAppHandlers(){
 
   document.querySelectorAll("[data-tab]").forEach(btn => {
     btn.addEventListener("click", () => {
+      flushPendingAthleteNotas();   // no perder observaciones sin guardar
       tab = btn.dataset.tab;
       if(tab === "daily") initDailyForm();
       if(tab === "profile" && !profileAthleteId){
@@ -3837,7 +3845,15 @@ function attachExtraHandlers(){
   document.querySelectorAll("[data-nota-athlete]").forEach(ta => {
     ta.addEventListener("input", e => { athleteNotas[ta.dataset.notaAthlete] = e.target.value; });
     ta.addEventListener("blur",  () => saveAthleteNota(ta.dataset.notaAthlete));
+    // Respaldo: si la app se re-renderiza o el usuario cambia de pestaña,
+    // guardar lo que quede pendiente en este campo.
+    ta.addEventListener("change", () => saveAthleteNota(ta.dataset.notaAthlete));
   });
+}
+
+function flushPendingAthleteNotas(){
+  // Guarda cualquier observación escrita que aún no se haya persistido
+  Object.keys(athleteNotas).forEach(id => saveAthleteNota(id));
 }
 
 function attachSetupTabHandlers(){
