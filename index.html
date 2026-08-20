@@ -809,6 +809,9 @@ let attendanceAuditLog = [];
 const K_RESPALDO = "cec26_ultimo_respaldo";
 let ultimoRespaldo = lsGet(K_RESPALDO, null);
 let transportAdminError = "";
+let bencinaMontoDraft = "";
+let bencinaMontoSaving = false;
+let bencinaMontoJustSaved = false;
 let prePanelOpen = false;
 let preAtletaPanelOpen = false;
 let tripsStatsOpen = false;
@@ -2217,6 +2220,14 @@ function renderTransportAdminView(){
   let html = `<div class="card">
     <div class="section-label"><div class="gate-poles"><span></span><span></span></div><span class="title">Transporte — resumen diario</span></div>
     <div style="font-size:12px;color:${GRAY};margin-bottom:10px;">Como jefe puedes corregir el registro de cualquier entrenador en cualquier fecha.</div>
+    <div class="tr-add-box" style="margin-bottom:14px;">
+      <div class="tr-add-label">Monto por cuota de bencina (CLP) — el club paga ${CUOTAS_BENCINA_DIA} cuotas por día, ${AUTO_MIN_PASAJEROS}+ pasajeros para cuota completa</div>
+      <div class="tr-add-row">
+        <input type="text" inputmode="decimal" id="bencina-monto-input" class="filter-select" style="flex:1;" value="${escapeHtml(bencinaMontoDraft)}" placeholder="Ej: 20000" />
+        <button class="btn-navy" id="save-bencina-monto-btn">${bencinaMontoSaving?"Guardando...":"💾 Guardar"}</button>
+      </div>
+      ${bencinaMontoJustSaved ? `<div style="font-size:11px;color:${GREEN};margin-top:6px;">Guardado.</div>` : ""}
+    </div>
     <button class="btn-outline" id="export-transport-btn" style="width:100%;justify-content:center;margin-bottom:14px;">📊 Exportar resumen a Excel</button>`;
   html += adminTransportCalendarCardHTML();
 
@@ -2228,10 +2239,18 @@ function renderTransportAdminView(){
     </div>`;
   } else {
     const totalTrainers = dayEntries.reduce((s,t)=>s+(t.numTrainers||0),0);
+    const bencinaMonto = (accessConfig && accessConfig.bencinaCuotaMonto) || 0;
+    const cuotasPorId = calcularCuotasBencinaDia(dayEntries);
+    const totalBencinaDiaCLP = dayEntries.reduce((s,t)=> s + (cuotasPorId[t.id]||0) * bencinaMonto, 0);
     html += `<div class="total-box" style="margin-bottom:14px;"><span class="lbl">Total entrenadores transportados</span><span class="val">${totalTrainers}</span></div>`;
+    html += `<div class="total-box" style="margin-bottom:14px;background:${GOLD};"><span class="lbl" style="color:${NAVY};">Total bencina del día</span><span class="val" style="color:${NAVY};">$${Math.round(totalBencinaDiaCLP).toLocaleString("es-CL")}</span></div>`;
     dayEntries.forEach(t => {
+      const cuotas = cuotasPorId[t.id] || 0;
+      const montoAuto = Math.round(cuotas * bencinaMonto);
       html += `<div class="tr-edit-row">
-        <span class="tr-edit-name">${escapeHtml(t.trainerCode)}</span>
+        <span class="tr-edit-name">${escapeHtml(t.trainerCode)}
+          <span class="nota-chip" title="Cuotas de bencina para este auto">${cuotas.toFixed(2)} cuota${cuotas===1?"":"s"} · $${montoAuto.toLocaleString("es-CL")}</span>
+        </span>
         <div class="tr-stepper">
           <button data-tt-dec="${t.id}" ${t.numTrainers<=1?"disabled":""}>−</button>
           <span class="tr-count">${t.numTrainers}</span>
@@ -2460,7 +2479,44 @@ function exportTransportToExcel(){
   ws["!cols"] = [{wch:26},{wch:18},{wch:8},{wch:14},{wch:60}];
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "Transporte");
+
+  const bencinaSheet = buildBencinaSheet(nombreDe);
+  if(bencinaSheet){
+    const wsB = XLSX.utils.aoa_to_sheet(bencinaSheet);
+    wsB["!cols"] = [{wch:12},{wch:24},{wch:16},{wch:10},{wch:14}];
+    XLSX.utils.book_append_sheet(wb, wsB, "Bencina");
+  }
+
   XLSX.writeFile(wb, `transporte_entrenadores_${todayISO()}.xlsx`);
+}
+
+function buildBencinaSheet(nombreDe){
+  if(!trainerTransport.length) return null;
+  const monto = (accessConfig && accessConfig.bencinaCuotaMonto) || 0;
+  const porFecha = {};
+  trainerTransport.forEach(t => {
+    if(!porFecha[t.date]) porFecha[t.date] = [];
+    porFecha[t.date].push(t);
+  });
+  const sheet = [["Fecha","Entrenador","Personas en el auto","Cuotas","Monto (CLP)"]];
+  let totalGeneral = 0;
+  Object.keys(porFecha).sort().forEach(fecha => {
+    const entries = porFecha[fecha];
+    const cuotasPorId = calcularCuotasBencinaDia(entries);
+    let totalDia = 0;
+    [...entries].sort((a,b) => (b.numTrainers||0) - (a.numTrainers||0)).forEach(t => {
+      const cuotas = cuotasPorId[t.id] || 0;
+      const montoAuto = Math.round(cuotas * monto);
+      totalDia += montoAuto;
+      sheet.push([fecha, nombreDe(t.trainerCode), t.numTrainers, Number(cuotas.toFixed(2)), montoAuto]);
+    });
+    sheet.push(["", fecha + " — TOTAL DÍA", "", "", totalDia]);
+    sheet.push(["", "", "", "", ""]);
+    totalGeneral += totalDia;
+  });
+  sheet.push(["", "TOTAL GENERAL", "", "", totalGeneral]);
+  sheet.push(["", "Monto por cuota usado", "", "", monto]);
+  return sheet;
 }
 
 function copySummary(){
@@ -3513,6 +3569,63 @@ function estadoDiaHTML(){
   </div>`;
 }
 
+/* ============ TRANSPORTE: PAGO DE BENCINA ============ */
+// El club paga el equivalente a CUOTAS_BENCINA_DIA "cuotas" de bencina por día.
+// Cada auto con AUTO_MIN_PASAJEROS o más pasajeros aspira a 1 cuota completa (hasta un máximo
+// de CUOTAS_BENCINA_DIA autos, priorizando a los que llevan más pasajeros). Las cuotas que no
+// alcanzan para pagar completo a todo un grupo empatado en pasajeros se reparten en partes
+// iguales entre los autos de ese grupo. Ejemplo: 2 autos con 4 pasajeros cobran 1 cuota c/u
+// (quedan 3 cuotas); si le siguen 4 autos con 2 pasajeros (empatados), esas 3 cuotas se
+// reparten entre los 4 → 0,75 cuota c/u.
+const CUOTAS_BENCINA_DIA = 5;
+const AUTO_MIN_PASAJEROS = 4;
+function calcularCuotasBencinaDia(entries){
+  const cuotasPorId = {};
+  if(!entries || !entries.length) return cuotasPorId;
+  // Agrupar por cantidad de pasajeros (empates), ordenado de mayor a menor
+  const grupos = [];
+  [...entries].sort((a,b) => (b.numTrainers||0) - (a.numTrainers||0)).forEach(e => {
+    const n = e.numTrainers || 0;
+    let g = grupos.find(g => g.n === n);
+    if(!g){ g = {n, items:[]}; grupos.push(g); }
+    g.items.push(e);
+  });
+  let restante = CUOTAS_BENCINA_DIA;
+  grupos.forEach(g => {
+    if(restante <= 0){ g.items.forEach(e => cuotasPorId[e.id] = 0); return; }
+    const cantidad = g.items.length;
+    const cuotaCadaUno = Math.min(restante / cantidad, 1);
+    g.items.forEach(e => cuotasPorId[e.id] = cuotaCadaUno);
+    restante -= cuotaCadaUno * cantidad;
+    if(restante < 1e-9) restante = 0;
+  });
+  return cuotasPorId;
+}
+function totalBencinaDia(entries, monto){
+  const cuotasPorId = calcularCuotasBencinaDia(entries);
+  return entries.reduce((s,e) => s + (cuotasPorId[e.id]||0) * monto, 0);
+}
+async function saveBencinaMonto(){
+  const val = Number(String(bencinaMontoDraft).replace(",", "."));
+  if(isNaN(val) || val < 0){
+    transportAdminError = "Ingresa un monto válido para la cuota de bencina.";
+    render();
+    return;
+  }
+  transportAdminError = "";
+  bencinaMontoSaving = true; bencinaMontoJustSaved = false; render();
+  try{
+    const row = await sbUpdate("access_config", {id:1}, { bencina_cuota_monto: val });
+    accessConfig.bencinaCuotaMonto = Number(row.bencina_cuota_monto) || 0;
+    bencinaMontoDraft = String(accessConfig.bencinaCuotaMonto || "");
+    bencinaMontoJustSaved = true;
+  }catch(e){
+    transportAdminError = "No se pudo guardar el monto: " + e.message;
+  }
+  bencinaMontoSaving = false;
+  render();
+}
+
 /* ============ TRANSPORTE: ACCIONES DEL JEFE ============ */
 async function adjustTransport(id, delta){
   const rec = trainerTransport.find(t => t.id === id);
@@ -4203,6 +4316,10 @@ function attachCheckinsTabHandlers(){
 
 function attachTransportTabHandlers(){
   if(authState.level === "master"){
+    const bencinaInput = document.getElementById("bencina-monto-input");
+    if(bencinaInput) bencinaInput.addEventListener("input", (e) => { bencinaMontoDraft = e.target.value; bencinaMontoJustSaved = false; });
+    const bencinaSaveBtn = document.getElementById("save-bencina-monto-btn");
+    if(bencinaSaveBtn) bencinaSaveBtn.addEventListener("click", saveBencinaMonto);
     const expBtn = document.getElementById("export-transport-btn");
     if(expBtn) expBtn.addEventListener("click", exportTransportToExcel);
     const toggleBtn = document.getElementById("admin-transport-cal-toggle-btn");
@@ -4300,7 +4417,8 @@ async function loadAllData(){
   sessions = sRows.map(mapSession);
   attendance = atRows.map(mapAttendance);
   if(acRows && acRows[0]){
-    accessConfig = { masterCode: acRows[0].master_code, categoryCodes: acRows[0].category_codes, directorioCode: acRows[0].directorio_code || "" };
+    accessConfig = { masterCode: acRows[0].master_code, categoryCodes: acRows[0].category_codes, directorioCode: acRows[0].directorio_code || "", bencinaCuotaMonto: Number(acRows[0].bencina_cuota_monto) || 0 };
+    bencinaMontoDraft = String(accessConfig.bencinaCuotaMonto || "");
     if(acRows[0].coordinator_map && Object.keys(acRows[0].coordinator_map).length){
       COORDINATOR_MAP = acRows[0].coordinator_map;
       COORDINATOR_CODES = Array.from(new Set(Object.values(COORDINATOR_MAP).filter(v => v !== "JEFE")));
