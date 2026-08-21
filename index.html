@@ -1,4 +1,9 @@
 <!DOCTYPE html>
+<!--
+  CEC 26 — historial de versiones (para ubicar cambios en GitHub)
+  v15 · 2026-08-21 · Pago de bencina: tarifa por auto ($/auto, máx. 4 pasajeros), reparto
+       proporcional a pasajeros, Mamel e Irene fuera del reparto, botón de exportar Excel dedicado.
+-->
 <html lang="es">
 <head>
 <meta charset="UTF-8" />
@@ -2221,14 +2226,15 @@ function renderTransportAdminView(){
     <div class="section-label"><div class="gate-poles"><span></span><span></span></div><span class="title">Transporte — resumen diario</span></div>
     <div style="font-size:12px;color:${GRAY};margin-bottom:10px;">Como jefe puedes corregir el registro de cualquier entrenador en cualquier fecha.</div>
     <div class="tr-add-box" style="margin-bottom:14px;">
-      <div class="tr-add-label">Tarifa por auto (CLP) — máximo ${BENCINA_MAX_POR_AUTO} personas por auto; ${BENCINA_EXCLUIDOS.join(" y ")} no participan del reparto</div>
+      <div class="tr-add-label">Tarifa por auto (CLP) — máximo ${BENCINA_MAX_POR_AUTO} personas por auto</div>
       <div class="tr-add-row">
         <input type="text" inputmode="decimal" id="bencina-monto-input" class="filter-select" style="flex:1;" value="${escapeHtml(bencinaMontoDraft)}" placeholder="Ej: 6000" />
         <button class="btn-navy" id="save-bencina-monto-btn">${bencinaMontoSaving?"Guardando...":"💾 Guardar"}</button>
       </div>
       ${bencinaMontoJustSaved ? `<div style="font-size:11px;color:${GREEN};margin-top:6px;">Guardado.</div>` : ""}
     </div>
-    <button class="btn-outline" id="export-transport-btn" style="width:100%;justify-content:center;margin-bottom:14px;">📊 Exportar resumen a Excel</button>`;
+    <button class="btn-outline" id="export-transport-btn" style="width:100%;justify-content:center;margin-bottom:14px;">📊 Exportar resumen a Excel</button>
+    <button class="btn-outline" id="export-bencina-btn" style="width:100%;justify-content:center;margin-bottom:14px;">⛽ Exportar pago de bencina</button>`;
   html += adminTransportCalendarCardHTML();
 
   if(!dayEntries.length){
@@ -2248,7 +2254,7 @@ function renderTransportAdminView(){
       const excluido = BENCINA_EXCLUIDOS.includes(t.trainerCode);
       const montoAuto = Math.round(montosPorId[t.id] || 0);
       const chip = excluido
-        ? `<span class="nota-chip" title="No participa del reparto de bencina">${t.numTrainers} pas. · sin reparto</span>`
+        ? ""
         : `<span class="nota-chip" title="Pago de bencina para este auto (proporcional a sus pasajeros)">${t.numTrainers} pas. · $${montoAuto.toLocaleString("es-CL")}</span>`;
       html += `<div class="tr-edit-row">
         <span class="tr-edit-name">${escapeHtml(t.trainerCode)}
@@ -2501,19 +2507,19 @@ function buildBencinaSheet(nombreDe){
     if(!porFecha[t.date]) porFecha[t.date] = [];
     porFecha[t.date].push(t);
   });
-  const sheet = [["Fecha","Entrenador","Personas en el auto","Personas totales del día (sin excluidos)","Monto (CLP)"]];
+  const sheet = [["Fecha","Entrenador","Personas en el auto","Personas totales del día","Monto (CLP)"]];
   let totalGeneral = 0;
   Object.keys(porFecha).sort().forEach(fecha => {
     const entries = porFecha[fecha];
     const incluidos = entries.filter(e => !BENCINA_EXCLUIDOS.includes(e.trainerCode));
+    if(!incluidos.length) return;
     const totalPersonasDia = incluidos.reduce((s,e) => s + (e.numTrainers||0), 0);
     const montosPorId = calcularMontosBencinaDia(entries, tarifaAuto);
     let totalDia = 0;
-    [...entries].sort((a,b) => (b.numTrainers||0) - (a.numTrainers||0)).forEach(t => {
-      const excluido = BENCINA_EXCLUIDOS.includes(t.trainerCode);
+    [...incluidos].sort((a,b) => (b.numTrainers||0) - (a.numTrainers||0)).forEach(t => {
       const montoAuto = Math.round(montosPorId[t.id] || 0);
       totalDia += montoAuto;
-      sheet.push([fecha, nombreDe(t.trainerCode) + (excluido ? " (excluido)" : ""), t.numTrainers, totalPersonasDia, montoAuto]);
+      sheet.push([fecha, nombreDe(t.trainerCode), t.numTrainers, totalPersonasDia, montoAuto]);
     });
     sheet.push(["", fecha + " — TOTAL DÍA", "", "", totalDia]);
     sheet.push(["", "", "", "", ""]);
@@ -2521,8 +2527,64 @@ function buildBencinaSheet(nombreDe){
   });
   sheet.push(["", "TOTAL GENERAL", "", "", totalGeneral]);
   sheet.push(["", "Tarifa por auto usada", "", "", tarifaAuto]);
-  sheet.push(["", "Excluidos del reparto", "", "", BENCINA_EXCLUIDOS.join(", ")]);
   return sheet;
+}
+
+function exportPagoBencina(){
+  if(!trainerTransport.length){
+    alert("Aún no hay registros de transporte para exportar.");
+    return;
+  }
+  const tarifaAuto = (accessConfig && accessConfig.bencinaCuotaMonto) || 0;
+  const nombreDe = code => {
+    const tr = trainers.find(t => t.code === code);
+    return tr ? tr.name : code;
+  };
+
+  const porFecha = {};
+  trainerTransport.forEach(t => {
+    if(!porFecha[t.date]) porFecha[t.date] = [];
+    porFecha[t.date].push(t);
+  });
+
+  const detalle = [["Fecha","Entrenador","Personas en el auto","Personas totales del día","Monto (CLP)"]];
+  const porEntrenador = {};
+  Object.keys(porFecha).sort().forEach(fecha => {
+    const entries = porFecha[fecha].filter(e => !BENCINA_EXCLUIDOS.includes(e.trainerCode));
+    if(!entries.length) return;
+    const montosPorId = calcularMontosBencinaDia(entries, tarifaAuto);
+    const totalPersonasDia = entries.reduce((s,e) => s + (e.numTrainers||0), 0);
+    [...entries].sort((a,b) => (b.numTrainers||0) - (a.numTrainers||0)).forEach(t => {
+      const monto = Math.round(montosPorId[t.id] || 0);
+      detalle.push([fecha, nombreDe(t.trainerCode), t.numTrainers, totalPersonasDia, monto]);
+      const code = t.trainerCode;
+      if(!porEntrenador[code]) porEntrenador[code] = {dias:0, personas:0, monto:0};
+      porEntrenador[code].dias += 1;
+      porEntrenador[code].personas += (t.numTrainers||0);
+      porEntrenador[code].monto += monto;
+    });
+  });
+
+  const totalGeneral = Object.values(porEntrenador).reduce((s,pe) => s + pe.monto, 0);
+
+  const resumen = [["Entrenador","Días con transporte","Personas transportadas (total)","Total a pagar (CLP)"]];
+  Object.keys(porEntrenador)
+    .sort((a,b) => porEntrenador[b].monto - porEntrenador[a].monto)
+    .forEach(code => {
+      const pe = porEntrenador[code];
+      resumen.push([nombreDe(code), pe.dias, pe.personas, Math.round(pe.monto)]);
+    });
+  resumen.push(["TOTAL GENERAL", "", "", Math.round(totalGeneral)]);
+
+  const wsResumen = XLSX.utils.aoa_to_sheet(resumen);
+  wsResumen["!cols"] = [{wch:18},{wch:20},{wch:26},{wch:18}];
+  const wsDetalle = XLSX.utils.aoa_to_sheet(detalle);
+  wsDetalle["!cols"] = [{wch:12},{wch:22},{wch:16},{wch:20},{wch:14}];
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, wsResumen, "Resumen por entrenador");
+  XLSX.utils.book_append_sheet(wb, wsDetalle, "Detalle diario");
+  XLSX.writeFile(wb, `pago_bencina_${todayISO()}.xlsx`);
 }
 
 function copySummary(){
@@ -4321,6 +4383,8 @@ function attachTransportTabHandlers(){
     if(bencinaSaveBtn) bencinaSaveBtn.addEventListener("click", saveBencinaMonto);
     const expBtn = document.getElementById("export-transport-btn");
     if(expBtn) expBtn.addEventListener("click", exportTransportToExcel);
+    const expBencinaBtn = document.getElementById("export-bencina-btn");
+    if(expBencinaBtn) expBencinaBtn.addEventListener("click", exportPagoBencina);
     const toggleBtn = document.getElementById("admin-transport-cal-toggle-btn");
     if(toggleBtn) toggleBtn.addEventListener("click", toggleAdminTransportCalendar);
     const prevBtn = document.getElementById("admin-transport-cal-prev-btn");
