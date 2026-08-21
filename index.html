@@ -2221,9 +2221,9 @@ function renderTransportAdminView(){
     <div class="section-label"><div class="gate-poles"><span></span><span></span></div><span class="title">Transporte — resumen diario</span></div>
     <div style="font-size:12px;color:${GRAY};margin-bottom:10px;">Como jefe puedes corregir el registro de cualquier entrenador en cualquier fecha.</div>
     <div class="tr-add-box" style="margin-bottom:14px;">
-      <div class="tr-add-label">Monto por cuota de bencina (CLP) — el club paga ${CUOTAS_BENCINA_DIA} cuotas por día, ${AUTO_MIN_PASAJEROS}+ pasajeros para cuota completa</div>
+      <div class="tr-add-label">Tarifa por auto (CLP) — máximo ${BENCINA_MAX_POR_AUTO} personas por auto; ${BENCINA_EXCLUIDOS.join(" y ")} no participan del reparto</div>
       <div class="tr-add-row">
-        <input type="text" inputmode="decimal" id="bencina-monto-input" class="filter-select" style="flex:1;" value="${escapeHtml(bencinaMontoDraft)}" placeholder="Ej: 20000" />
+        <input type="text" inputmode="decimal" id="bencina-monto-input" class="filter-select" style="flex:1;" value="${escapeHtml(bencinaMontoDraft)}" placeholder="Ej: 6000" />
         <button class="btn-navy" id="save-bencina-monto-btn">${bencinaMontoSaving?"Guardando...":"💾 Guardar"}</button>
       </div>
       ${bencinaMontoJustSaved ? `<div style="font-size:11px;color:${GREEN};margin-top:6px;">Guardado.</div>` : ""}
@@ -2239,17 +2239,20 @@ function renderTransportAdminView(){
     </div>`;
   } else {
     const totalTrainers = dayEntries.reduce((s,t)=>s+(t.numTrainers||0),0);
-    const bencinaMonto = (accessConfig && accessConfig.bencinaCuotaMonto) || 0;
-    const cuotasPorId = calcularCuotasBencinaDia(dayEntries);
-    const totalBencinaDiaCLP = dayEntries.reduce((s,t)=> s + (cuotasPorId[t.id]||0) * bencinaMonto, 0);
+    const bencinaTarifaAuto = (accessConfig && accessConfig.bencinaCuotaMonto) || 0;
+    const montosPorId = calcularMontosBencinaDia(dayEntries, bencinaTarifaAuto);
+    const totalBencinaDiaCLP = totalBencinaDia(dayEntries, bencinaTarifaAuto);
     html += `<div class="total-box" style="margin-bottom:14px;"><span class="lbl">Total entrenadores transportados</span><span class="val">${totalTrainers}</span></div>`;
     html += `<div class="total-box" style="margin-bottom:14px;background:${GOLD};"><span class="lbl" style="color:${NAVY};">Total bencina del día</span><span class="val" style="color:${NAVY};">$${Math.round(totalBencinaDiaCLP).toLocaleString("es-CL")}</span></div>`;
     dayEntries.forEach(t => {
-      const cuotas = cuotasPorId[t.id] || 0;
-      const montoAuto = Math.round(cuotas * bencinaMonto);
+      const excluido = BENCINA_EXCLUIDOS.includes(t.trainerCode);
+      const montoAuto = Math.round(montosPorId[t.id] || 0);
+      const chip = excluido
+        ? `<span class="nota-chip" title="No participa del reparto de bencina">${t.numTrainers} pas. · sin reparto</span>`
+        : `<span class="nota-chip" title="Pago de bencina para este auto (proporcional a sus pasajeros)">${t.numTrainers} pas. · $${montoAuto.toLocaleString("es-CL")}</span>`;
       html += `<div class="tr-edit-row">
         <span class="tr-edit-name">${escapeHtml(t.trainerCode)}
-          <span class="nota-chip" title="Cuotas de bencina para este auto">${cuotas.toFixed(2)} cuota${cuotas===1?"":"s"} · $${montoAuto.toLocaleString("es-CL")}</span>
+          ${chip}
         </span>
         <div class="tr-stepper">
           <button data-tt-dec="${t.id}" ${t.numTrainers<=1?"disabled":""}>−</button>
@@ -2492,30 +2495,33 @@ function exportTransportToExcel(){
 
 function buildBencinaSheet(nombreDe){
   if(!trainerTransport.length) return null;
-  const monto = (accessConfig && accessConfig.bencinaCuotaMonto) || 0;
+  const tarifaAuto = (accessConfig && accessConfig.bencinaCuotaMonto) || 0;
   const porFecha = {};
   trainerTransport.forEach(t => {
     if(!porFecha[t.date]) porFecha[t.date] = [];
     porFecha[t.date].push(t);
   });
-  const sheet = [["Fecha","Entrenador","Personas en el auto","Cuotas","Monto (CLP)"]];
+  const sheet = [["Fecha","Entrenador","Personas en el auto","Personas totales del día (sin excluidos)","Monto (CLP)"]];
   let totalGeneral = 0;
   Object.keys(porFecha).sort().forEach(fecha => {
     const entries = porFecha[fecha];
-    const cuotasPorId = calcularCuotasBencinaDia(entries);
+    const incluidos = entries.filter(e => !BENCINA_EXCLUIDOS.includes(e.trainerCode));
+    const totalPersonasDia = incluidos.reduce((s,e) => s + (e.numTrainers||0), 0);
+    const montosPorId = calcularMontosBencinaDia(entries, tarifaAuto);
     let totalDia = 0;
     [...entries].sort((a,b) => (b.numTrainers||0) - (a.numTrainers||0)).forEach(t => {
-      const cuotas = cuotasPorId[t.id] || 0;
-      const montoAuto = Math.round(cuotas * monto);
+      const excluido = BENCINA_EXCLUIDOS.includes(t.trainerCode);
+      const montoAuto = Math.round(montosPorId[t.id] || 0);
       totalDia += montoAuto;
-      sheet.push([fecha, nombreDe(t.trainerCode), t.numTrainers, Number(cuotas.toFixed(2)), montoAuto]);
+      sheet.push([fecha, nombreDe(t.trainerCode) + (excluido ? " (excluido)" : ""), t.numTrainers, totalPersonasDia, montoAuto]);
     });
     sheet.push(["", fecha + " — TOTAL DÍA", "", "", totalDia]);
     sheet.push(["", "", "", "", ""]);
     totalGeneral += totalDia;
   });
   sheet.push(["", "TOTAL GENERAL", "", "", totalGeneral]);
-  sheet.push(["", "Monto por cuota usado", "", "", monto]);
+  sheet.push(["", "Tarifa por auto usada", "", "", tarifaAuto]);
+  sheet.push(["", "Excluidos del reparto", "", "", BENCINA_EXCLUIDOS.join(", ")]);
   return sheet;
 }
 
@@ -3570,45 +3576,38 @@ function estadoDiaHTML(){
 }
 
 /* ============ TRANSPORTE: PAGO DE BENCINA ============ */
-// El club paga el equivalente a CUOTAS_BENCINA_DIA "cuotas" de bencina por día.
-// Cada auto con AUTO_MIN_PASAJEROS o más pasajeros aspira a 1 cuota completa (hasta un máximo
-// de CUOTAS_BENCINA_DIA autos, priorizando a los que llevan más pasajeros). Las cuotas que no
-// alcanzan para pagar completo a todo un grupo empatado en pasajeros se reparten en partes
-// iguales entre los autos de ese grupo. Ejemplo: 2 autos con 4 pasajeros cobran 1 cuota c/u
-// (quedan 3 cuotas); si le siguen 4 autos con 2 pasajeros (empatados), esas 3 cuotas se
-// reparten entre los 4 → 0,75 cuota c/u.
-const CUOTAS_BENCINA_DIA = 5;
-const AUTO_MIN_PASAJEROS = 4;
-function calcularCuotasBencinaDia(entries){
-  const cuotasPorId = {};
-  if(!entries || !entries.length) return cuotasPorId;
-  // Agrupar por cantidad de pasajeros (empates), ordenado de mayor a menor
-  const grupos = [];
-  [...entries].sort((a,b) => (b.numTrainers||0) - (a.numTrainers||0)).forEach(e => {
-    const n = e.numTrainers || 0;
-    let g = grupos.find(g => g.n === n);
-    if(!g){ g = {n, items:[]}; grupos.push(g); }
-    g.items.push(e);
-  });
-  let restante = CUOTAS_BENCINA_DIA;
-  grupos.forEach(g => {
-    if(restante <= 0){ g.items.forEach(e => cuotasPorId[e.id] = 0); return; }
-    const cantidad = g.items.length;
-    const cuotaCadaUno = Math.min(restante / cantidad, 1);
-    g.items.forEach(e => cuotasPorId[e.id] = cuotaCadaUno);
-    restante -= cuotaCadaUno * cantidad;
-    if(restante < 1e-9) restante = 0;
-  });
-  return cuotasPorId;
+// Cada auto vale $X en bencina (tarifa editable en el box "Tarifa por auto"), con capacidad
+// máxima de 4 personas por auto. El presupuesto de cada día = autos necesarios ese día
+// (personas totales del día ÷ 4, redondeado hacia arriba) × tarifa por auto. Ese presupuesto se
+// reparte en proporción directa a cuántas personas transportó cada auto:
+// tarifa_por_persona = presupuesto_del_día / personas_totales_del_día;
+// monto_del_auto = personas_del_auto * tarifa_por_persona.
+// Mamel y Irene quedan excluidos de la repartición (no reciben pago ni cuentan en el total de
+// personas del día) — acordado con el club.
+const BENCINA_MAX_POR_AUTO = 4;
+const BENCINA_EXCLUIDOS = ["Mamel", "Irene"];
+function calcularMontosBencinaDia(entries, tarifaAuto){
+  const montoPorId = {};
+  if(!entries || !entries.length) return montoPorId;
+  const incluidos = entries.filter(e => !BENCINA_EXCLUIDOS.includes(e.trainerCode));
+  entries.forEach(e => { if(BENCINA_EXCLUIDOS.includes(e.trainerCode)) montoPorId[e.id] = 0; });
+  if(!incluidos.length) return montoPorId;
+  const totalPersonas = incluidos.reduce((s,e) => s + (e.numTrainers||0), 0);
+  if(!totalPersonas){ incluidos.forEach(e => montoPorId[e.id] = 0); return montoPorId; }
+  const autosNecesarios = Math.ceil(totalPersonas / BENCINA_MAX_POR_AUTO);
+  const presupuestoDia = autosNecesarios * tarifaAuto;
+  const tarifaPersona = presupuestoDia / totalPersonas;
+  incluidos.forEach(e => { montoPorId[e.id] = (e.numTrainers||0) * tarifaPersona; });
+  return montoPorId;
 }
-function totalBencinaDia(entries, monto){
-  const cuotasPorId = calcularCuotasBencinaDia(entries);
-  return entries.reduce((s,e) => s + (cuotasPorId[e.id]||0) * monto, 0);
+function totalBencinaDia(entries, tarifaAuto){
+  const montoPorId = calcularMontosBencinaDia(entries, tarifaAuto);
+  return Object.values(montoPorId).reduce((s,m) => s + (m||0), 0);
 }
 async function saveBencinaMonto(){
   const val = Number(String(bencinaMontoDraft).replace(",", "."));
   if(isNaN(val) || val < 0){
-    transportAdminError = "Ingresa un monto válido para la cuota de bencina.";
+    transportAdminError = "Ingresa una tarifa por auto válida.";
     render();
     return;
   }
@@ -3620,7 +3619,7 @@ async function saveBencinaMonto(){
     bencinaMontoDraft = String(accessConfig.bencinaCuotaMonto || "");
     bencinaMontoJustSaved = true;
   }catch(e){
-    transportAdminError = "No se pudo guardar el monto: " + e.message;
+    transportAdminError = "No se pudo guardar la tarifa: " + e.message;
   }
   bencinaMontoSaving = false;
   render();
