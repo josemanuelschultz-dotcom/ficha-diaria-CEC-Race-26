@@ -322,9 +322,30 @@
 
   .total-box{display:flex; align-items:center; justify-content:space-between; background:var(--navy); border-radius:12px; padding:10px 14px; margin-bottom:12px;}
   .trazado-box{border:2px solid var(--navy); border-radius:10px; overflow:hidden; background:#F7F7F7;}
-  .trazado-canvas{display:block; width:100%; height:200px; touch-action:none; cursor:crosshair;}
+  .trazado-canvas{display:block; width:100%; height:340px; touch-action:none; cursor:crosshair;}
   .total-box span.lbl{color:#D9D9D9; font-size:13px;}
   .total-box span.val{font-family:'JetBrains Mono',monospace; font-weight:700; font-size:1.4rem; color:var(--gold);}
+
+  .trazado-toolbar{display:flex; flex-wrap:wrap; align-items:center; gap:7px; margin-top:8px;}
+  .trazado-color{width:32px; height:32px; border-radius:8px; border:2px solid var(--border); flex-shrink:0; padding:0;}
+  .trazado-color.active{border-color:var(--navy); box-shadow:0 0 0 2px var(--gold) inset;}
+  .trazado-width{width:34px; height:34px; border-radius:8px; border:1px solid var(--border); background:white; display:flex; align-items:center; justify-content:center; flex-shrink:0;}
+  .trazado-width .dot{display:block; border-radius:50%; background:var(--navy);}
+  .trazado-width.active{border-color:var(--navy); background:var(--navy);}
+  .trazado-width.active .dot{background:white;}
+  .trazado-sep{width:1px; align-self:stretch; background:var(--border); margin:2px 1px;}
+  .trazado-line,.trazado-erase,.trazado-undo{font-size:12.5px; padding:8px 12px; flex:none;}
+  .trazado-line.active,.trazado-erase.active{background:var(--navy); color:white; border-color:var(--navy);}
+  .trazado-expand{margin-left:auto; font-family:'Oswald',sans-serif; text-transform:uppercase; letter-spacing:.04em; font-size:12px; font-weight:600; background:var(--navy); color:white; border:none; border-radius:8px; height:36px; padding:0 14px;}
+
+  .trazado-modal-overlay{position:fixed; inset:0; background:rgba(10,12,16,.78); display:flex; align-items:center; justify-content:center; z-index:120; padding:6px;}
+  .trazado-modal{background:white; border:3px solid var(--navy); border-radius:12px; width:100%; height:100%; max-width:720px; margin:0 auto; display:flex; flex-direction:column; overflow:hidden; box-shadow:0 20px 60px rgba(0,0,0,.45);}
+  .trazado-modal-head{display:flex; align-items:center; justify-content:space-between; padding:10px 14px; border-bottom:1px solid var(--border); flex-shrink:0;}
+  .trazado-modal-head .title{font-family:'Oswald',sans-serif; text-transform:uppercase; font-size:13px; letter-spacing:.05em; color:var(--navy);}
+  .trazado-modal-close{background:none; border:none; font-size:22px; line-height:1; color:var(--gray); padding:4px 8px;}
+  .trazado-modal-canvas-wrap{flex:1; min-height:0; background:#F7F7F7;}
+  .trazado-modal-canvas-wrap canvas{width:100%; height:100%; display:block; touch-action:none; cursor:crosshair;}
+  .trazado-modal-toolbar{padding:10px 12px; border-top:1px solid var(--border); flex-shrink:0;}
 
   .error-box{font-size:13px; background:#FDECEC; color:var(--red); border-radius:8px; padding:8px 12px; margin-bottom:12px;}
   .info-box{font-size:12px; background:#EEF3FA; color:var(--navy); border-radius:8px; padding:8px 12px; margin-bottom:12px;}
@@ -411,6 +432,8 @@ const LOGO_DATA_URI = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKAAAACgCAY
 const NIEVE = ["Hielo","Compacta","Polvo","Powder","Primavera"];
 const CLIMA = ["Soleado","Nublado","Viento","Nevando","Niebla","Lluvia"];
 const FUNDAMENTOS = ["Equilibrio","Control de canteo","Control de presión","Rotación","Gestión de línea"];
+const TRAZADO_COLORS = [NAVY, RED, BLUE, GREEN]; // negro, rojo y azul de postas, verde
+const TRAZADO_WIDTHS = [2, 4, 8];
 
 const PROGRAMS = ["Race","Freeski","Master","Snowboard"];
 const PROGRAM_CATEGORIES = {
@@ -475,7 +498,14 @@ function categoryOf(groupId){
 }
 const CATEGORY_OVERRIDES = {
   "Race": {
-    "Semillero": { disciplinas: [], hasCurvas: false },
+    "Semillero": {
+      disciplinas: [], hasCurvas: false, hasBajadas: false,
+      trabajo: [
+        {label:"Ejercicios educativos", color:GOLD},
+        {label:"Esquí libre dirigido", color:GREEN},
+        {label:"Didáctico", color:BLUE},
+      ],
+    },
     "U8": { disciplinas: [], hasCurvas: false },
   },
 };
@@ -802,6 +832,7 @@ let multiSelectMode = false;
 // Modal de edición de día
 let dayEditModal = null; // { type: "trainer"|"athlete", id, date, status, notes }
 let dayEditStatus = "";
+let trazadoModalSession = null; // número de sesión cuyo trazado está abierto a pantalla completa, o null
 let dayEditNotes = "";
 
 // Auditoría
@@ -1086,6 +1117,7 @@ async function saveFicha(athleteId){
 function initDailyForm(){
   if(!selectedGroupId) return;
   justSaved = false;
+  trazadoModalSession = null; // al cambiar de grupo, categoría o día se cierra cualquier trazado abierto
   const gAthletes = groupAthletes();
   attendanceState = {};
   gAthletes.forEach(a => {
@@ -1209,6 +1241,7 @@ function changeSessionCount(delta){
   if(next < 1) next = 1;
   if(next > sessionCount){ for(let i=sessionCount+1;i<=next;i++){ if(!sessionState[i]) sessionState[i] = blankSessionForm(); } }
   sessionCount = next;
+  if(trazadoModalSession !== null && trazadoModalSession > next) trazadoModalSession = null; // cierra el trazado si su sesión ya no existe
   render();
 }
 async function saveDay(){
@@ -2733,6 +2766,53 @@ function fundamentosPillsHTML(selected){
     return `<button type="button" class="pill${active?" active":""}" style="${active?`background:${GOLD};border-color:${GOLD};`:""}" data-fund="${escapeHtml(f)}">${escapeHtml(f)}</button>`;
   }).join("");
 }
+function trazadoColorButtonsHTML(dataAttr){
+  return TRAZADO_COLORS.map((c,idx) => `<button type="button" class="trazado-color${idx===0?" active":""}" ${dataAttr} data-color="${c}" style="background:${c};"></button>`).join("");
+}
+function trazadoWidthButtonsHTML(dataAttr){
+  return TRAZADO_WIDTHS.map((w,idx) => `<button type="button" class="trazado-width${idx===1?" active":""}" ${dataAttr} data-width="${w}"><span class="dot" style="width:${w+4}px;height:${w+4}px;"></span></button>`).join("");
+}
+function trazadoToolbarHTML(sessionNum){
+  const attr = `data-session="${sessionNum}"`;
+  return `
+  <div class="trazado-toolbar">
+    ${trazadoColorButtonsHTML(attr)}
+    <span class="trazado-sep"></span>
+    ${trazadoWidthButtonsHTML(attr)}
+    <span class="trazado-sep"></span>
+    <button type="button" class="btn-outline trazado-line" ${attr}>╱ Línea</button>
+    <button type="button" class="btn-outline trazado-erase" ${attr}>⌫ Goma</button>
+    <button type="button" class="btn-outline trazado-undo" ${attr}>↺ Deshacer</button>
+    <button type="button" class="btn-outline trazado-clear" ${attr}>Borrar</button>
+    <button type="button" class="trazado-expand" ${attr}>⛶ Pantalla completa</button>
+  </div>`;
+}
+function renderTrazadoModal(){
+  if(trazadoModalSession === null) return "";
+  const attr = `data-modal="1"`;
+  return `
+  <div class="trazado-modal-overlay" id="trazado-modal-overlay">
+    <div class="trazado-modal">
+      <div class="trazado-modal-head">
+        <span class="title">Trazado — Sesión ${trazadoModalSession}</span>
+        <button type="button" class="trazado-modal-close" id="trazado-modal-close">✕</button>
+      </div>
+      <div class="trazado-modal-canvas-wrap">
+        <canvas id="trazado-modal-canvas"></canvas>
+      </div>
+      <div class="trazado-modal-toolbar trazado-toolbar">
+        ${trazadoColorButtonsHTML(attr)}
+        <span class="trazado-sep"></span>
+        ${trazadoWidthButtonsHTML(attr)}
+        <span class="trazado-sep"></span>
+        <button type="button" class="btn-outline trazado-line" ${attr}>╱ Línea</button>
+        <button type="button" class="btn-outline trazado-erase" ${attr}>⌫ Goma</button>
+        <button type="button" class="btn-outline trazado-undo" ${attr}>↺ Deshacer</button>
+        <button type="button" class="btn-outline trazado-clear" ${attr}>Borrar</button>
+      </div>
+    </div>
+  </div>`;
+}
 function pctBarHTML(name, value, color){
   return `
     <div class="pctbar-row">
@@ -2959,6 +3039,7 @@ function renderDailyTab(){
               <button data-session="${i}" data-target="curvasPorBajada" data-delta="1">+</button>
             </div>
           </div>` : ""}
+          ${cfg.hasBajadas !== false ? `
           <div class="stepper">
             <div class="lbl">Cantidad de bajadas</div>
             <div class="box">
@@ -2966,7 +3047,7 @@ function renderDailyTab(){
               <input type="text" inputmode="numeric" class="num-input" data-session="${i}" data-target="bajadas" value="${s.bajadas||0}" />
               <button data-session="${i}" data-target="bajadas" data-delta="1">+</button>
             </div>
-          </div>
+          </div>` : ""}
         </div>
         ${cfg.hasCurvas ? `<div class="total-box"><span class="lbl">Total de curvas</span><span class="val" id="total-${i}">${total}</span></div>` : ""}
 
@@ -2977,13 +3058,10 @@ function renderDailyTab(){
         <div class="trazado-box">
           <canvas class="trazado-canvas" data-session="${i}" width="600" height="360"></canvas>
         </div>
-        <div style="display:flex;gap:8px;margin-top:8px;">
-          <button type="button" class="btn-outline trazado-clear" data-session="${i}" style="flex:1;justify-content:center;">Borrar</button>
-          <button type="button" class="trazado-color" data-session="${i}" data-color="#1A1A1A" style="width:36px;border-radius:8px;border:2px solid #1A1A1A;background:#1A1A1A;"></button>
-          <button type="button" class="trazado-color" data-session="${i}" data-color="#BC1A25" style="width:36px;border-radius:8px;border:2px solid #DDDDDD;background:#BC1A25;"></button>
-        </div>` : ""}
+        ${trazadoToolbarHTML(i)}` : ""}
       </div>`;
     }
+    html += renderTrazadoModal();
 
     if(saveDayError) html += `<div class="error-box">${escapeHtml(saveDayError)}</div>`;
     const hasDayMenuOptions = justSaved || dayHasSavedData();
@@ -4119,26 +4197,52 @@ function attachSetupTabHandlers(){
 
 function initTrazadoCanvas(canvas, sessionNum){
   const ctx = canvas.getContext("2d");
-  canvas._trazadoColor = "#1A1A1A";
+  // estado del lápiz vive en el propio elemento: color, grosor, modo (pen/eraser/line) y su historial para deshacer
+  const state = canvas._trazado = { color: TRAZADO_COLORS[0], width: TRAZADO_WIDTHS[1], mode: "pen", undoStack: [] };
   const existing = sessionState[sessionNum] && sessionState[sessionNum].trazado;
   if(existing){
     const img = new Image();
     img.onload = () => ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
     img.src = existing;
   }
-  let drawing = false;
+  let drawing = false, startPt = null, baseline = null;
   function pos(e){
     const r = canvas.getBoundingClientRect();
     const scaleX = canvas.width / r.width, scaleY = canvas.height / r.height;
     const p = e.touches ? e.touches[0] : e;
     return { x: (p.clientX - r.left) * scaleX, y: (p.clientY - r.top) * scaleY };
   }
-  function start(e){ drawing = true; const p = pos(e); ctx.beginPath(); ctx.moveTo(p.x, p.y); e.preventDefault(); }
+  function snapshot(){
+    state.undoStack.push(ctx.getImageData(0, 0, canvas.width, canvas.height));
+    if(state.undoStack.length > 20) state.undoStack.shift();
+  }
+  function applyStrokeStyle(){
+    ctx.lineCap = "round"; ctx.lineJoin = "round";
+    ctx.lineWidth = state.width * (canvas.width / canvas.getBoundingClientRect().width);
+    if(state.mode === "eraser"){ ctx.globalCompositeOperation = "destination-out"; ctx.strokeStyle = "rgba(0,0,0,1)"; }
+    else { ctx.globalCompositeOperation = "source-over"; ctx.strokeStyle = state.color; }
+  }
+  function start(e){
+    drawing = true;
+    const p = pos(e);
+    startPt = p;
+    snapshot();
+    if(state.mode === "line") baseline = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    else { applyStrokeStyle(); ctx.beginPath(); ctx.moveTo(p.x, p.y); }
+    e.preventDefault();
+  }
   function move(e){
     if(!drawing) return;
     const p = pos(e);
-    ctx.lineTo(p.x, p.y); ctx.strokeStyle = canvas._trazadoColor; ctx.lineWidth = 4; ctx.lineCap = "round"; ctx.lineJoin = "round";
-    ctx.stroke();
+    if(state.mode === "line"){
+      // la línea recta se previsualiza restaurando el trazo de antes y dibujando de nuevo hasta el dedo
+      ctx.putImageData(baseline, 0, 0);
+      applyStrokeStyle();
+      ctx.beginPath(); ctx.moveTo(startPt.x, startPt.y); ctx.lineTo(p.x, p.y); ctx.stroke();
+    } else {
+      applyStrokeStyle();
+      ctx.lineTo(p.x, p.y); ctx.stroke();
+    }
     e.preventDefault();
   }
   function end(){
@@ -4153,6 +4257,27 @@ function initTrazadoCanvas(canvas, sessionNum){
   canvas.addEventListener("touchstart", start, {passive:false});
   canvas.addEventListener("touchmove", move, {passive:false});
   canvas.addEventListener("touchend", end);
+}
+function initTrazadoModalCanvas(sessionNum){
+  const canvas = document.getElementById("trazado-modal-canvas");
+  if(!canvas) return;
+  const r = canvas.getBoundingClientRect();
+  canvas.width = Math.max(1, Math.round(r.width * 2));
+  canvas.height = Math.max(1, Math.round(r.height * 2));
+  initTrazadoCanvas(canvas, sessionNum);
+}
+function trazadoUndo(canvas, sessionNum){
+  const state = canvas._trazado;
+  if(!state || !state.undoStack.length) return;
+  canvas.getContext("2d").putImageData(state.undoStack.pop(), 0, 0);
+  if(sessionState[sessionNum]) sessionState[sessionNum].trazado = canvas.toDataURL("image/png");
+}
+function trazadoClear(canvas, sessionNum){
+  const state = canvas._trazado;
+  const ctx = canvas.getContext("2d");
+  if(state) state.undoStack.push(ctx.getImageData(0, 0, canvas.width, canvas.height));
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  if(sessionState[sessionNum]) sessionState[sessionNum].trazado = null;
 }
 
 function attachDailyTabHandlers(){
@@ -4238,31 +4363,88 @@ function attachDailyTabHandlers(){
     t.addEventListener("input", (e) => { sessionState[parseInt(t.dataset.session)].notas = e.target.value; });
   });
 
-  document.querySelectorAll(".trazado-canvas").forEach(canvas => {
+  document.querySelectorAll(".trazado-canvas[data-session]").forEach(canvas => {
     const i = parseInt(canvas.dataset.session);
     initTrazadoCanvas(canvas, i);
   });
-  document.querySelectorAll(".trazado-clear").forEach(btn => {
-    btn.addEventListener("click", () => {
-      const i = parseInt(btn.dataset.session);
-      const canvas = document.querySelector(`.trazado-canvas[data-session="${i}"]`);
-      if(canvas){
-        const existing = sessionState[i].trazado;
-        if(existing && !confirm("¿Borrar el trazado dibujado de esta sesión?")) return;
-        canvas.getContext("2d").clearRect(0,0,canvas.width,canvas.height);
-        sessionState[i].trazado = null;
-      }
-    });
-  });
+  if(trazadoModalSession !== null) initTrazadoModalCanvas(trazadoModalSession);
+
+  // botones del lápiz: cada uno resuelve si actúa sobre el recuadro chico (data-session)
+  // o sobre el lienzo de pantalla completa (data-modal), y el estado vive en canvas._trazado
+  function trazadoTargetFor(btn){
+    if(btn.dataset.modal === "1"){
+      return { canvas: document.getElementById("trazado-modal-canvas"), sessionNum: trazadoModalSession };
+    }
+    const i = parseInt(btn.dataset.session);
+    return { canvas: document.querySelector(`.trazado-canvas[data-session="${i}"]`), sessionNum: i };
+  }
   document.querySelectorAll(".trazado-color").forEach(btn => {
     btn.addEventListener("click", () => {
-      const i = parseInt(btn.dataset.session);
-      const canvas = document.querySelector(`.trazado-canvas[data-session="${i}"]`);
-      if(canvas) canvas._trazadoColor = btn.dataset.color;
-      document.querySelectorAll(`.trazado-color[data-session="${i}"]`).forEach(b => {
-        b.style.borderColor = b === btn ? "#1A1A1A" : "#DDDDDD";
-      });
+      const { canvas } = trazadoTargetFor(btn);
+      if(!canvas || !canvas._trazado) return;
+      canvas._trazado.color = btn.dataset.color;
+      canvas._trazado.mode = "pen";
+      const scope = btn.closest(".trazado-toolbar");
+      scope.querySelectorAll(".trazado-color").forEach(b => b.classList.toggle("active", b === btn));
+      scope.querySelectorAll(".trazado-line,.trazado-erase").forEach(b => b.classList.remove("active"));
     });
+  });
+  document.querySelectorAll(".trazado-width").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const { canvas } = trazadoTargetFor(btn);
+      if(!canvas || !canvas._trazado) return;
+      canvas._trazado.width = parseInt(btn.dataset.width);
+      btn.closest(".trazado-toolbar").querySelectorAll(".trazado-width").forEach(b => b.classList.toggle("active", b === btn));
+    });
+  });
+  document.querySelectorAll(".trazado-line").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const { canvas } = trazadoTargetFor(btn);
+      if(!canvas || !canvas._trazado) return;
+      const on = canvas._trazado.mode !== "line";
+      canvas._trazado.mode = on ? "line" : "pen";
+      const scope = btn.closest(".trazado-toolbar");
+      btn.classList.toggle("active", on);
+      scope.querySelector(".trazado-erase").classList.remove("active");
+    });
+  });
+  document.querySelectorAll(".trazado-erase").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const { canvas } = trazadoTargetFor(btn);
+      if(!canvas || !canvas._trazado) return;
+      const on = canvas._trazado.mode !== "eraser";
+      canvas._trazado.mode = on ? "eraser" : "pen";
+      const scope = btn.closest(".trazado-toolbar");
+      btn.classList.toggle("active", on);
+      scope.querySelector(".trazado-line").classList.remove("active");
+    });
+  });
+  document.querySelectorAll(".trazado-undo").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const { canvas, sessionNum } = trazadoTargetFor(btn);
+      if(canvas) trazadoUndo(canvas, sessionNum);
+    });
+  });
+  document.querySelectorAll(".trazado-clear").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const { canvas, sessionNum } = trazadoTargetFor(btn);
+      if(!canvas) return;
+      const existing = sessionState[sessionNum] && sessionState[sessionNum].trazado;
+      if(existing && !confirm("¿Borrar el trazado dibujado de esta sesión?")) return;
+      trazadoClear(canvas, sessionNum);
+    });
+  });
+  document.querySelectorAll(".trazado-expand").forEach(btn => {
+    btn.addEventListener("click", () => {
+      trazadoModalSession = parseInt(btn.dataset.session);
+      render();
+    });
+  });
+  const trazadoModalCloseBtn = document.getElementById("trazado-modal-close");
+  if(trazadoModalCloseBtn) trazadoModalCloseBtn.addEventListener("click", () => { trazadoModalSession = null; render(); });
+  const trazadoModalOverlay = document.getElementById("trazado-modal-overlay");
+  if(trazadoModalOverlay) trazadoModalOverlay.addEventListener("click", (e) => {
+    if(e.target.id === "trazado-modal-overlay"){ trazadoModalSession = null; render(); }
   });
 
   const saveDayBtn = document.getElementById("save-day-btn");
