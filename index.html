@@ -1570,7 +1570,7 @@ function renderTrainersTab(){
         ${trainerDiasListOpen && fechasDias.length ? `<div style="background:#F7FAFC;border:1px solid #E7ECF2;border-radius:10px;padding:10px;margin:-4px 0 12px;">
           <div style="font-size:11px;color:${GRAY};margin-bottom:6px;">Fechas contadas en el total. Si una NO debería contar (era día libre o sin entrenamiento), tócala y márcala con el botón correspondiente en "Estado del día".</div>
           <div style="display:flex;gap:6px;flex-wrap:wrap;">
-            ${fechasDias.map(d => `<button type="button" class="pill mini" data-goto-dia="${d}" style="font-family:'JetBrains Mono',monospace;font-size:11px;">${d.slice(8,10)}-${d.slice(5,7)}</button>`).join("")}
+            ${fechasDias.map(d => `<button type="button" class="pill mini" data-goto-dia="${d}" style="font-family:'JetBrains Mono',monospace;font-size:11px;">${fechaCorta(d)}</button>`).join("")}
           </div>
         </div>` : ""}`;
       // Denominador fijo para todos: días de entrenamiento del equipo en el período ("dias").
@@ -2669,7 +2669,7 @@ function exportBackupCompleto(){
     .concat(attendance.map(r => [nDe(r.athleteId), gDe(r.groupId), r.date, PER[r.period]||r.period, ETIQ[r.status]||r.status, r.notes||""])));
 
   hoja("Asistencia entrenadores", [["Entrenador","Fecha","Período","Estado","Notas"]]
-    .concat(trainerAttendance.map(r => [tDe(r.trainerId), r.date, PER[r.period]||r.period, ETIQ[r.status]||r.status, r.notes||""])));
+    .concat(ordenarPorFecha(trainerAttendance).map(r => [tDe(r.trainerId), fechaCorta(r.date), PER[r.period]||r.period, ETIQ[r.status]||r.status, r.notes||""])));
 
   hoja("Sesiones", [["Grupo","Fecha","Disciplina","Trabajo","Fundamentos","Nieve","Clima","Total curvas"]]
     .concat(sessions.map(x => [gDe(x.groupId), x.date, x.disciplina||"", x.trabajo||"",
@@ -3484,6 +3484,18 @@ function getDayLabel(dateStr){
   const date = new Date(y,m-1,d);
   return `${days[date.getDay()]} ${d} de ${months[m-1]}`;
 }
+function fechaCorta(dateStr){
+  // "2026-07-19" -> "19/07/26"
+  const [y,m,d] = dateStr.split("-");
+  return `${d}/${m}/${y.slice(2)}`;
+}
+function ordenarPorFecha(lista){
+  // más antigua primero; a igual fecha, por nombre de entrenador para que quede agrupado y legible
+  return lista.slice().sort((a,b) => a.date === b.date
+    ? tDeGlobal(a.trainerId).localeCompare(tDeGlobal(b.trainerId))
+    : (a.date < b.date ? -1 : 1));
+}
+function tDeGlobal(id){ const t = trainers.find(x => x.id === id); return t ? t.name : ""; }
 
 /* ============ FUNCIONES DE REPORTES ============ */
 function generateExcelReport(period = null, entityType = "trainer", entityId = null){
@@ -3502,7 +3514,7 @@ function generateExcelReport(period = null, entityType = "trainer", entityId = n
       ["Período", period === "pre_temporada" ? "PRE TEMPORADA (hasta 17)" : period === "temporada_26" ? "TEMPORADA 26 (desde 19)" : "Todos"],
       [],
       ["Fecha", "Estado", "Notas"],
-      ...filtered.map(r => [r.date, getDayEditStatusLabel(r.status), r.notes || ""])
+      ...filtered.slice().sort((a,b) => a.date < b.date ? -1 : (a.date > b.date ? 1 : 0)).map(r => [fechaCorta(r.date), getDayEditStatusLabel(r.status), r.notes || ""])
     ];
     
     const stats = calculateAttendanceStats(filtered);
