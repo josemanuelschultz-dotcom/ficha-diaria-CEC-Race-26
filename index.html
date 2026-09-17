@@ -720,12 +720,26 @@ function groupTrainingStats(groupId, periodo){
   const presentes = att.filter(a => a.status === "present").length;
   const promPresentes = totalDias ? presentes/totalDias : 0;
 
+  // Cruce: días de "Trazado de carrera" y "Didáctico" desglosados por disciplina
+  const TRABAJOS_CRUCE = ["Trazado de carrera", "Didáctico"];
+  const labelsTrabajo = cfg.trabajo.map(t => t.label);
+  const diasDe = filtro => new Set(sess.filter(filtro).map(s => s.date)).size;
+  const cruce = TRABAJOS_CRUCE.filter(t => labelsTrabajo.includes(t)).map(t => ({
+    trabajo: t,
+    total: diasDe(s => s.trabajo === t),
+    porDisciplina: cfg.disciplinas.map(d => ({
+      name: d,
+      dias: diasDe(s => s.trabajo === t && s.disciplina === d)
+    }))
+  }));
+
   return {
     totalDias,
     totalSesiones: sess.length,
     sesionesPorDia: totalDias ? sess.length/totalDias : 0,
     disciplina: pctPorDia("disciplina", cfg.disciplinas),
     trabajo: pctPorDia("trabajo", cfg.trabajo.map(t => t.label)),
+    cruce,
     totalCurvas,
     curvasPorDia: totalDias ? totalCurvas/totalDias : 0,
     curvasPorSesion: sess.length ? totalCurvas/sess.length : 0,
@@ -780,6 +794,34 @@ function groupTrainingStatsCardHTML(groupId){
     : barras("Qué se entrenó · disciplina", st.disciplina, NAVY);
 
   html += barras("Qué se entrenó · tipo de trabajo", st.trabajo, BLUE);
+
+  if(st.cruce.length && !st.sinDisciplinas){
+    const th = `padding:7px 8px;font-size:11px;color:${GRAY};text-transform:uppercase;letter-spacing:.04em;font-weight:600;text-align:center;border-bottom:1px solid #E7ECF2;`;
+    const td = `padding:7px 8px;font-size:13px;text-align:center;font-family:'JetBrains Mono',monospace;border-bottom:1px solid #F0F3F7;`;
+    html += `<div style="font-size:11px;color:${NAVY};font-weight:600;text-transform:uppercase;letter-spacing:.04em;margin:16px 0 8px;">Días por trabajo y disciplina</div>
+    <div style="overflow-x:auto;">
+    <table style="width:100%;border-collapse:collapse;min-width:260px;">
+      <thead><tr>
+        <th style="${th}text-align:left;">Disciplina</th>
+        ${st.cruce.map(c => `<th style="${th}">${escapeHtml(c.trabajo)}</th>`).join("")}
+      </tr></thead>
+      <tbody>
+        ${st.disciplina.map(d => {
+          const celdas = st.cruce.map(c => (c.porDisciplina.find(x => x.name === d.name) || {dias:0}).dias);
+          if(!celdas.some(n => n > 0)) return "";
+          return `<tr>
+            <td style="${td}text-align:left;font-family:inherit;color:${NAVY};">${escapeHtml(d.name)}</td>
+            ${celdas.map(n => `<td style="${td}color:${n ? NAVY : GRAY};font-weight:${n ? 600 : 400};">${n || "—"}</td>`).join("")}
+          </tr>`;
+        }).join("")}
+        <tr>
+          <td style="${td}text-align:left;font-family:inherit;color:${GRAY};font-size:11px;text-transform:uppercase;letter-spacing:.04em;">Días con este trabajo</td>
+          ${st.cruce.map(c => `<td style="${td}color:${GRAY};">${c.total}</td>`).join("")}
+        </tr>
+      </tbody>
+    </table></div>
+    <div style="font-size:11px;color:${GRAY};margin-top:6px;">Cada celda son días distintos, no sesiones. Si un mismo día se hizo trazado en GS y en SL, ese día aparece en las dos filas, por eso la columna puede sumar más que el total de abajo.</div>`;
+  }
 
   html += `<div style="font-size:11px;color:${GRAY};margin-top:12px;">Base: los ${st.totalDias} día${st.totalDias===1?"":"s"} de entrenamiento del grupo en la temporada (desde el 19 de julio), cada uno vale lo mismo. Un día cuenta para una disciplina si se trabajó en cualquiera de sus sesiones, así que ningún valor pasa de 100%, pero la suma entre disciplinas puede superarlo cuando en un mismo día se entrena más de una.</div>`;
 
