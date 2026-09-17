@@ -693,6 +693,99 @@ function getGroupSummary(groupId, periodFilter){
   };
 }
 
+/* ===== Estadísticas generales del grupo =====
+   Base: los días de entrenamiento del grupo (fechas con al menos una sesión
+   registrada). Un día cuenta para una disciplina si CUALQUIER sesión de ese
+   día la usó, así que ningún valor pasa de 100% pero la suma entre
+   disciplinas puede superarlo cuando en un mismo día se entrena más de una. */
+function groupTrainingStats(groupId, periodo){
+  const cfg = configForGroup(groupId);
+  const sess = sessions.filter(s => s.groupId === groupId
+    && (!periodo || classifyPeriod(s.date) === periodo));
+  const dias = new Set(sess.map(s => s.date));
+  const totalDias = dias.size;
+
+  function pctPorDia(key, options){
+    return options.map(o => {
+      const d = new Set(sess.filter(s => s[key] === o).map(s => s.date)).size;
+      return { name:o, dias:d, value: totalDias ? Math.round(d/totalDias*100) : 0 };
+    }).sort((a,b) => b.value - a.value);
+  }
+
+  const totalCurvas  = sess.reduce((n,s) => n + (s.totalCurvas||0), 0);
+  const totalBajadas = sess.reduce((n,s) => n + (s.bajadas||0), 0);
+
+  const att = attendance.filter(a => a.groupId === groupId && dias.has(a.date)
+    && (a.status === "present" || a.status === "absent"));
+  const presentes = att.filter(a => a.status === "present").length;
+  const promPresentes = totalDias ? presentes/totalDias : 0;
+
+  return {
+    totalDias,
+    totalSesiones: sess.length,
+    sesionesPorDia: totalDias ? sess.length/totalDias : 0,
+    disciplina: pctPorDia("disciplina", cfg.disciplinas),
+    trabajo: pctPorDia("trabajo", cfg.trabajo.map(t => t.label)),
+    totalCurvas,
+    curvasPorDia: totalDias ? totalCurvas/totalDias : 0,
+    curvasPorSesion: sess.length ? totalCurvas/sess.length : 0,
+    bajadasPorDia: totalDias ? totalBajadas/totalDias : 0,
+    promPresentes,
+    asistenciaPct: att.length ? Math.round(presentes/att.length*100) : null,
+    hasCurvas: cfg.hasCurvas,
+    sinDisciplinas: cfg.disciplinas.length === 0,
+  };
+}
+
+function groupTrainingStatsCardHTML(groupId){
+  const st = groupTrainingStats(groupId, "temporada_26");
+  const dec = v => (Math.round(v*10)/10).toString().replace(".", ",");
+  const caja = (etiqueta, valor, color) => `<div style="background:${SNOW};border-radius:12px;padding:12px;">
+      <div style="font-size:11px;color:${GRAY};text-transform:uppercase;letter-spacing:.04em;">${etiqueta}</div>
+      <div style="font-family:'Oswald',sans-serif;font-size:1.5rem;font-weight:700;color:${color};">${valor}</div>
+    </div>`;
+
+  const barras = (titulo, arr, color) => {
+    if(!arr.length) return "";
+    let h = `<div style="font-size:11px;color:${NAVY};font-weight:600;text-transform:uppercase;letter-spacing:.04em;margin:16px 0 8px;">${titulo}</div>`;
+    arr.forEach(o => {
+      h += `<div class="pctbar-row">
+        <div class="pctbar-top"><span>${escapeHtml(o.name)}</span><span style="font-family:'JetBrains Mono',monospace;font-weight:600;color:${NAVY};">${o.value}% <span style="color:${GRAY};font-weight:400;">(${o.dias}/${st.totalDias})</span></span></div>
+        <div class="pctbar-track"><div class="pctbar-fill" style="width:${o.value}%;background:${color};"></div></div>
+      </div>`;
+    });
+    return h;
+  };
+
+  let html = `<div class="card">
+    <div class="section-label"><div class="gate-poles"><span></span><span></span></div><span class="title">Estadísticas generales del grupo</span></div>`;
+
+  if(!st.totalDias){
+    return html + `<div style="font-size:13px;color:${GRAY};text-align:center;padding:16px 0;">Este grupo aún no tiene días de entrenamiento registrados en la temporada.</div></div>`;
+  }
+
+  html += `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:4px;">
+    ${caja("Días de entrenamiento", st.totalDias, NAVY)}
+    ${caja("Sesiones por día", dec(st.sesionesPorDia), NAVY)}
+    ${caja("Presentes por día", dec(st.promPresentes), GREEN)}
+    ${caja("Asistencia promedio", st.asistenciaPct === null ? "—" : st.asistenciaPct + "%", st.asistenciaPct === null ? GRAY : GREEN)}
+    ${st.hasCurvas ? caja("Curvas por día", dec(st.curvasPorDia), "#B87700") : ""}
+    ${st.hasCurvas ? caja("Curvas por sesión", dec(st.curvasPorSesion), "#B87700") : ""}
+    ${st.hasCurvas ? caja("Bajadas por día", dec(st.bajadasPorDia), "#B87700") : ""}
+    ${st.hasCurvas ? caja("Curvas totales", st.totalCurvas, "#B87700") : ""}
+  </div>`;
+
+  html += st.sinDisciplinas
+    ? `<div style="font-size:12px;color:${GRAY};margin-top:16px;">Este grupo no tiene disciplinas configuradas, así que no hay desglose por SL, GS y similares.</div>`
+    : barras("Qué se entrenó · disciplina", st.disciplina, NAVY);
+
+  html += barras("Qué se entrenó · tipo de trabajo", st.trabajo, BLUE);
+
+  html += `<div style="font-size:11px;color:${GRAY};margin-top:12px;">Base: los ${st.totalDias} día${st.totalDias===1?"":"s"} de entrenamiento del grupo en la temporada (desde el 19 de julio), cada uno vale lo mismo. Un día cuenta para una disciplina si se trabajó en cualquiera de sus sesiones, así que ningún valor pasa de 100%, pero la suma entre disciplinas puede superarlo cuando en un mismo día se entrena más de una.</div>`;
+
+  return html + `</div>`;
+}
+
 function blankFicha(){ return {phone:"", enfermedades:"", alergias:"", medicamentos:"", otros:""}; }
 function blankAccessConfig(){
   const categoryCodes = {};
@@ -2913,7 +3006,7 @@ function renderProfileTab(){
   const profileAthlete = athletes.find(a => a.id === profileAthleteId);
   if(!profileAthlete){
     html += `<div style="text-align:center;font-size:13px;color:${GRAY};padding:24px 0;">Agrega integrantes a este grupo para ver su perfil.</div></div>`;
-    return html;
+    return html + groupTrainingStatsCardHTML(selectedGroupId);
   }
 
   const st = athleteStats(profileAthleteId, selectedGroupId);
@@ -3010,6 +3103,7 @@ function renderProfileTab(){
     </div>`).join("")}` : `<div style="font-size:13px;color:${GRAY};text-align:center;padding:12px 0;">Aún no hay integrantes en este grupo.</div>`}
     <div style="font-size:11px;color:${GRAY};margin-top:8px;">Días en pista: fechas de la temporada (desde el 19 de julio) con registro presente/ausente. Se excluyen la pretemporada, los días libres y los días sin entrenamiento. Cada integrante se mide contra el total de días del grupo.</div>
   </div>`;
+  html += groupTrainingStatsCardHTML(selectedGroupId);
   return html;
 }
 
