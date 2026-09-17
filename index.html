@@ -1,9 +1,4 @@
 <!DOCTYPE html>
-<!--
-  CEC 26 — historial de versiones (para ubicar cambios en GitHub)
-  v15 · 2026-08-21 · Pago de bencina: tarifa por auto ($/auto, máx. 4 pasajeros), reparto
-       proporcional a pasajeros, Mamel e Irene fuera del reparto, botón de exportar Excel dedicado.
--->
 <html lang="es">
 <head>
 <meta charset="UTF-8" />
@@ -322,30 +317,9 @@
 
   .total-box{display:flex; align-items:center; justify-content:space-between; background:var(--navy); border-radius:12px; padding:10px 14px; margin-bottom:12px;}
   .trazado-box{border:2px solid var(--navy); border-radius:10px; overflow:hidden; background:#F7F7F7;}
-  .trazado-canvas{display:block; width:100%; height:340px; touch-action:none; cursor:crosshair;}
+  .trazado-canvas{display:block; width:100%; height:200px; touch-action:none; cursor:crosshair;}
   .total-box span.lbl{color:#D9D9D9; font-size:13px;}
   .total-box span.val{font-family:'JetBrains Mono',monospace; font-weight:700; font-size:1.4rem; color:var(--gold);}
-
-  .trazado-toolbar{display:flex; flex-wrap:wrap; align-items:center; gap:7px; margin-top:8px;}
-  .trazado-color{width:32px; height:32px; border-radius:8px; border:2px solid var(--border); flex-shrink:0; padding:0;}
-  .trazado-color.active{border-color:var(--navy); box-shadow:0 0 0 2px var(--gold) inset;}
-  .trazado-width{width:34px; height:34px; border-radius:8px; border:1px solid var(--border); background:white; display:flex; align-items:center; justify-content:center; flex-shrink:0;}
-  .trazado-width .dot{display:block; border-radius:50%; background:var(--navy);}
-  .trazado-width.active{border-color:var(--navy); background:var(--navy);}
-  .trazado-width.active .dot{background:white;}
-  .trazado-sep{width:1px; align-self:stretch; background:var(--border); margin:2px 1px;}
-  .trazado-line,.trazado-erase,.trazado-undo{font-size:12.5px; padding:8px 12px; flex:none;}
-  .trazado-line.active,.trazado-erase.active{background:var(--navy); color:white; border-color:var(--navy);}
-  .trazado-expand{margin-left:auto; font-family:'Oswald',sans-serif; text-transform:uppercase; letter-spacing:.04em; font-size:12px; font-weight:600; background:var(--navy); color:white; border:none; border-radius:8px; height:36px; padding:0 14px;}
-
-  .trazado-modal-overlay{position:fixed; inset:0; background:rgba(10,12,16,.78); display:flex; align-items:center; justify-content:center; z-index:120; padding:6px;}
-  .trazado-modal{background:white; border:3px solid var(--navy); border-radius:12px; width:100%; height:100%; max-width:720px; margin:0 auto; display:flex; flex-direction:column; overflow:hidden; box-shadow:0 20px 60px rgba(0,0,0,.45);}
-  .trazado-modal-head{display:flex; align-items:center; justify-content:space-between; padding:10px 14px; border-bottom:1px solid var(--border); flex-shrink:0;}
-  .trazado-modal-head .title{font-family:'Oswald',sans-serif; text-transform:uppercase; font-size:13px; letter-spacing:.05em; color:var(--navy);}
-  .trazado-modal-close{background:none; border:none; font-size:22px; line-height:1; color:var(--gray); padding:4px 8px;}
-  .trazado-modal-canvas-wrap{flex:1; min-height:0; background:#F7F7F7;}
-  .trazado-modal-canvas-wrap canvas{width:100%; height:100%; display:block; touch-action:none; cursor:crosshair;}
-  .trazado-modal-toolbar{padding:10px 12px; border-top:1px solid var(--border); flex-shrink:0;}
 
   .error-box{font-size:13px; background:#FDECEC; color:var(--red); border-radius:8px; padding:8px 12px; margin-bottom:12px;}
   .info-box{font-size:12px; background:#EEF3FA; color:var(--navy); border-radius:8px; padding:8px 12px; margin-bottom:12px;}
@@ -432,8 +406,6 @@ const LOGO_DATA_URI = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKAAAACgCAY
 const NIEVE = ["Hielo","Compacta","Polvo","Powder","Primavera"];
 const CLIMA = ["Soleado","Nublado","Viento","Nevando","Niebla","Lluvia"];
 const FUNDAMENTOS = ["Equilibrio","Control de canteo","Control de presión","Rotación","Gestión de línea"];
-const TRAZADO_COLORS = [NAVY, RED, BLUE, GREEN]; // negro, rojo y azul de postas, verde
-const TRAZADO_WIDTHS = [2, 4, 8];
 
 const PROGRAMS = ["Race","Freeski","Master","Snowboard"];
 const PROGRAM_CATEGORIES = {
@@ -498,14 +470,7 @@ function categoryOf(groupId){
 }
 const CATEGORY_OVERRIDES = {
   "Race": {
-    "Semillero": {
-      disciplinas: [], hasCurvas: false, hasBajadas: false,
-      trabajo: [
-        {label:"Ejercicios educativos", color:GOLD},
-        {label:"Esquí libre dirigido", color:GREEN},
-        {label:"Didáctico", color:BLUE},
-      ],
-    },
+    "Semillero": { disciplinas: [], hasCurvas: false },
     "U8": { disciplinas: [], hasCurvas: false },
   },
 };
@@ -832,7 +797,6 @@ let multiSelectMode = false;
 // Modal de edición de día
 let dayEditModal = null; // { type: "trainer"|"athlete", id, date, status, notes }
 let dayEditStatus = "";
-let trazadoModalSession = null; // número de sesión cuyo trazado está abierto a pantalla completa, o null
 let dayEditNotes = "";
 
 // Auditoría
@@ -845,9 +809,6 @@ let attendanceAuditLog = [];
 const K_RESPALDO = "cec26_ultimo_respaldo";
 let ultimoRespaldo = lsGet(K_RESPALDO, null);
 let transportAdminError = "";
-let bencinaMontoDraft = "";
-let bencinaMontoSaving = false;
-let bencinaMontoJustSaved = false;
 let prePanelOpen = false;
 let preAtletaPanelOpen = false;
 let tripsStatsOpen = false;
@@ -996,11 +957,14 @@ async function changeMyCode(newCodeRaw){
   const newCode = (newCodeRaw||"").trim();
   if(!newCode){ changeCodeError = "Ingresa una clave nueva."; render(); return; }
 
-  const oldCode = authState.level === "master" ? accessConfig.masterCode : authState.trainerCode;
+  const oldCode = authState.level === "master"     ? accessConfig.masterCode
+                : authState.level === "directorio" ? accessConfig.directorioCode
+                : authState.trainerCode;
   if(newCode === oldCode){ changeCodeError = "Esa ya es tu clave actual."; render(); return; }
 
   // uniqueness check across master + all category codes
   const allCodes = [accessConfig.masterCode];
+  if(accessConfig.directorioCode) allCodes.push(accessConfig.directorioCode);
   PROGRAMS.forEach(p => { Object.values(accessConfig.categoryCodes[p]||{}).forEach(arr => allCodes.push(...(Array.isArray(arr)?arr:[arr]))); });
   if(allCodes.includes(newCode)){ changeCodeError = "Esa clave ya la está usando otra persona. Elige otra."; render(); return; }
 
@@ -1009,9 +973,12 @@ async function changeMyCode(newCodeRaw){
   try{
     const newCategoryCodes = JSON.parse(JSON.stringify(accessConfig.categoryCodes));
     let newMasterCode = accessConfig.masterCode;
+    let newDirectorioCode = accessConfig.directorioCode || "";
 
     if(authState.level === "master"){
       newMasterCode = newCode;
+    } else if(authState.level === "directorio"){
+      newDirectorioCode = newCode;
     } else {
       const arr = newCategoryCodes[authState.program][authState.category];
       const idx = arr.indexOf(oldCode);
@@ -1026,13 +993,14 @@ async function changeMyCode(newCodeRaw){
       newCoordinatorMap[key] = val;
     });
 
-    const savedConfig = await sbUpdate("access_config", {id:1}, { master_code: newMasterCode, category_codes: newCategoryCodes, coordinator_map: newCoordinatorMap, directorio_code: accessConfig.directorioCode || null });
+    const savedConfig = await sbUpdate("access_config", {id:1}, { master_code: newMasterCode, category_codes: newCategoryCodes, coordinator_map: newCoordinatorMap, directorio_code: newDirectorioCode || null });
     accessConfig = { masterCode: savedConfig.master_code, categoryCodes: savedConfig.category_codes, directorioCode: savedConfig.directorio_code || "" };
     COORDINATOR_MAP = savedConfig.coordinator_map;
     COORDINATOR_CODES = Array.from(new Set(Object.values(COORDINATOR_MAP).filter(v => v !== "JEFE")));
 
     // migrate historical checkin data tied to the old code
-    if(authState.level !== "master"){
+    // (directorio no tiene trainerCode: no hay registros suyos que migrar)
+    if(authState.level !== "master" && authState.level !== "directorio"){
       try{ await sbUpdate("weekly_checkins", { trainer_code: oldCode }, { trainer_code: newCode }); }catch(e){}
       try{ await sbUpdate("checkin_audit_log", { trainer_code: oldCode }, { trainer_code: newCode }); }catch(e){}
       weeklyCheckins.forEach(c => { if(c.trainerCode === oldCode) c.trainerCode = newCode; });
@@ -1117,7 +1085,6 @@ async function saveFicha(athleteId){
 function initDailyForm(){
   if(!selectedGroupId) return;
   justSaved = false;
-  trazadoModalSession = null; // al cambiar de grupo, categoría o día se cierra cualquier trazado abierto
   const gAthletes = groupAthletes();
   attendanceState = {};
   gAthletes.forEach(a => {
@@ -1241,7 +1208,6 @@ function changeSessionCount(delta){
   if(next < 1) next = 1;
   if(next > sessionCount){ for(let i=sessionCount+1;i<=next;i++){ if(!sessionState[i]) sessionState[i] = blankSessionForm(); } }
   sessionCount = next;
-  if(trazadoModalSession !== null && trazadoModalSession > next) trazadoModalSession = null; // cierra el trazado si su sesión ya no existe
   render();
 }
 async function saveDay(){
@@ -1570,7 +1536,7 @@ function renderTrainersTab(){
         ${trainerDiasListOpen && fechasDias.length ? `<div style="background:#F7FAFC;border:1px solid #E7ECF2;border-radius:10px;padding:10px;margin:-4px 0 12px;">
           <div style="font-size:11px;color:${GRAY};margin-bottom:6px;">Fechas contadas en el total. Si una NO debería contar (era día libre o sin entrenamiento), tócala y márcala con el botón correspondiente en "Estado del día".</div>
           <div style="display:flex;gap:6px;flex-wrap:wrap;">
-            ${fechasDias.map(d => `<button type="button" class="pill mini" data-goto-dia="${d}" style="font-family:'JetBrains Mono',monospace;font-size:11px;">${fechaCorta(d)}</button>`).join("")}
+            ${fechasDias.map(d => `<button type="button" class="pill mini" data-goto-dia="${d}" style="font-family:'JetBrains Mono',monospace;font-size:11px;">${d.slice(8,10)}-${d.slice(5,7)}</button>`).join("")}
           </div>
         </div>` : ""}`;
       // Denominador fijo para todos: días de entrenamiento del equipo en el período ("dias").
@@ -2258,16 +2224,7 @@ function renderTransportAdminView(){
   let html = `<div class="card">
     <div class="section-label"><div class="gate-poles"><span></span><span></span></div><span class="title">Transporte — resumen diario</span></div>
     <div style="font-size:12px;color:${GRAY};margin-bottom:10px;">Como jefe puedes corregir el registro de cualquier entrenador en cualquier fecha.</div>
-    <div class="tr-add-box" style="margin-bottom:14px;">
-      <div class="tr-add-label">Tarifa por auto (CLP) — máximo ${BENCINA_MAX_POR_AUTO} personas por auto</div>
-      <div class="tr-add-row">
-        <input type="text" inputmode="decimal" id="bencina-monto-input" class="filter-select" style="flex:1;" value="${escapeHtml(bencinaMontoDraft)}" placeholder="Ej: 6000" />
-        <button class="btn-navy" id="save-bencina-monto-btn">${bencinaMontoSaving?"Guardando...":"💾 Guardar"}</button>
-      </div>
-      ${bencinaMontoJustSaved ? `<div style="font-size:11px;color:${GREEN};margin-top:6px;">Guardado.</div>` : ""}
-    </div>
-    <button class="btn-outline" id="export-transport-btn" style="width:100%;justify-content:center;margin-bottom:14px;">📊 Exportar resumen a Excel</button>
-    <button class="btn-outline" id="export-bencina-btn" style="width:100%;justify-content:center;margin-bottom:14px;">⛽ Exportar pago de bencina</button>`;
+    <button class="btn-outline" id="export-transport-btn" style="width:100%;justify-content:center;margin-bottom:14px;">📊 Exportar resumen a Excel</button>`;
   html += adminTransportCalendarCardHTML();
 
   if(!dayEntries.length){
@@ -2278,21 +2235,10 @@ function renderTransportAdminView(){
     </div>`;
   } else {
     const totalTrainers = dayEntries.reduce((s,t)=>s+(t.numTrainers||0),0);
-    const bencinaTarifaAuto = (accessConfig && accessConfig.bencinaCuotaMonto) || 0;
-    const montosPorId = calcularMontosBencinaDia(dayEntries, bencinaTarifaAuto);
-    const totalBencinaDiaCLP = totalBencinaDia(dayEntries, bencinaTarifaAuto);
     html += `<div class="total-box" style="margin-bottom:14px;"><span class="lbl">Total entrenadores transportados</span><span class="val">${totalTrainers}</span></div>`;
-    html += `<div class="total-box" style="margin-bottom:14px;background:${GOLD};"><span class="lbl" style="color:${NAVY};">Total bencina del día</span><span class="val" style="color:${NAVY};">$${Math.round(totalBencinaDiaCLP).toLocaleString("es-CL")}</span></div>`;
     dayEntries.forEach(t => {
-      const excluido = BENCINA_EXCLUIDOS.includes(t.trainerCode);
-      const montoAuto = Math.round(montosPorId[t.id] || 0);
-      const chip = excluido
-        ? ""
-        : `<span class="nota-chip" title="Pago de bencina para este auto (proporcional a sus pasajeros)">${t.numTrainers} pas. · $${montoAuto.toLocaleString("es-CL")}</span>`;
       html += `<div class="tr-edit-row">
-        <span class="tr-edit-name">${escapeHtml(t.trainerCode)}
-          ${chip}
-        </span>
+        <span class="tr-edit-name">${escapeHtml(t.trainerCode)}</span>
         <div class="tr-stepper">
           <button data-tt-dec="${t.id}" ${t.numTrainers<=1?"disabled":""}>−</button>
           <span class="tr-count">${t.numTrainers}</span>
@@ -2521,103 +2467,7 @@ function exportTransportToExcel(){
   ws["!cols"] = [{wch:26},{wch:18},{wch:8},{wch:14},{wch:60}];
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "Transporte");
-
-  const bencinaSheet = buildBencinaSheet(nombreDe);
-  if(bencinaSheet){
-    const wsB = XLSX.utils.aoa_to_sheet(bencinaSheet);
-    wsB["!cols"] = [{wch:12},{wch:24},{wch:16},{wch:10},{wch:14}];
-    XLSX.utils.book_append_sheet(wb, wsB, "Bencina");
-  }
-
   XLSX.writeFile(wb, `transporte_entrenadores_${todayISO()}.xlsx`);
-}
-
-function buildBencinaSheet(nombreDe){
-  if(!trainerTransport.length) return null;
-  const tarifaAuto = (accessConfig && accessConfig.bencinaCuotaMonto) || 0;
-  const porFecha = {};
-  trainerTransport.forEach(t => {
-    if(!porFecha[t.date]) porFecha[t.date] = [];
-    porFecha[t.date].push(t);
-  });
-  const sheet = [["Fecha","Entrenador","Personas en el auto","Personas totales del día","Monto (CLP)"]];
-  let totalGeneral = 0;
-  Object.keys(porFecha).sort().forEach(fecha => {
-    const entries = porFecha[fecha];
-    const incluidos = entries.filter(e => !BENCINA_EXCLUIDOS.includes(e.trainerCode));
-    if(!incluidos.length) return;
-    const totalPersonasDia = incluidos.reduce((s,e) => s + (e.numTrainers||0), 0);
-    const montosPorId = calcularMontosBencinaDia(entries, tarifaAuto);
-    let totalDia = 0;
-    [...incluidos].sort((a,b) => (b.numTrainers||0) - (a.numTrainers||0)).forEach(t => {
-      const montoAuto = Math.round(montosPorId[t.id] || 0);
-      totalDia += montoAuto;
-      sheet.push([fecha, nombreDe(t.trainerCode), t.numTrainers, totalPersonasDia, montoAuto]);
-    });
-    sheet.push(["", fecha + " — TOTAL DÍA", "", "", totalDia]);
-    sheet.push(["", "", "", "", ""]);
-    totalGeneral += totalDia;
-  });
-  sheet.push(["", "TOTAL GENERAL", "", "", totalGeneral]);
-  sheet.push(["", "Tarifa por auto usada", "", "", tarifaAuto]);
-  return sheet;
-}
-
-function exportPagoBencina(){
-  if(!trainerTransport.length){
-    alert("Aún no hay registros de transporte para exportar.");
-    return;
-  }
-  const tarifaAuto = (accessConfig && accessConfig.bencinaCuotaMonto) || 0;
-  const nombreDe = code => {
-    const tr = trainers.find(t => t.code === code);
-    return tr ? tr.name : code;
-  };
-
-  const porFecha = {};
-  trainerTransport.forEach(t => {
-    if(!porFecha[t.date]) porFecha[t.date] = [];
-    porFecha[t.date].push(t);
-  });
-
-  const detalle = [["Fecha","Entrenador","Personas en el auto","Personas totales del día","Monto (CLP)"]];
-  const porEntrenador = {};
-  Object.keys(porFecha).sort().forEach(fecha => {
-    const entries = porFecha[fecha].filter(e => !BENCINA_EXCLUIDOS.includes(e.trainerCode));
-    if(!entries.length) return;
-    const montosPorId = calcularMontosBencinaDia(entries, tarifaAuto);
-    const totalPersonasDia = entries.reduce((s,e) => s + (e.numTrainers||0), 0);
-    [...entries].sort((a,b) => (b.numTrainers||0) - (a.numTrainers||0)).forEach(t => {
-      const monto = Math.round(montosPorId[t.id] || 0);
-      detalle.push([fecha, nombreDe(t.trainerCode), t.numTrainers, totalPersonasDia, monto]);
-      const code = t.trainerCode;
-      if(!porEntrenador[code]) porEntrenador[code] = {dias:0, personas:0, monto:0};
-      porEntrenador[code].dias += 1;
-      porEntrenador[code].personas += (t.numTrainers||0);
-      porEntrenador[code].monto += monto;
-    });
-  });
-
-  const totalGeneral = Object.values(porEntrenador).reduce((s,pe) => s + pe.monto, 0);
-
-  const resumen = [["Entrenador","Días con transporte","Personas transportadas (total)","Total a pagar (CLP)"]];
-  Object.keys(porEntrenador)
-    .sort((a,b) => porEntrenador[b].monto - porEntrenador[a].monto)
-    .forEach(code => {
-      const pe = porEntrenador[code];
-      resumen.push([nombreDe(code), pe.dias, pe.personas, Math.round(pe.monto)]);
-    });
-  resumen.push(["TOTAL GENERAL", "", "", Math.round(totalGeneral)]);
-
-  const wsResumen = XLSX.utils.aoa_to_sheet(resumen);
-  wsResumen["!cols"] = [{wch:18},{wch:20},{wch:26},{wch:18}];
-  const wsDetalle = XLSX.utils.aoa_to_sheet(detalle);
-  wsDetalle["!cols"] = [{wch:12},{wch:22},{wch:16},{wch:20},{wch:14}];
-
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, wsResumen, "Resumen por entrenador");
-  XLSX.utils.book_append_sheet(wb, wsDetalle, "Detalle diario");
-  XLSX.writeFile(wb, `pago_bencina_${todayISO()}.xlsx`);
 }
 
 function copySummary(){
@@ -2669,7 +2519,7 @@ function exportBackupCompleto(){
     .concat(attendance.map(r => [nDe(r.athleteId), gDe(r.groupId), r.date, PER[r.period]||r.period, ETIQ[r.status]||r.status, r.notes||""])));
 
   hoja("Asistencia entrenadores", [["Entrenador","Fecha","Período","Estado","Notas"]]
-    .concat(ordenarPorFecha(trainerAttendance).map(r => [tDe(r.trainerId), fechaCorta(r.date), PER[r.period]||r.period, ETIQ[r.status]||r.status, r.notes||""])));
+    .concat(trainerAttendance.map(r => [tDe(r.trainerId), r.date, PER[r.period]||r.period, ETIQ[r.status]||r.status, r.notes||""])));
 
   hoja("Sesiones", [["Grupo","Fecha","Disciplina","Trabajo","Fundamentos","Nieve","Clima","Total curvas"]]
     .concat(sessions.map(x => [gDe(x.groupId), x.date, x.disciplina||"", x.trabajo||"",
@@ -2766,53 +2616,6 @@ function fundamentosPillsHTML(selected){
     return `<button type="button" class="pill${active?" active":""}" style="${active?`background:${GOLD};border-color:${GOLD};`:""}" data-fund="${escapeHtml(f)}">${escapeHtml(f)}</button>`;
   }).join("");
 }
-function trazadoColorButtonsHTML(dataAttr){
-  return TRAZADO_COLORS.map((c,idx) => `<button type="button" class="trazado-color${idx===0?" active":""}" ${dataAttr} data-color="${c}" style="background:${c};"></button>`).join("");
-}
-function trazadoWidthButtonsHTML(dataAttr){
-  return TRAZADO_WIDTHS.map((w,idx) => `<button type="button" class="trazado-width${idx===1?" active":""}" ${dataAttr} data-width="${w}"><span class="dot" style="width:${w+4}px;height:${w+4}px;"></span></button>`).join("");
-}
-function trazadoToolbarHTML(sessionNum){
-  const attr = `data-session="${sessionNum}"`;
-  return `
-  <div class="trazado-toolbar">
-    ${trazadoColorButtonsHTML(attr)}
-    <span class="trazado-sep"></span>
-    ${trazadoWidthButtonsHTML(attr)}
-    <span class="trazado-sep"></span>
-    <button type="button" class="btn-outline trazado-line" ${attr}>╱ Línea</button>
-    <button type="button" class="btn-outline trazado-erase" ${attr}>⌫ Goma</button>
-    <button type="button" class="btn-outline trazado-undo" ${attr}>↺ Deshacer</button>
-    <button type="button" class="btn-outline trazado-clear" ${attr}>Borrar</button>
-    <button type="button" class="trazado-expand" ${attr}>⛶ Pantalla completa</button>
-  </div>`;
-}
-function renderTrazadoModal(){
-  if(trazadoModalSession === null) return "";
-  const attr = `data-modal="1"`;
-  return `
-  <div class="trazado-modal-overlay" id="trazado-modal-overlay">
-    <div class="trazado-modal">
-      <div class="trazado-modal-head">
-        <span class="title">Trazado — Sesión ${trazadoModalSession}</span>
-        <button type="button" class="trazado-modal-close" id="trazado-modal-close">✕</button>
-      </div>
-      <div class="trazado-modal-canvas-wrap">
-        <canvas id="trazado-modal-canvas"></canvas>
-      </div>
-      <div class="trazado-modal-toolbar trazado-toolbar">
-        ${trazadoColorButtonsHTML(attr)}
-        <span class="trazado-sep"></span>
-        ${trazadoWidthButtonsHTML(attr)}
-        <span class="trazado-sep"></span>
-        <button type="button" class="btn-outline trazado-line" ${attr}>╱ Línea</button>
-        <button type="button" class="btn-outline trazado-erase" ${attr}>⌫ Goma</button>
-        <button type="button" class="btn-outline trazado-undo" ${attr}>↺ Deshacer</button>
-        <button type="button" class="btn-outline trazado-clear" ${attr}>Borrar</button>
-      </div>
-    </div>
-  </div>`;
-}
 function pctBarHTML(name, value, color){
   return `
     <div class="pctbar-row">
@@ -2833,6 +2636,7 @@ function renderChangeCodePanel(){
   return `
   <div style="background:white;border-radius:14px;padding:16px;margin-top:12px;">
     <div style="font-family:'Oswald',sans-serif;font-weight:600;font-size:14px;color:${NAVY};margin-bottom:10px;">🔑 Cambiar mi clave de acceso</div>
+    <div style="font-size:11px;color:${GRAY};margin-bottom:10px;">Cambias la clave de <b>${authState.level==="directorio" ? "Directiva" : authState.level==="master" ? "Jefe de entrenadores" : `${authState.program} · ${authState.category}`}</b>. La comparten todas las personas que entran con ese acceso.</div>
     ${changeCodeSuccess ? `<div class="info-box" style="margin-bottom:10px;">Clave actualizada.</div>` : ""}
     <label class="field-label">Clave nueva</label>
     <input type="text" id="change-code-new" value="${escapeHtml(changeCodeNew)}" placeholder="Tu nueva clave" style="margin-bottom:10px;" />
@@ -3039,7 +2843,6 @@ function renderDailyTab(){
               <button data-session="${i}" data-target="curvasPorBajada" data-delta="1">+</button>
             </div>
           </div>` : ""}
-          ${cfg.hasBajadas !== false ? `
           <div class="stepper">
             <div class="lbl">Cantidad de bajadas</div>
             <div class="box">
@@ -3047,7 +2850,7 @@ function renderDailyTab(){
               <input type="text" inputmode="numeric" class="num-input" data-session="${i}" data-target="bajadas" value="${s.bajadas||0}" />
               <button data-session="${i}" data-target="bajadas" data-delta="1">+</button>
             </div>
-          </div>` : ""}
+          </div>
         </div>
         ${cfg.hasCurvas ? `<div class="total-box"><span class="lbl">Total de curvas</span><span class="val" id="total-${i}">${total}</span></div>` : ""}
 
@@ -3058,10 +2861,13 @@ function renderDailyTab(){
         <div class="trazado-box">
           <canvas class="trazado-canvas" data-session="${i}" width="600" height="360"></canvas>
         </div>
-        ${trazadoToolbarHTML(i)}` : ""}
+        <div style="display:flex;gap:8px;margin-top:8px;">
+          <button type="button" class="btn-outline trazado-clear" data-session="${i}" style="flex:1;justify-content:center;">Borrar</button>
+          <button type="button" class="trazado-color" data-session="${i}" data-color="#1A1A1A" style="width:36px;border-radius:8px;border:2px solid #1A1A1A;background:#1A1A1A;"></button>
+          <button type="button" class="trazado-color" data-session="${i}" data-color="#BC1A25" style="width:36px;border-radius:8px;border:2px solid #DDDDDD;background:#BC1A25;"></button>
+        </div>` : ""}
       </div>`;
     }
-    html += renderTrazadoModal();
 
     if(saveDayError) html += `<div class="error-box">${escapeHtml(saveDayError)}</div>`;
     const hasDayMenuOptions = justSaved || dayHasSavedData();
@@ -3484,18 +3290,6 @@ function getDayLabel(dateStr){
   const date = new Date(y,m-1,d);
   return `${days[date.getDay()]} ${d} de ${months[m-1]}`;
 }
-function fechaCorta(dateStr){
-  // "2026-07-19" -> "19/07/26"
-  const [y,m,d] = dateStr.split("-");
-  return `${d}/${m}/${y.slice(2)}`;
-}
-function ordenarPorFecha(lista){
-  // más antigua primero; a igual fecha, por nombre de entrenador para que quede agrupado y legible
-  return lista.slice().sort((a,b) => a.date === b.date
-    ? tDeGlobal(a.trainerId).localeCompare(tDeGlobal(b.trainerId))
-    : (a.date < b.date ? -1 : 1));
-}
-function tDeGlobal(id){ const t = trainers.find(x => x.id === id); return t ? t.name : ""; }
 
 /* ============ FUNCIONES DE REPORTES ============ */
 function generateExcelReport(period = null, entityType = "trainer", entityId = null){
@@ -3514,7 +3308,7 @@ function generateExcelReport(period = null, entityType = "trainer", entityId = n
       ["Período", period === "pre_temporada" ? "PRE TEMPORADA (hasta 17)" : period === "temporada_26" ? "TEMPORADA 26 (desde 19)" : "Todos"],
       [],
       ["Fecha", "Estado", "Notas"],
-      ...filtered.slice().sort((a,b) => a.date < b.date ? -1 : (a.date > b.date ? 1 : 0)).map(r => [fechaCorta(r.date), getDayEditStatusLabel(r.status), r.notes || ""])
+      ...filtered.map(r => [r.date, getDayEditStatusLabel(r.status), r.notes || ""])
     ];
     
     const stats = calculateAttendanceStats(filtered);
@@ -3725,56 +3519,6 @@ function estadoDiaHTML(){
       ${n ? `<button type="button" class="dia-btn del" data-dia-borrar="1" title="Borrar registros del día">Borrar</button>` : ""}
     </div>
   </div>`;
-}
-
-/* ============ TRANSPORTE: PAGO DE BENCINA ============ */
-// Cada auto vale $X en bencina (tarifa editable en el box "Tarifa por auto"), con capacidad
-// máxima de 4 personas por auto. El presupuesto de cada día = autos necesarios ese día
-// (personas totales del día ÷ 4, redondeado hacia arriba) × tarifa por auto. Ese presupuesto se
-// reparte en proporción directa a cuántas personas transportó cada auto:
-// tarifa_por_persona = presupuesto_del_día / personas_totales_del_día;
-// monto_del_auto = personas_del_auto * tarifa_por_persona.
-// Mamel y Irene quedan excluidos de la repartición (no reciben pago ni cuentan en el total de
-// personas del día) — acordado con el club.
-const BENCINA_MAX_POR_AUTO = 4;
-const BENCINA_EXCLUIDOS = ["Mamel", "Irene"];
-function calcularMontosBencinaDia(entries, tarifaAuto){
-  const montoPorId = {};
-  if(!entries || !entries.length) return montoPorId;
-  const incluidos = entries.filter(e => !BENCINA_EXCLUIDOS.includes(e.trainerCode));
-  entries.forEach(e => { if(BENCINA_EXCLUIDOS.includes(e.trainerCode)) montoPorId[e.id] = 0; });
-  if(!incluidos.length) return montoPorId;
-  const totalPersonas = incluidos.reduce((s,e) => s + (e.numTrainers||0), 0);
-  if(!totalPersonas){ incluidos.forEach(e => montoPorId[e.id] = 0); return montoPorId; }
-  const autosNecesarios = Math.ceil(totalPersonas / BENCINA_MAX_POR_AUTO);
-  const presupuestoDia = autosNecesarios * tarifaAuto;
-  const tarifaPersona = presupuestoDia / totalPersonas;
-  incluidos.forEach(e => { montoPorId[e.id] = (e.numTrainers||0) * tarifaPersona; });
-  return montoPorId;
-}
-function totalBencinaDia(entries, tarifaAuto){
-  const montoPorId = calcularMontosBencinaDia(entries, tarifaAuto);
-  return Object.values(montoPorId).reduce((s,m) => s + (m||0), 0);
-}
-async function saveBencinaMonto(){
-  const val = Number(String(bencinaMontoDraft).replace(",", "."));
-  if(isNaN(val) || val < 0){
-    transportAdminError = "Ingresa una tarifa por auto válida.";
-    render();
-    return;
-  }
-  transportAdminError = "";
-  bencinaMontoSaving = true; bencinaMontoJustSaved = false; render();
-  try{
-    const row = await sbUpdate("access_config", {id:1}, { bencina_cuota_monto: val });
-    accessConfig.bencinaCuotaMonto = Number(row.bencina_cuota_monto) || 0;
-    bencinaMontoDraft = String(accessConfig.bencinaCuotaMonto || "");
-    bencinaMontoJustSaved = true;
-  }catch(e){
-    transportAdminError = "No se pudo guardar la tarifa: " + e.message;
-  }
-  bencinaMontoSaving = false;
-  render();
 }
 
 /* ============ TRANSPORTE: ACCIONES DEL JEFE ============ */
@@ -4209,52 +3953,26 @@ function attachSetupTabHandlers(){
 
 function initTrazadoCanvas(canvas, sessionNum){
   const ctx = canvas.getContext("2d");
-  // estado del lápiz vive en el propio elemento: color, grosor, modo (pen/eraser/line) y su historial para deshacer
-  const state = canvas._trazado = { color: TRAZADO_COLORS[0], width: TRAZADO_WIDTHS[1], mode: "pen", undoStack: [] };
+  canvas._trazadoColor = "#1A1A1A";
   const existing = sessionState[sessionNum] && sessionState[sessionNum].trazado;
   if(existing){
     const img = new Image();
     img.onload = () => ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
     img.src = existing;
   }
-  let drawing = false, startPt = null, baseline = null;
+  let drawing = false;
   function pos(e){
     const r = canvas.getBoundingClientRect();
     const scaleX = canvas.width / r.width, scaleY = canvas.height / r.height;
     const p = e.touches ? e.touches[0] : e;
     return { x: (p.clientX - r.left) * scaleX, y: (p.clientY - r.top) * scaleY };
   }
-  function snapshot(){
-    state.undoStack.push(ctx.getImageData(0, 0, canvas.width, canvas.height));
-    if(state.undoStack.length > 20) state.undoStack.shift();
-  }
-  function applyStrokeStyle(){
-    ctx.lineCap = "round"; ctx.lineJoin = "round";
-    ctx.lineWidth = state.width * (canvas.width / canvas.getBoundingClientRect().width);
-    if(state.mode === "eraser"){ ctx.globalCompositeOperation = "destination-out"; ctx.strokeStyle = "rgba(0,0,0,1)"; }
-    else { ctx.globalCompositeOperation = "source-over"; ctx.strokeStyle = state.color; }
-  }
-  function start(e){
-    drawing = true;
-    const p = pos(e);
-    startPt = p;
-    snapshot();
-    if(state.mode === "line") baseline = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    else { applyStrokeStyle(); ctx.beginPath(); ctx.moveTo(p.x, p.y); }
-    e.preventDefault();
-  }
+  function start(e){ drawing = true; const p = pos(e); ctx.beginPath(); ctx.moveTo(p.x, p.y); e.preventDefault(); }
   function move(e){
     if(!drawing) return;
     const p = pos(e);
-    if(state.mode === "line"){
-      // la línea recta se previsualiza restaurando el trazo de antes y dibujando de nuevo hasta el dedo
-      ctx.putImageData(baseline, 0, 0);
-      applyStrokeStyle();
-      ctx.beginPath(); ctx.moveTo(startPt.x, startPt.y); ctx.lineTo(p.x, p.y); ctx.stroke();
-    } else {
-      applyStrokeStyle();
-      ctx.lineTo(p.x, p.y); ctx.stroke();
-    }
+    ctx.lineTo(p.x, p.y); ctx.strokeStyle = canvas._trazadoColor; ctx.lineWidth = 4; ctx.lineCap = "round"; ctx.lineJoin = "round";
+    ctx.stroke();
     e.preventDefault();
   }
   function end(){
@@ -4269,27 +3987,6 @@ function initTrazadoCanvas(canvas, sessionNum){
   canvas.addEventListener("touchstart", start, {passive:false});
   canvas.addEventListener("touchmove", move, {passive:false});
   canvas.addEventListener("touchend", end);
-}
-function initTrazadoModalCanvas(sessionNum){
-  const canvas = document.getElementById("trazado-modal-canvas");
-  if(!canvas) return;
-  const r = canvas.getBoundingClientRect();
-  canvas.width = Math.max(1, Math.round(r.width * 2));
-  canvas.height = Math.max(1, Math.round(r.height * 2));
-  initTrazadoCanvas(canvas, sessionNum);
-}
-function trazadoUndo(canvas, sessionNum){
-  const state = canvas._trazado;
-  if(!state || !state.undoStack.length) return;
-  canvas.getContext("2d").putImageData(state.undoStack.pop(), 0, 0);
-  if(sessionState[sessionNum]) sessionState[sessionNum].trazado = canvas.toDataURL("image/png");
-}
-function trazadoClear(canvas, sessionNum){
-  const state = canvas._trazado;
-  const ctx = canvas.getContext("2d");
-  if(state) state.undoStack.push(ctx.getImageData(0, 0, canvas.width, canvas.height));
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  if(sessionState[sessionNum]) sessionState[sessionNum].trazado = null;
 }
 
 function attachDailyTabHandlers(){
@@ -4375,88 +4072,31 @@ function attachDailyTabHandlers(){
     t.addEventListener("input", (e) => { sessionState[parseInt(t.dataset.session)].notas = e.target.value; });
   });
 
-  document.querySelectorAll(".trazado-canvas[data-session]").forEach(canvas => {
+  document.querySelectorAll(".trazado-canvas").forEach(canvas => {
     const i = parseInt(canvas.dataset.session);
     initTrazadoCanvas(canvas, i);
   });
-  if(trazadoModalSession !== null) initTrazadoModalCanvas(trazadoModalSession);
-
-  // botones del lápiz: cada uno resuelve si actúa sobre el recuadro chico (data-session)
-  // o sobre el lienzo de pantalla completa (data-modal), y el estado vive en canvas._trazado
-  function trazadoTargetFor(btn){
-    if(btn.dataset.modal === "1"){
-      return { canvas: document.getElementById("trazado-modal-canvas"), sessionNum: trazadoModalSession };
-    }
-    const i = parseInt(btn.dataset.session);
-    return { canvas: document.querySelector(`.trazado-canvas[data-session="${i}"]`), sessionNum: i };
-  }
-  document.querySelectorAll(".trazado-color").forEach(btn => {
-    btn.addEventListener("click", () => {
-      const { canvas } = trazadoTargetFor(btn);
-      if(!canvas || !canvas._trazado) return;
-      canvas._trazado.color = btn.dataset.color;
-      canvas._trazado.mode = "pen";
-      const scope = btn.closest(".trazado-toolbar");
-      scope.querySelectorAll(".trazado-color").forEach(b => b.classList.toggle("active", b === btn));
-      scope.querySelectorAll(".trazado-line,.trazado-erase").forEach(b => b.classList.remove("active"));
-    });
-  });
-  document.querySelectorAll(".trazado-width").forEach(btn => {
-    btn.addEventListener("click", () => {
-      const { canvas } = trazadoTargetFor(btn);
-      if(!canvas || !canvas._trazado) return;
-      canvas._trazado.width = parseInt(btn.dataset.width);
-      btn.closest(".trazado-toolbar").querySelectorAll(".trazado-width").forEach(b => b.classList.toggle("active", b === btn));
-    });
-  });
-  document.querySelectorAll(".trazado-line").forEach(btn => {
-    btn.addEventListener("click", () => {
-      const { canvas } = trazadoTargetFor(btn);
-      if(!canvas || !canvas._trazado) return;
-      const on = canvas._trazado.mode !== "line";
-      canvas._trazado.mode = on ? "line" : "pen";
-      const scope = btn.closest(".trazado-toolbar");
-      btn.classList.toggle("active", on);
-      scope.querySelector(".trazado-erase").classList.remove("active");
-    });
-  });
-  document.querySelectorAll(".trazado-erase").forEach(btn => {
-    btn.addEventListener("click", () => {
-      const { canvas } = trazadoTargetFor(btn);
-      if(!canvas || !canvas._trazado) return;
-      const on = canvas._trazado.mode !== "eraser";
-      canvas._trazado.mode = on ? "eraser" : "pen";
-      const scope = btn.closest(".trazado-toolbar");
-      btn.classList.toggle("active", on);
-      scope.querySelector(".trazado-line").classList.remove("active");
-    });
-  });
-  document.querySelectorAll(".trazado-undo").forEach(btn => {
-    btn.addEventListener("click", () => {
-      const { canvas, sessionNum } = trazadoTargetFor(btn);
-      if(canvas) trazadoUndo(canvas, sessionNum);
-    });
-  });
   document.querySelectorAll(".trazado-clear").forEach(btn => {
     btn.addEventListener("click", () => {
-      const { canvas, sessionNum } = trazadoTargetFor(btn);
-      if(!canvas) return;
-      const existing = sessionState[sessionNum] && sessionState[sessionNum].trazado;
-      if(existing && !confirm("¿Borrar el trazado dibujado de esta sesión?")) return;
-      trazadoClear(canvas, sessionNum);
+      const i = parseInt(btn.dataset.session);
+      const canvas = document.querySelector(`.trazado-canvas[data-session="${i}"]`);
+      if(canvas){
+        const existing = sessionState[i].trazado;
+        if(existing && !confirm("¿Borrar el trazado dibujado de esta sesión?")) return;
+        canvas.getContext("2d").clearRect(0,0,canvas.width,canvas.height);
+        sessionState[i].trazado = null;
+      }
     });
   });
-  document.querySelectorAll(".trazado-expand").forEach(btn => {
+  document.querySelectorAll(".trazado-color").forEach(btn => {
     btn.addEventListener("click", () => {
-      trazadoModalSession = parseInt(btn.dataset.session);
-      render();
+      const i = parseInt(btn.dataset.session);
+      const canvas = document.querySelector(`.trazado-canvas[data-session="${i}"]`);
+      if(canvas) canvas._trazadoColor = btn.dataset.color;
+      document.querySelectorAll(`.trazado-color[data-session="${i}"]`).forEach(b => {
+        b.style.borderColor = b === btn ? "#1A1A1A" : "#DDDDDD";
+      });
     });
-  });
-  const trazadoModalCloseBtn = document.getElementById("trazado-modal-close");
-  if(trazadoModalCloseBtn) trazadoModalCloseBtn.addEventListener("click", () => { trazadoModalSession = null; render(); });
-  const trazadoModalOverlay = document.getElementById("trazado-modal-overlay");
-  if(trazadoModalOverlay) trazadoModalOverlay.addEventListener("click", (e) => {
-    if(e.target.id === "trazado-modal-overlay"){ trazadoModalSession = null; render(); }
   });
 
   const saveDayBtn = document.getElementById("save-day-btn");
@@ -4571,14 +4211,8 @@ function attachCheckinsTabHandlers(){
 
 function attachTransportTabHandlers(){
   if(authState.level === "master"){
-    const bencinaInput = document.getElementById("bencina-monto-input");
-    if(bencinaInput) bencinaInput.addEventListener("input", (e) => { bencinaMontoDraft = e.target.value; bencinaMontoJustSaved = false; });
-    const bencinaSaveBtn = document.getElementById("save-bencina-monto-btn");
-    if(bencinaSaveBtn) bencinaSaveBtn.addEventListener("click", saveBencinaMonto);
     const expBtn = document.getElementById("export-transport-btn");
     if(expBtn) expBtn.addEventListener("click", exportTransportToExcel);
-    const expBencinaBtn = document.getElementById("export-bencina-btn");
-    if(expBencinaBtn) expBencinaBtn.addEventListener("click", exportPagoBencina);
     const toggleBtn = document.getElementById("admin-transport-cal-toggle-btn");
     if(toggleBtn) toggleBtn.addEventListener("click", toggleAdminTransportCalendar);
     const prevBtn = document.getElementById("admin-transport-cal-prev-btn");
@@ -4674,8 +4308,7 @@ async function loadAllData(){
   sessions = sRows.map(mapSession);
   attendance = atRows.map(mapAttendance);
   if(acRows && acRows[0]){
-    accessConfig = { masterCode: acRows[0].master_code, categoryCodes: acRows[0].category_codes, directorioCode: acRows[0].directorio_code || "", bencinaCuotaMonto: Number(acRows[0].bencina_cuota_monto) || 0 };
-    bencinaMontoDraft = String(accessConfig.bencinaCuotaMonto || "");
+    accessConfig = { masterCode: acRows[0].master_code, categoryCodes: acRows[0].category_codes, directorioCode: acRows[0].directorio_code || "" };
     if(acRows[0].coordinator_map && Object.keys(acRows[0].coordinator_map).length){
       COORDINATOR_MAP = acRows[0].coordinator_map;
       COORDINATOR_CODES = Array.from(new Set(Object.values(COORDINATOR_MAP).filter(v => v !== "JEFE")));
