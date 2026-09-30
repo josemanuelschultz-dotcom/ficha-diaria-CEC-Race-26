@@ -395,6 +395,83 @@
   .date-warn button{background:white; border:1px solid #E3C36B; border-radius:6px; padding:4px 10px; color:#8A6100; font-size:12px; font-weight:600; flex-shrink:0;}
   .cal-body{padding:6px 8px 10px;}
   .backup-row{display:flex; gap:8px; flex-wrap:wrap;}
+
+/* ============ Tortas y editor del informe (pantalla) ============ */
+.torta-box{border:1px solid #E7ECF2;border-radius:12px;padding:12px;}
+.torta-t{font-size:13px;font-weight:600;color:#1A1A1A;}
+.torta-s{font-size:11px;color:#8D8D8D;margin-bottom:8px;}
+.torta-row{display:flex;gap:12px;align-items:center;}
+.torta-row svg{flex-shrink:0;}
+.tl{flex:1;min-width:0;}
+.tl-row{display:flex;align-items:baseline;gap:6px;font-size:12px;padding:2px 0;}
+.tl-sw{width:9px;height:9px;border-radius:2px;flex-shrink:0;}
+.tl-name{flex:1;min-width:0;color:#52514e;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.tl-pct{font-family:'JetBrains Mono',monospace;font-weight:600;color:#1A1A1A;}
+.tl-cnt{font-family:'JetBrains Mono',monospace;font-size:10px;color:#8D8D8D;}
+.tortas-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+@media (max-width:620px){ .tortas-grid{grid-template-columns:1fr;} }
+.inf-sec{border:1px solid #E7ECF2;border-radius:12px;padding:12px;margin-bottom:10px;background:#FBFCFD;}
+.inf-sec-top{display:flex;gap:8px;align-items:center;margin-bottom:8px;}
+.inf-sec-top input{flex:1;font-weight:600;}
+.inf-sec textarea{width:100%;min-height:96px;font-family:inherit;font-size:13px;line-height:1.5;
+  padding:9px 11px;border:1px solid #E7ECF2;border-radius:9px;resize:vertical;}
+.inf-chk{display:flex;align-items:center;gap:6px;font-size:11px;color:#8D8D8D;margin-top:7px;cursor:pointer;}
+.inf-del{background:none;border:none;cursor:pointer;color:#8D8D8D;font-size:16px;padding:2px 6px;}
+
+/* ============ Hoja del informe: se ve solo al imprimir ============ */
+#hoja-informe{display:none;}
+@media print{
+  @page{ size:A4; margin:13mm 15mm; }
+  body.imprimiendo > *{ display:none !important; }
+  body.imprimiendo #hoja-informe{
+    display:block !important; position:static;
+    font-family:Inter,system-ui,sans-serif; color:#1A1A1A; font-size:10.3pt; line-height:1.5;
+  }
+  body.imprimiendo{ background:#fff !important; }
+  #hoja-informe *{ box-sizing:border-box; }
+  #hoja-informe .pi-hd{display:flex;align-items:center;gap:13px;border-bottom:2.5px solid #BC1A25;
+    padding-bottom:11px;margin-bottom:6px;}
+  #hoja-informe .pi-hd img{width:52px;height:52px;border-radius:999px;}
+  #hoja-informe .pi-club{font-family:'Oswald',sans-serif;font-size:9pt;text-transform:uppercase;
+    letter-spacing:.1em;color:#BC1A25;font-weight:600;}
+  #hoja-informe .pi-h1{font-family:'Oswald',sans-serif;font-size:19pt;font-weight:700;line-height:1.1;margin-top:1px;}
+  #hoja-informe .pi-meta{margin-left:auto;text-align:right;font-size:8.5pt;color:#8D8D8D;line-height:1.5;}
+  #hoja-informe .pi-sub{font-size:9pt;color:#52514e;margin-bottom:16px;}
+  #hoja-informe h2{font-family:'Oswald',sans-serif;font-size:11.5pt;text-transform:uppercase;
+    letter-spacing:.04em;margin:15px 0 7px;padding-left:9px;border-left:3.5px solid #BC1A25;font-weight:600;
+    page-break-after:avoid;}
+  #hoja-informe p{margin:6px 0;}
+  #hoja-informe ul{margin:6px 0;padding-left:17px;page-break-inside:avoid;}
+  #hoja-informe li{margin-bottom:4px;}
+  #hoja-informe .pi-kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-bottom:14px;
+    page-break-inside:avoid;}
+  #hoja-informe .pi-kpi{background:#F5F5F2;border-radius:9px;padding:10px 11px;}
+  #hoja-informe .pi-kpi .k{font-size:7.5pt;color:#8D8D8D;text-transform:uppercase;letter-spacing:.05em;}
+  #hoja-informe .pi-kpi .v{font-family:'Oswald',sans-serif;font-size:21pt;font-weight:700;line-height:1.05;margin-top:1px;}
+  #hoja-informe .pi-kpi .s{font-size:8pt;color:#8D8D8D;}
+  #hoja-informe .pi-mt{height:6px;border-radius:3px;background:#e3e3de;overflow:hidden;margin-top:6px;}
+  #hoja-informe .pi-mt i{display:block;height:100%;border-radius:3px;}
+  #hoja-informe .pi-two{display:grid;grid-template-columns:1fr 1fr;gap:15px;page-break-inside:avoid;}
+  #hoja-informe .torta-box{border:1px solid #e2e2dd;border-radius:11px;padding:12px;}
+  #hoja-informe .torta-t{font-size:9.5pt;}
+  #hoja-informe .torta-s{font-size:7.5pt;}
+  #hoja-informe .tl-row{font-size:8.5pt;}
+  #hoja-informe .tl-cnt{font-size:7.5pt;}
+  #hoja-informe .pi-nota{font-size:8pt;color:#8D8D8D;line-height:1.5;margin-top:9px;}
+  #hoja-informe .pi-br{margin-bottom:7px;}
+  #hoja-informe .pi-bt{display:flex;justify-content:space-between;font-size:9pt;margin-bottom:3px;}
+  #hoja-informe .pi-bk{height:6px;background:#e3e3de;border-radius:3px;overflow:hidden;}
+  #hoja-informe .pi-bf{height:100%;border-radius:3px;}
+  #hoja-informe .destaca{background:#FFF7E3;border-left:3.5px solid #FFB703;border-radius:0 9px 9px 0;
+    padding:11px 14px;margin:9px 0;page-break-inside:avoid;}
+  #hoja-informe .destaca p{margin:0;}
+  #hoja-informe .pi-salto{page-break-before:always;}
+  #hoja-informe .pi-firma{margin-top:20px;padding-top:9px;border-top:1px solid #e2e2dd;
+    display:flex;justify-content:space-between;font-size:8.5pt;color:#8D8D8D;}
+  #hoja-informe .pi-fl{border-top:1px solid #1A1A1A;width:185px;padding-top:4px;text-align:center;color:#1A1A1A;}
+  #hoja-informe .mono{font-family:'JetBrains Mono',monospace;}
+}
+
 </style>
 </head>
 <body>
@@ -486,7 +563,7 @@ function configForGroup(groupId){
 const CARRERAS = [{"f":"2026-07-26","d":"D","n":"COPA CLUB ANDES","l":"LA PARVA","c":"CAN","e":"GS","g":"U14- U16","x":"F&M","t":"H. Guerreros","s":"Cancelada","o":"GS U14: 2 carreras/ GS U16: 2 mangas"},{"f":"2026-07-30","d":"J","n":"COPA VOLCANES","l":"CORRALCO","c":"CORR","e":"ENTRENAMIENTO SG","g":"U10-U12-U14-U16","x":"F&M","t":"Aldo Garda","s":"Inscrita","o":"Entrenamiento"},{"f":"2026-07-31","d":"V","n":"COPA VOLCANES","l":"CORRALCO","c":"CORR","e":"SG/ KR-T","g":"U10-U12-U14-U16","x":"F&M","t":"Aldo Garda","s":"Inscrita","o":"SG: 1 manga/ KR-T: 1 manga"},{"f":"2026-08-01","d":"S","n":"COPA VOLCANES","l":"CORRALCO","c":"CORR","e":"GS/ SL","g":"U14-U16/ U10-U12","x":"F&M","t":"Aldo Garda","s":"Inscrita","o":"GS: 2 mangas/ SL: 1 manga"},{"f":"2026-08-01","d":"S","n":"COPA ART","l":"VALLE NEVADO","c":"ART","e":"GS","g":"U10","x":"F&M","t":"S. Parot","s":"Reprogramada","o":"2 carreras 1 manga c/u · Pendiente confirmación"},{"f":"2026-08-02","d":"D","n":"COPA VOLCANES","l":"CORRALCO","c":"CORR","e":"SL/ GS","g":"U14-U16/ U10-U12","x":"F&M","t":"Aldo Garda","s":"Inscrita","o":"SL: 2 mangas/ GS: 1 manga"},{"f":"2026-08-02","d":"D","n":"COPA MEDS","l":"VALLE NEVADO","c":"CVN","e":"SL","g":"U12","x":"F&M","t":"S. Molina","s":"Reprogramada","o":""},{"f":"2026-08-09","d":"D","n":"COPA ART","l":"VALLE NEVADO","c":"ART","e":"GS","g":"U14/U16","x":"F&M","t":"TBD","s":"Inscrita","o":"2 mangas, 1 sola carrera"},{"f":"2026-08-10","d":"L","n":"INTERSUR","l":"CHILLAN","c":"CEC","e":"LLEGADA","g":"U8-U10-U12-U14-U16","x":"F&M","t":"J.P. Mandru/A. Wiedemann","s":"Inscrita","o":""},{"f":"2026-08-11","d":"MA","n":"INTERSUR","l":"CHILLAN","c":"CEC","e":"ENTRENAMIENTO KR-V/ SG","g":"U10-U12/ U14-U16","x":"F&M","t":"J.P. Mandru/A. Wiedemann","s":"Inscrita","o":"KR: 1 carrera 1 Manga/ SG: 2 carreras 1 manga · Este día es Entrenamiento?"},{"f":"2026-08-12","d":"MI","n":"INTERSUR","l":"CHILLAN","c":"CEC","e":"KR-V/ SG","g":"U10-U12/ U14-U16","x":"F&M","t":"J.P. Mandru/A. Wiedemann","s":"Inscrita","o":"KR: 1 carrera 1 Manga/ SG: 2 carreras 1 manga"},{"f":"2026-08-13","d":"J","n":"INTERSUR","l":"CHILLAN","c":"CEC","e":"SL/ GS","g":"U10-U12/ U14-U16","x":"F&M","t":"J.P. Mandru/A. Wiedemann","s":"Inscrita","o":"SL: 1 carrera 1 manga/ GS: 1 carrera 2 mangas"},{"f":"2026-08-14","d":"V","n":"INTERSUR","l":"CHILLAN","c":"CEC","e":"GS/ SL","g":"U10-U12/ U14-U16","x":"F&M","t":"J.P. Mandru/A. Wiedemann","s":"Inscrita","o":"GS U10: 1 carrera 1 manga - GSU12: 2 carreras 1 manga · SL: 1 carrera 2 mangas"},{"f":"2026-08-15","d":"S","n":"COPA ARAUCARIAS I - II","l":"VOLCAN LLAIMA","c":"CAR","e":"SL","g":"U14-U16","x":"F&M","t":"P.Mehr","s":"Cancelada","o":""},{"f":"2026-08-16","d":"D","n":"COPA CHILEXPRESS","l":"LA PARVA","c":"CLP","e":"SL","g":"U14-U16","x":"F&M","t":"M. Rivera","s":"Inscrita","o":""},{"f":"2026-08-22","d":"S","n":"AVIANCA WEEK","l":"EL COLORADO","c":"UC","e":"GS","g":"U12","x":"F&M","t":"P.P. Rodriguez","s":"Reprogramada","o":"1 carrera 2 mangas"},{"f":"2026-08-22","d":"S","n":"COPA VILLARICA","l":"PUCÓN","c":"LV","e":"SL/ GS","g":"U10-U12/ U14-U16","x":"F&M","t":"P.Mehr","s":"Inscrita","o":"GS: 2 mangas"},{"f":"2026-08-23","d":"D","n":"AVIANCA WEEK","l":"EL COLORADO","c":"UC","e":"SL","g":"U14-U16","x":"F&M","t":"J.Campos","s":"Reprogramada","o":"2 carreras de 1 manga cada una"},{"f":"2026-08-23","d":"D","n":"COPA VILLARICA","l":"PUCÓN","c":"LV","e":"KR-V/ SL","g":"U10-U12/ U14-U16","x":"F&M","t":"P.Mehr","s":"Inscrita","o":"SL: 2 mangas"},{"f":"2026-08-26","d":"MI","n":"COPA COLUN (INGRESO)","l":"ANTILLANCA","c":"CAO","e":"GS-SL-SG","g":"U12-U14-U16-U18","x":"F&M","t":"J.P. Mandru","s":"Inscrita","o":""},{"f":"2026-08-27","d":"J","n":"COPA COLUN","l":"ANTILLANCA","c":"CAO","e":"GS*2","g":"U12-U14-U16-U18","x":"F&M","t":"J.P. Mandru","s":"Inscrita","o":""},{"f":"2026-08-28","d":"V","n":"COPA COLUN","l":"ANTILLANCA","c":"CAO","e":"GS U14*2 y GS*1","g":"U12-U14-U16-U18","x":"F&M","t":"J.P. Mandru","s":"Inscrita","o":""},{"f":"2026-08-29","d":"S","n":"COPA COLUN","l":"ANTILLANCA","c":"CAO","e":"SL","g":"U12-U14-U16-U18","x":"F&M","t":"J.P. Mandru","s":"Inscrita","o":""},{"f":"2026-08-29","d":"S","n":"COPA STANLEY","l":"LA PARVA","c":"CLP","e":"FUNRACE","g":"U10","x":"F&M","t":"J.Campos","s":"Inscrita","o":""},{"f":"2026-08-31","d":"L","n":"PATAGONICO (ESQUEL-ARG)","l":"ESQUEL ARGENTINA","c":"","e":"","g":"","x":"","t":"","s":"Inscrita","o":""},{"f":"2026-09-01","d":"MA","n":"PATAGONICO (ESQUEL-ARG)","l":"ESQUEL ARGENTINA","c":"","e":"","g":"","x":"","t":"","s":"Inscrita","o":""},{"f":"2026-09-02","d":"MI","n":"PATAGONICO (ESQUEL-ARG)","l":"ESQUEL ARGENTINA","c":"","e":"","g":"","x":"","t":"","s":"Inscrita","o":""},{"f":"2026-09-03","d":"J","n":"PATAGONICO (ESQUEL-ARG)","l":"ESQUEL ARGENTINA","c":"","e":"","g":"","x":"","t":"","s":"Inscrita","o":""},{"f":"2026-09-04","d":"V","n":"PATAGONICO (ESQUEL-ARG)","l":"ESQUEL ARGENTINA","c":"","e":"","g":"","x":"","t":"","s":"Inscrita","o":""},{"f":"2026-09-05","d":"S","n":"COPA PORTILLO","l":"PORTILLO","c":"POR","e":"GS","g":"U14-U16","x":"F&M","t":"G. Barros","s":"Inscrita","o":""},{"f":"2026-09-06","d":"D","n":"COPA PORTILLO","l":"PORTILLO","c":"POR","e":"GS","g":"U10-U12","x":"F&M","t":"G. Barros","s":"Inscrita","o":""},{"f":"2026-09-11","d":"V","n":"COPA LA LEÑERA SUPER G","l":"VALLE NEVADO","c":"CVN","e":"SG","g":"U14-U16","x":"F&M","t":"P.P. Rodriguez","s":"Inscrita","o":""},{"f":"2026-09-11","d":"V","n":"COPA PUYEHUE","l":"ANTILLANCA","c":"PAT","e":"GS-SG-KR","g":"U10-U12-U14-U16","x":"F&M","t":"J.P. Mandru","s":"Reprogramada","o":""},{"f":"2026-09-12","d":"S","n":"COPA CLUB ANDES","l":"LA PARVA","c":"CAN","e":"KR","g":"U10-U12","x":"F&M","t":"S.Molina","s":"Inscrita","o":"KR U10-U12: 2 carreras"},{"f":"2026-09-12","d":"S","n":"COPA ARAUCARIAS I - II","l":"VOLCÁN LLAIMA","c":"CAR","e":"SG","g":"U14-U16","x":"F&M","t":"A. Wiedemann","s":"Inscrita","o":""},{"f":"2026-09-12","d":"S","n":"COPA PUYEHUE","l":"ANTILLANCA","c":"PAT","e":"GS-SG-KR","g":"U10-U12-U14-U16","x":"F&M","t":"J.P. Mandru","s":"Reprogramada","o":""},{"f":"2026-09-13","d":"D","n":"COPA CLUB LA PARVA","l":"LA PARVA","c":"CLP","e":"GS","g":"U14-U16","x":"F&M","t":"H. Guerrero","s":"Inscrita","o":""},{"f":"2026-09-13","d":"D","n":"COPA ARAUCARIAS I - II","l":"VOLCÁN LLAIMA","c":"CAR","e":"SL","g":"U10-U12-U14-U16","x":"F&M","t":"A. Wiedemann","s":"Inscrita","o":"SL U14-U16: 2 mangas"},{"f":"2026-09-13","d":"D","n":"COPA PUYEHUE","l":"ANTILLANCA","c":"PAT","e":"GS-SG-KR","g":"U10-U12-U14-U16","x":"F&M","t":"J.P. Mandru","s":"Reprogramada","o":""},{"f":"2026-09-14","d":"L","n":"COPA ARAUCARIAS I - II","l":"VOLCÁN LLAIMA","c":"CAR","e":"GS","g":"U10-U12-U14-U16","x":"F&M","t":"A. Wiedemann","s":"Inscrita","o":""},{"f":"2026-09-21","d":"L","n":"CNI (INGRESO)","l":"ANTILLANCA","c":"CAO","e":"GS-SL-SG-KR","g":"U12-U14-U16","x":"F&M","t":"TBD","s":"Inscrita","o":""},{"f":"2026-09-22","d":"MA","n":"CNI","l":"ANTILLANCA","c":"CAO","e":"SG TRA","g":"U12-U14-U16","x":"F&M","t":"TBD","s":"Inscrita","o":""},{"f":"2026-09-23","d":"MI","n":"CNI","l":"ANTILLANCA","c":"CAO","e":"SG","g":"U12-U14-U16","x":"F&M","t":"TBD","s":"Inscrita","o":""},{"f":"2026-09-24","d":"J","n":"CNI","l":"ANTILLANCA","c":"CAO","e":"GS","g":"U12-U14-U16","x":"F&M","t":"TBD","s":"Inscrita","o":""},{"f":"2026-09-25","d":"V","n":"CNI","l":"ANTILLANCA","c":"CAO","e":"SL","g":"U12-U14-U16","x":"F&M","t":"TBD","s":"Inscrita","o":""},{"f":"2026-09-26","d":"S","n":"CNI","l":"ANTILLANCA","c":"CAO","e":"GS-SL-SG-KR","g":"U12-U14-U16","x":"F&M","t":"TBD","s":"Inscrita","o":""}];
 const CODIGOS_CARRERAS = ["Mamel","Keko","Cata","Riccardo","Chiqui"];
 let filtroCatCarrera = "";
-const APP_VERSION = "v20260930.1";
+const APP_VERSION = "v20260930.2";
 const K_AUTH = "ski-auth-session"; // per-device only (not synced): who is logged in on this browser
 
 /* Acceso Directiva (nivel "directorio", solo lectura): DESACTIVADO.
@@ -556,6 +633,7 @@ async function sbDelete(table, match){
 function mapAthlete(row){
   return { id: row.id, groupId: row.group_id, name: row.name, phone: row.phone || "",
     notas: row.notas || "",
+    informe: Array.isArray(row.informe) ? row.informe : [],
     medical: { enfermedades: row.enfermedades || "", alergias: row.alergias || "", medicamentos: row.medicamentos || "", otros: row.otros || "", notas: row.notas || "" } };
 }
 function mapSession(row){
@@ -994,6 +1072,13 @@ let pagoDetalleAbierto = null;  // código del entrenador cuyo detalle está des
 let asisDesde = "";
 let asisHasta = "";
 let asisDetalleAbierto = null;  // id del entrenador cuyo detalle día a día está desplegado
+// Informe de temporada por integrante
+let informeAbierto = null;      // id del integrante cuyo editor está desplegado
+let informeDraft = null;        // secciones mientras se editan
+let informeSaving = false;
+let informeError = "";
+let informeGuardado = false;
+let graficosAbiertos = true;    // tortas de la pestaña Estadísticas
 let prePanelOpen = false;
 let preAtletaPanelOpen = false;
 let tripsStatsOpen = false;
@@ -3583,6 +3668,234 @@ function renderDailyTab(){
    número (no como texto "85% (17/20)"), así se puede ordenar, filtrar y
    comparar en la planilla. Los conteos van al lado de cada porcentaje para
    ver sobre cuántos días se calculó. */
+/* ==================== INFORME DE TEMPORADA POR INTEGRANTE ====================
+   Genera el PDF completo: la hoja de datos con gráficos y el texto del informe.
+   El PDF se arma con la impresión del navegador (Guardar como PDF), así no
+   hace falta ninguna librería extra y el texto sale seleccionable, no como
+   imagen. Las secciones del informe se guardan en athletes.informe. */
+
+const INFORME_SECCIONES_BASE = [
+  { t:"Resumen", c:"", d:false },
+  { t:"Fortalezas", c:"", d:false },
+  { t:"Aspecto técnico a trabajar", c:"", d:false },
+  { t:"Aspecto social", c:"", d:false },
+  { t:"Lo que necesita", c:"", d:true },
+  { t:"Conclusión", c:"", d:false },
+];
+
+// Paleta de series validada para daltonismo. El orden es fijo, nunca se recicla.
+const SERIE_COLORES = ["#2a78d6","#eb6834","#1baf7a","#eda100","#e87ba4","#008300"];
+
+// Fecha del informe: "30 de septiembre de 2026"
+function fechaInforme(){
+  const [y,m,d] = todayISO().split("-").map(Number);
+  return `${d} de ${MESES[m-1]} de ${y}`;
+}
+
+/* ---- Torta (dona) en SVG. Separación de 2px entre porciones y el porcentaje
+       escrito dentro de las que tienen espacio, para que el color nunca sea
+       el único dato. ---- */
+function tortaSVG(datos, tam){
+  tam = tam || 128;
+  const R = tam*0.42, r = tam*0.25, c = tam/2;
+  const total = datos.reduce((s,d) => s + d.ses, 0);
+  if(!total) return "";
+  let ang = -Math.PI/2, partes = "", etiquetas = "";
+  datos.forEach((d,i) => {
+    const frac = d.ses/total, barrido = frac*Math.PI*2;
+    const a1 = ang, a2 = ang + barrido;
+    const P = (rad,a) => [c+rad*Math.cos(a), c+rad*Math.sin(a)];
+    const grande = barrido > Math.PI ? 1 : 0;
+    const [x1,y1]=P(R,a1), [x2,y2]=P(R,a2), [x3,y3]=P(r,a2), [x4,y4]=P(r,a1);
+    const unica = datos.length === 1;
+    const ruta = unica
+      ? `M ${c-R} ${c} A ${R} ${R} 0 1 1 ${c+R} ${c} A ${R} ${R} 0 1 1 ${c-R} ${c} M ${c-r} ${c} A ${r} ${r} 0 1 0 ${c+r} ${c} A ${r} ${r} 0 1 0 ${c-r} ${c}`
+      : `M ${x1.toFixed(2)} ${y1.toFixed(2)} A ${R.toFixed(2)} ${R.toFixed(2)} 0 ${grande} 1 ${x2.toFixed(2)} ${y2.toFixed(2)} L ${x3.toFixed(2)} ${y3.toFixed(2)} A ${r.toFixed(2)} ${r.toFixed(2)} 0 ${grande} 0 ${x4.toFixed(2)} ${y4.toFixed(2)} Z`;
+    partes += `<path d="${ruta}" fill="${SERIE_COLORES[i%6]}" stroke="#ffffff" stroke-width="2"><title>${escapeHtml(d.name)}: ${Math.round(frac*100)}% · ${d.ses} sesiones · ${d.dias} días</title></path>`;
+    if(frac >= 0.10){
+      const [lx,ly] = P((R+r)/2, (a1+a2)/2);
+      etiquetas += `<text x="${lx.toFixed(1)}" y="${(ly+3.8).toFixed(1)}" text-anchor="middle" font-size="10" font-family="'JetBrains Mono',monospace" font-weight="600" fill="#fff" style="paint-order:stroke;stroke:rgba(0,0,0,.28);stroke-width:2.5px;">${Math.round(frac*100)}%</text>`;
+    }
+    ang = a2;
+  });
+  return `<svg width="${tam}" height="${tam}" viewBox="0 0 ${tam} ${tam}" role="img">
+    ${partes}${etiquetas}
+    <text x="${c}" y="${c-1}" text-anchor="middle" font-size="16" font-family="'Oswald',sans-serif" font-weight="700" fill="${NAVY}">${total}</text>
+    <text x="${c}" y="${c+11}" text-anchor="middle" font-size="8" fill="${GRAY}">sesiones</text>
+  </svg>`;
+}
+
+function tortaLeyendaHTML(datos){
+  return datos.map((d,i) => `<div class="tl-row">
+    <span class="tl-sw" style="background:${SERIE_COLORES[i%6]}"></span>
+    <span class="tl-name">${escapeHtml(d.name)}</span>
+    <span class="tl-pct">${Math.round(d.pct*100)}%</span>
+    <span class="tl-cnt">${d.ses}s·${d.dias}d</span>
+  </div>`).join("");
+}
+
+function tortaBloqueHTML(titulo, sub, datos){
+  if(!datos.length) return `<div class="torta-box"><div class="torta-t">${titulo}</div>
+    <div style="font-size:12px;color:${GRAY};text-align:center;padding:14px 0;">Sin datos</div></div>`;
+  return `<div class="torta-box">
+    <div class="torta-t">${titulo}</div><div class="torta-s">${sub}</div>
+    <div class="torta-row">${tortaSVG(datos)}<div class="tl">${tortaLeyendaHTML(datos)}</div></div>
+  </div>`;
+}
+
+/* ---- Estadísticas del integrante en el formato que usan los gráficos ----
+   Los porcentajes se calculan sobre las sesiones acreditadas, o sea las de
+   los días en que el integrante estuvo presente. */
+function estadisticasInforme(athleteId, groupId){
+  const cfg = configForGroup(groupId);
+  const presentes = new Set(attendance.filter(a => a.athleteId===athleteId && a.status==="present").map(a => a.date));
+  const acred = sessions.filter(s => s.groupId===groupId && presentes.has(s.date));
+  const total = acred.length;
+  const reparto = (campo, opciones) => opciones.map(o => {
+    const ss = acred.filter(s => s[campo] === o);
+    return { name:o, ses:ss.length, dias:new Set(ss.map(s=>s.date)).size, pct: total ? ss.length/total : 0 };
+  }).filter(x => x.ses > 0).sort((a,b) => b.ses - a.ses);
+
+  const educ = acred.filter(s => s.trabajo === "Ejercicios educativos");
+  const fund = FUNDAMENTOS.map(f => {
+    const ss = educ.filter(s => (s.fundamentos||[]).includes(f));
+    return { name:f, ses:ss.length, pct: educ.length ? ss.length/educ.length : 0 };
+  }).filter(x => x.ses > 0).sort((a,b) => b.ses - a.ses);
+
+  const sp = athletePeriodStats(athleteId, "temporada_26");
+  return {
+    dias: new Set(acred.map(s => s.date)).size,
+    sesiones: total,
+    curvas: acred.reduce((n,s) => n + (s.totalCurvas||0), 0),
+    hasCurvas: cfg.hasCurvas,
+    pct: sp.pct, presentes: sp.present, totalDias: sp.total,
+    disciplina: reparto("disciplina", cfg.disciplinas),
+    trabajo: reparto("trabajo", cfg.trabajo.map(t => t.label)),
+    fundamentos: fund, educSes: educ.length,
+  };
+}
+
+/* ---- Texto del informe: una línea que empieza con "- " es viñeta,
+       una línea en blanco separa párrafos. ---- */
+function informeTextoAHTML(texto){
+  const bloques = (texto||"").split(/\n\s*\n/).filter(b => b.trim());
+  return bloques.map(b => {
+    const lineas = b.split("\n").map(l => l.trim()).filter(Boolean);
+    if(lineas.every(l => l.startsWith("- "))){
+      return `<ul>${lineas.map(l => `<li>${resaltarNegrita(l.slice(2))}</li>`).join("")}</ul>`;
+    }
+    return `<p>${lineas.map(resaltarNegrita).join(" ")}</p>`;
+  }).join("");
+}
+function resaltarNegrita(t){
+  return escapeHtml(t).replace(/\*\*([^*]+)\*\*/g, "<b>$1</b>");
+}
+
+function informeDe(athlete){
+  const inf = (athlete && Array.isArray(athlete.informe)) ? athlete.informe : [];
+  return inf.length ? inf : INFORME_SECCIONES_BASE.map(s => ({...s}));
+}
+
+async function guardarInforme(athleteId){
+  const at = athletes.find(a => a.id === athleteId);
+  if(!at) return;
+  informeSaving = true; informeError = ""; render();
+  try{
+    const limpio = (informeDraft||[]).filter(s => (s.t||"").trim() || (s.c||"").trim());
+    await sbUpdate("athletes", { id: athleteId }, { informe: limpio });
+    at.informe = limpio;
+    informeDraft = null;
+    informeGuardado = true;
+    setTimeout(() => { informeGuardado = false; render(); }, 2500);
+  }catch(e){
+    informeError = "No se pudo guardar. Detalle: " + e.message;
+  }
+  informeSaving = false; render();
+}
+
+/* ---- Vista de impresión: se inyecta en el documento, se llama a imprimir y
+       se quita. El navegador ofrece "Guardar como PDF". ---- */
+function descargarInformePDF(athleteId){
+  const at = athletes.find(a => a.id === athleteId);
+  if(!at){ alert("No encuentro a ese integrante."); return; }
+  const g = groups.find(gr => gr.id === at.groupId);
+  const st = estadisticasInforme(athleteId, at.groupId);
+  if(!st.sesiones){ alert("Este integrante no tiene sesiones acreditadas, así que el informe saldría vacío."); return; }
+
+  const secciones = (informeDraft && informeAbierto === athleteId) ? informeDraft : informeDe(at);
+  const conTexto = secciones.filter(s => (s.c||"").trim());
+  const colPct = st.pct === null ? GRAY : st.pct >= 80 ? GREEN : st.pct >= 50 ? GOLD : RED;
+
+  const cuerpo = conTexto.map(s => {
+    const html = informeTextoAHTML(s.c);
+    if(s.d){
+      const m = html.match(/^<p>([\s\S]*?)<\/p>/);
+      const primero = m ? m[1] : "";
+      const resto = m ? html.slice(m[0].length) : html;
+      return `<section><h2>${escapeHtml(s.t)}</h2>
+        <div class="destaca"><p>${primero}</p></div>${resto}</section>`;
+    }
+    return `<section><h2>${escapeHtml(s.t)}</h2>${html}</section>`;
+  }).join("");
+
+  const hoja = document.createElement("div");
+  hoja.id = "hoja-informe";
+  hoja.innerHTML = `
+    <div class="pi-hd">
+      <img src="${LOGO_DATA_URI}" alt="" />
+      <div><div class="pi-club">Club Esquí de Chillán</div>
+        <div class="pi-h1">Informe de temporada 2026</div></div>
+      <div class="pi-meta">${escapeHtml(g?.program||"")} · ${escapeHtml(g?.name||"")}<br/>${fechaInforme()}</div>
+    </div>
+    <div class="pi-sub"><b>${escapeHtml(at.name)}</b>${g ? ` · ${escapeHtml(g.name)} · Temporada 2026` : ""}</div>
+
+    <section><h2>La temporada en números</h2>
+      <div class="pi-kpis">
+        <div class="pi-kpi"><div class="k">Días entrenados</div><div class="v">${st.dias}</div>
+          <div class="s">de los ${st.totalDias} del grupo</div></div>
+        <div class="pi-kpi"><div class="k">Sesiones</div><div class="v">${st.sesiones}</div>
+          <div class="s">${st.dias ? (st.sesiones/st.dias).toFixed(1).replace(".",",") : "0"} por día</div></div>
+        <div class="pi-kpi"><div class="k">Asistencia</div>
+          <div class="v" style="color:${colPct}">${st.pct===null?"—":st.pct+"%"}</div>
+          <div class="s">${st.presentes} de ${st.totalDias} días</div>
+          <div class="pi-mt"><i style="width:${st.pct||0}%;background:${colPct}"></i></div></div>
+      </div>
+      <div class="pi-two">
+        ${tortaBloqueHTML("Disciplina", `Reparto de sus ${st.sesiones} sesiones`, st.disciplina)}
+        ${tortaBloqueHTML("Tipo de entrenamiento", `Reparto de sus ${st.sesiones} sesiones`, st.trabajo)}
+      </div>
+      <div class="pi-nota">En la leyenda, <b>s</b> son sesiones y <b>d</b> días distintos: no coinciden porque un día de entrenamiento puede tener más de una sesión.</div>
+    </section>
+
+    ${st.fundamentos.length ? `<section><h2>Fundamentos trabajados</h2>
+      <div class="pi-nota" style="margin:0 0 9px;">Sobre sus ${st.educSes} sesiones de ejercicios educativos.</div>
+      ${st.fundamentos.map((f,i) => `<div class="pi-br">
+        <div class="pi-bt"><span>${escapeHtml(f.name)}</span>
+          <span class="mono"><b>${Math.round(f.pct*100)}%</b> <span style="color:${GRAY}">(${f.ses}/${st.educSes})</span></span></div>
+        <div class="pi-bk"><div class="pi-bf" style="width:${f.pct*100}%;background:${SERIE_COLORES[i%6]}"></div></div>
+      </div>`).join("")}
+      <div class="pi-nota">En una sesión se trabajan varios fundamentos a la vez, por eso estos porcentajes no se reparten un total.</div>
+    </section>` : ""}
+
+    ${cuerpo ? `<div class="pi-salto"></div>${cuerpo}` : ""}
+
+    <div class="pi-firma">
+      <div>Club Esquí de Chillán · Temporada 2026</div>
+      <div class="pi-fl">Entrenador responsable</div>
+    </div>`;
+
+  document.body.appendChild(hoja);
+  document.body.classList.add("imprimiendo");
+  const limpiar = () => {
+    document.body.classList.remove("imprimiendo");
+    const h = document.getElementById("hoja-informe");
+    if(h) h.remove();
+    window.removeEventListener("afterprint", limpiar);
+  };
+  window.addEventListener("afterprint", limpiar);
+  setTimeout(() => { window.print(); setTimeout(limpiar, 800); }, 120);
+}
+
 function exportEstadisticasToExcel(todos = false){
   const XLSX = window.XLSX;
   if(!XLSX){ alert("Excel no disponible."); return; }
@@ -3730,6 +4043,84 @@ function exportEstadisticasToExcel(todos = false){
   XLSX.writeFile(wb, `estadisticas_${nombre}_${todayISO()}.xlsx`);
 }
 
+/* ---- Bloque de gráficos + editor del informe, en la pestaña Estadísticas ---- */
+function renderGraficosYInformeHTML(athlete){
+  if(!athlete) return "";
+  const st = estadisticasInforme(athlete.id, selectedGroupId);
+  const secciones = (informeDraft && informeAbierto === athlete.id) ? informeDraft : informeDe(athlete);
+  const editando = informeAbierto === athlete.id;
+  let html = "";
+
+  // --- Gráficos ---
+  html += `<div class="card panel">
+    <button type="button" class="panel-toggle" id="graf-toggle">
+      <span class="panel-title">📊 Gráficos de ${escapeHtml(athlete.name.split(" ")[0])}</span>
+      <span class="panel-meta">${st.sesiones} sesiones <span class="chev">${graficosAbiertos?"▴":"▾"}</span></span>
+    </button>`;
+  if(graficosAbiertos){
+    html += `<div class="panel-body">`;
+    if(!st.sesiones){
+      html += `<div style="font-size:13px;color:${GRAY};text-align:center;padding:14px 0;">Todavía no tiene sesiones acreditadas.</div>`;
+    } else {
+      html += `<div class="tortas-grid">
+        ${tortaBloqueHTML("Disciplina", `Reparto de sus ${st.sesiones} sesiones`, st.disciplina)}
+        ${tortaBloqueHTML("Tipo de entrenamiento", `Reparto de sus ${st.sesiones} sesiones`, st.trabajo)}
+      </div>
+      <div style="font-size:11px;color:${GRAY};margin-top:10px;">En la leyenda, <b>s</b> son sesiones y <b>d</b> días distintos: no coinciden porque un día puede tener varias sesiones.</div>`;
+      if(st.fundamentos.length){
+        html += `<div style="font-size:11px;color:${NAVY};font-weight:600;text-transform:uppercase;letter-spacing:.04em;margin:16px 0 4px;">Fundamentos trabajados</div>
+          <div style="font-size:11px;color:${GRAY};margin-bottom:10px;">Sobre sus ${st.educSes} sesiones de ejercicios educativos.</div>`;
+        st.fundamentos.forEach((f,i) => {
+          html += `<div class="pctbar-row">
+            <div class="pctbar-top"><span>${escapeHtml(f.name)}</span>
+              <span style="font-family:'JetBrains Mono',monospace;font-weight:600;color:${NAVY};">${Math.round(f.pct*100)}% <span style="color:${GRAY};font-weight:400;">(${f.ses}/${st.educSes})</span></span></div>
+            <div class="pctbar-track"><div class="pctbar-fill" style="width:${f.pct*100}%;background:${SERIE_COLORES[i%6]};"></div></div>
+          </div>`;
+        });
+        html += `<div style="font-size:11px;color:${GRAY};margin-top:6px;">En una sesión se trabajan varios fundamentos a la vez, así que estos porcentajes no reparten un total y pueden sumar más de 100%.</div>`;
+      }
+    }
+    html += `</div>`;
+  }
+  html += `</div>`;
+
+  // --- Informe ---
+  const conTexto = secciones.filter(s => (s.c||"").trim()).length;
+  html += `<div class="card">
+    <div class="section-label"><div class="gate-poles"><span></span><span></span></div><span class="title">📄 Informe de temporada</span></div>
+    <div style="font-size:12px;color:${GRAY};margin-bottom:12px;">El PDF sale con la hoja de datos y los gráficos de arriba, más el texto que escribas acá.</div>`;
+
+  if(!editando){
+    html += `<div style="font-size:12px;color:${conTexto?NAVY:GRAY};margin-bottom:12px;">
+      ${conTexto ? `${conTexto} sección${conTexto===1?"":"es"} escrita${conTexto===1?"":"s"}.` : "Todavía sin texto. El PDF saldría solo con la hoja de datos."}</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn-outline" id="inf-editar" style="flex:1;justify-content:center;min-width:140px;">✏️ Escribir el informe</button>
+        <button class="btn-navy" id="inf-pdf" style="flex:1;justify-content:center;min-width:140px;">⬇️ Descargar PDF</button>
+      </div>`;
+  } else {
+    secciones.forEach((s,i) => {
+      html += `<div class="inf-sec">
+        <div class="inf-sec-top">
+          <input type="text" data-inf-titulo="${i}" value="${escapeHtml(s.t||"")}" placeholder="Título de la sección" />
+          <button type="button" class="inf-del" data-inf-borrar="${i}" title="Quitar esta sección">🗑️</button>
+        </div>
+        <textarea data-inf-texto="${i}" placeholder="Escribe aquí. Una línea en blanco separa párrafos. Una línea que empieza con «- » queda como viñeta. Para negrita, **entre dos asteriscos**.">${escapeHtml(s.c||"")}</textarea>
+        <label class="inf-chk"><input type="checkbox" data-inf-destaca="${i}" ${s.d?"checked":""} /> Destacar el primer párrafo en un recuadro</label>
+      </div>`;
+    });
+    html += `<button class="btn-outline" id="inf-agregar" style="width:100%;justify-content:center;margin-bottom:12px;">➕ Agregar sección</button>`;
+    if(informeError) html += `<div class="error-box" style="margin-bottom:10px;">${escapeHtml(informeError)}</div>`;
+    html += `<div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="save-btn" id="inf-guardar" style="flex:1;min-width:130px;">${informeSaving?"Guardando...":"✓ Guardar"}</button>
+        <button class="btn-outline" id="inf-cancelar" style="flex:1;justify-content:center;min-width:110px;">Cerrar</button>
+      </div>`;
+  }
+  if(informeGuardado) html += `<div class="info-box" style="margin-top:10px;">Informe guardado.</div>`;
+  html += `<div style="font-size:11px;color:${GRAY};margin-top:10px;">Al tocar «Descargar PDF» se abre el cuadro de impresión: elige <b>Guardar como PDF</b> como destino. En el teléfono está dentro de «Compartir».</div>`;
+  html += `</div>`;
+  return html;
+}
+
 function renderProfileTab(){
   let html = `<div class="card">
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;">`;
@@ -3811,6 +4202,7 @@ function renderProfileTab(){
 
   html += `<div style="font-size:11px;color:${GRAY};">Los porcentajes se calculan solo con los días en que este integrante estuvo presente.</div>`;
   html += `</div>`;
+  html += renderGraficosYInformeHTML(profileAthlete);
 
   // ===== Asistencia del grupo (días en pista: solo temporada, sin pretemporada) =====
   const grpSummary = getGroupSummary(selectedGroupId, "temporada_26");
@@ -5017,6 +5409,48 @@ function attachDailyTabHandlers(){
 }
 
 function attachProfileTabHandlers(){
+  // --- Gráficos e informe ---
+  const grafT = document.getElementById("graf-toggle");
+  if(grafT) grafT.addEventListener("click", () => { graficosAbiertos = !graficosAbiertos; render(); });
+
+  const athId = profileAthleteId;
+  const infEditar = document.getElementById("inf-editar");
+  if(infEditar) infEditar.addEventListener("click", () => {
+    const at = athletes.find(a => a.id === athId);
+    informeAbierto = athId;
+    informeDraft = informeDe(at).map(s => ({...s}));
+    informeError = ""; render();
+  });
+  const infPdf = document.getElementById("inf-pdf");
+  if(infPdf) infPdf.addEventListener("click", () => descargarInformePDF(athId));
+
+  // Los cambios se guardan en el borrador sin re-renderizar, para no perder
+  // el cursor mientras se escribe.
+  document.querySelectorAll("[data-inf-titulo]").forEach(el =>
+    el.addEventListener("input", e => { if(informeDraft) informeDraft[+el.dataset.infTitulo].t = e.target.value; }));
+  document.querySelectorAll("[data-inf-texto]").forEach(el =>
+    el.addEventListener("input", e => { if(informeDraft) informeDraft[+el.dataset.infTexto].c = e.target.value; }));
+  document.querySelectorAll("[data-inf-destaca]").forEach(el =>
+    el.addEventListener("change", e => { if(informeDraft) informeDraft[+el.dataset.infDestaca].d = e.target.checked; }));
+  document.querySelectorAll("[data-inf-borrar]").forEach(el =>
+    el.addEventListener("click", () => {
+      if(!informeDraft) return;
+      informeDraft.splice(+el.dataset.infBorrar, 1);
+      render();
+    }));
+  const infAgregar = document.getElementById("inf-agregar");
+  if(infAgregar) infAgregar.addEventListener("click", () => {
+    if(!informeDraft) informeDraft = [];
+    informeDraft.push({ t:"", c:"", d:false });
+    render();
+  });
+  const infGuardar = document.getElementById("inf-guardar");
+  if(infGuardar) infGuardar.addEventListener("click", () => guardarInforme(athId));
+  const infCancelar = document.getElementById("inf-cancelar");
+  if(infCancelar) infCancelar.addEventListener("click", () => {
+    informeAbierto = null; informeDraft = null; informeError = ""; render();
+  });
+
   const expGrupo = document.getElementById("export-est-grupo");
   if(expGrupo) expGrupo.addEventListener("click", () => exportEstadisticasToExcel(false));
   const expTodos = document.getElementById("export-est-todos");
